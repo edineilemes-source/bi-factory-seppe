@@ -11,3 +11,6 @@ storage/working/*
 !storage/working/.gitkeep
 storage/reports/*
 !storage/reports/.gitkeep
+storage/*.sqlite3
+storage/*.sqlite3-shm
+storage/*.sqlite3-wal

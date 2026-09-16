@@ -8,11 +8,26 @@ from typing import Any
 
 
 EMPTY_VALUES = (None, "")
+DEFAULT_PLACEHOLDER_VALUES = frozenset({
+    "", "-", "--", "n/a", "na", "null", "sem informação",
+})
 
 
 def is_empty(value: Any) -> bool:
     """Return whether a cell should be treated as empty."""
     return value is None or (isinstance(value, str) and not value.strip())
+
+
+def is_placeholder(
+    value: Any, placeholder_values: frozenset[str] = DEFAULT_PLACEHOLDER_VALUES
+) -> bool:
+    """Return whether a source value represents absence during profiling only."""
+    if not isinstance(value, str):
+        return False
+    normalized_placeholders = {
+        str(placeholder).strip().casefold() for placeholder in placeholder_values
+    }
+    return value.strip().casefold() in normalized_placeholders
 
 
 def normalize_name(value: Any, fallback: str = "campo") -> str:
@@ -75,9 +90,16 @@ def value_kind(value: Any) -> str:
         return "integer"
     if re.fullmatch(r"[-+]?(?:\d+[.,]\d+|\d{1,3}(?:[.]\d{3})+[,]\d+)", text):
         return "number"
-    if re.fullmatch(r"\d{4}[-/]\d{1,2}[-/]\d{1,2}", text) or re.fullmatch(
-        r"\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}", text
-    ):
+    date_formats = (
+        "%Y-%m-%d", "%Y/%m/%d",
+        "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
+        "%d/%m/%y", "%d-%m-%y", "%d.%m.%y",
+    )
+    for date_format in date_formats:
+        try:
+            datetime.strptime(text, date_format)
+        except ValueError:
+            continue
         return "date"
     return "text"
 

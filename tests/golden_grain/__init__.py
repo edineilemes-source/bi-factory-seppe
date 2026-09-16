@@ -1,0 +1,1 @@
+"""Permanent Golden Grain contract."""

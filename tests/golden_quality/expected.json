@@ -1,0 +1,16 @@
+{
+  "required_issue_types": [
+    "missing_value", "placeholder_value", "identifier_inconsistency",
+    "duplicate_value", "duplicate_record", "outlier",
+    "format_inconsistency", "domain_inconsistency", "invalid_type"
+  ],
+  "protected_cases": {
+    "repeated_identifier_is_not_itself_duplicate_record": true,
+    "negative_measure_is_not_invalid_type": true,
+    "outlier_is_warning_not_correction": true,
+    "null_is_not_placeholder": true
+  },
+  "expected_duplicate_records": 1,
+  "expected_rows": 11,
+  "expected_fields": 5
+}

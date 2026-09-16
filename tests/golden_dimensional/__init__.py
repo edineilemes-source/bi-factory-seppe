@@ -1,0 +1,1 @@
+"""Golden dimensional discovery suite."""

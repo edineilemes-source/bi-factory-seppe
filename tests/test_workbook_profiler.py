@@ -4,6 +4,7 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from core.ingestion.file_loader import LoadedSheet, LoadedWorkbook, load_tabular_file
+from core.ingestion.file_loader import distributed_sample_rows
 from core.profiling.workbook_profiler import profile_workbook
 
 
@@ -84,3 +85,14 @@ def test_structural_warnings_are_aggregated() -> None:
     assert "fully_empty_columns" in codes
     assert "duplicate_headers" in codes
     assert "unnamed_field" in codes
+
+
+def test_distributed_sampling_covers_source_and_is_deterministic() -> None:
+    rows = [[index] for index in range(50_000)]
+    first = distributed_sample_rows(iter(rows), len(rows), 10_000)
+    second = distributed_sample_rows(iter(rows), len(rows), 10_000)
+    sampled = {row[0] for row in first}
+    assert first == second
+    assert len(first) == 10_000
+    assert 0 in sampled and 49_999 in sampled
+    assert any(20_000 <= value <= 30_000 for value in sampled)

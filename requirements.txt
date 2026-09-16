@@ -2,3 +2,4 @@ streamlit==1.48.1
 pydantic==2.11.7
 python-calamine==0.5.3
 pytest==8.4.1
+psycopg[binary]==3.2.9

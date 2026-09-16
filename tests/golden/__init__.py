@@ -1,0 +1,1 @@
+"""Golden semantic specification."""

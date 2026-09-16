@@ -1,0 +1,1 @@
+"""Golden Prepared Dataset gate."""

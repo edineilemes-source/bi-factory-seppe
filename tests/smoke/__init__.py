@@ -1,0 +1,1 @@
+"""Fast application smoke tests."""

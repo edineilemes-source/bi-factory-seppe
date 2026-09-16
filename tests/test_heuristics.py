@@ -14,6 +14,9 @@ from core.profiling.heuristics import detect_header_row, normalize_name, value_k
         ("  Valor Total (R$) ", "valor_total_r"),
         ("2025 Meta", "campo_2025_meta"),
         ("", "campo"),
+        ("Nº Documento", "no_documento"),
+        ("Taxa % / Mês-Ano", "taxa_mes_ano"),
+        ("  múltiplos   espaços  ", "multiplos_espacos"),
     ],
 )
 def test_normalize_name(source: str, expected: str) -> None:

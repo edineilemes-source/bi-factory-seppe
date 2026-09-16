@@ -54,8 +54,26 @@ python -m pip install -r requirements.txt
 Execute os testes:
 
 ```bash
-python -m pytest
+./test-bi-factory.sh
 ```
+
+Antes de considerar uma sprint concluída, execute `./test-bi-factory.sh`. O
+resultado esperado é a aprovação dos testes smoke, regression, acceptance, do
+Golden Semantic Test, da suíte completa e da verificação `git diff --check`.
+
+### Regra de regressão semântica
+
+Todo erro semântico relevante descoberto manualmente deve seguir este fluxo:
+
+1. reproduzir o erro no Golden Semantic Test ou em um teste de regressão;
+2. confirmar que o novo teste falha;
+3. corrigir a implementação;
+4. confirmar que o teste passa;
+5. manter o caso permanentemente na suíte.
+
+O Golden Dataset é pequeno, determinístico, versionável, não contém dados
+pessoais ou confidenciais e não depende da planilha usada na validação
+exploratória.
 
 Inicie a aplicação:
 
@@ -76,8 +94,67 @@ aproximados, inventário de abas, hipótese de papel de cada aba, perfil dos
 campos e alertas estruturais. As classificações são heurísticas preliminares e
 devem ser validadas por uma pessoa responsável pelo domínio dos dados.
 
+## Qualidade contextual
+
+Completude física e qualidade de completude de negócio são métricas distintas.
+Todo campo começa com obrigatoriedade e aplicabilidade `UNKNOWN`; ausência só é
+penalizada como defeito quando a política é `REQUIRED + APPLICABLE`. Campos sem
+evidência cuja decisão semântica é `DEFERRED_NO_EVIDENCE` são `NOT_EVALUATED`:
+seu score é N/A e suas células não entram no denominador.
+
+O score contextual é determinístico:
+
+`100 - min(100, 100 * weighted_quality_defects / eligible_cells)`
+
+Os pesos permanecem INFO=0,25, WARNING=0,5, ERROR=1 e CRITICAL=2. Ausências
+neutras continuam nas métricas físicas de missing, placeholder e observed
+completeness, mas não compõem `weighted_quality_defects`. O relatório apresenta
+separadamente Quality Score e Observed Completeness.
+
 ## Próximos passos
 
 As próximas sprints poderão evoluir o diagnóstico e os contratos do Módulo 01.
 Integrações externas, persistência e modelagem serão introduzidas apenas quando
 entrarem formalmente no escopo.
+# Motor de qualidade (Sprint 2.1)
+
+Após a validação semântica, o motor determinístico analisa a amostra carregada sem
+alterar valores de origem. Findings semelhantes são agrupados e limitados a cinco
+exemplos. O relatório e candidatos de reconciliação permanecem vinculados ao
+`analysis_id` no SQLite; reabrir uma análise não dispara recálculo.
+
+O score é explicável: `100 - min(100, 100 × células afetadas ponderadas / células
+analisadas)`, com pesos INFO 0,25, WARNING 0,5, ERROR 1 e CRITICAL 2. O relatório
+detalhado é a fonte principal. A checagem `REFERENTIAL_CANDIDATE_ISSUE` possui
+contrato, mas fica explicitamente não implementada até existirem relacionamentos
+declarados; inferir integridade referencial antes disso produziria falsos positivos.
+# Prepared Dataset (Sprint 2.2)
+
+O fluxo de preparação consome a fonte completa e produz somente valores efetivos
+(`validated > normalized > source`), sem alterar valores de origem, excluir linhas
+ou remover campos vazios/deferred. Cada linha recebe um `source_row_id` técnico e
+determinístico; toda alteração segura gera um `TransformationRecord`.
+
+Cada geração recebe UUID e versão novos. O fingerprint SHA-256 considera schema,
+linhas efetivas e versão do ruleset, mas ignora UUIDs e timestamps, permitindo
+verificar reprodutibilidade. O SQLite guarda metadados, schema, transformações e
+localização opcional do artefato — nunca 181 mil linhas célula a célula. O CSV
+baixável contém apenas valores efetivos e a identidade técnica da linha; a
+auditoria detalhada fica no relatório JSON separado.
+
+## Grain Discovery & Validation (Sprint 2.3)
+
+O Grain Engine consome exclusivamente o Prepared Dataset completo. Ele gera um
+número limitado e configurável de candidatos a grão usando papéis semânticos
+efetivos, cardinalidade, combinações de identificadores, constraints e issues de
+qualidade. Chaves técnicas e `source_row_id` nunca participam do business grain.
+
+Processo, evento, grão e business key são contratos distintos. Dependências
+funcionais são registradas como apenas observadas na carga atual, e medidas
+repetidas geram alertas conservadores de risco de dupla contagem. Nenhuma
+hipótese é autoaceita: somente uma confirmação ou descrição manual persistida
+produz o Effective Grain e o status `READY_FOR_DIMENSIONAL_MODELING`.
+
+Relatórios de descoberta e definições validadas são imutáveis e versionados por
+Prepared Dataset. Uma nova versão preparada exige nova descoberta/validação e
+não herda silenciosamente o grão anterior.

@@ -119,6 +119,7 @@ def _profile_sheet(sheet: LoadedSheet) -> SheetProfile:
         approximate_row_count=approximate_data_rows,
         column_count=width,
         sampled_data_row_count=len(data_rows),
+        sampling_strategy=sheet.sampling_strategy,
         probable_header_row=header_index + 1 if header_index is not None else None,
         fully_empty_rows=empty_rows,
         fully_empty_columns=empty_columns,
