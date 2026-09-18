@@ -29,47 +29,63 @@ def _real_state():
     return state, repository
 
 
-def test_resume_real_analysis_routes_directly_to_grain_with_v2_artifact():
+def test_resume_real_analysis_routes_to_persisted_dimensional_stage_with_v2_artifact():
     state, _ = _real_state()
     artifact = validate_grain_prepared_artifact(state)
 
     assert state["analysis_id"] == REAL_ANALYSIS_ID
-    assert state["current_analysis_stage"] == AnalysisStage.GRAIN_DISCOVERY
-    assert state["last_successful_stage"] == AnalysisStage.PREPARED_DATASET
-    assert resolve_render_stage(state) == AnalysisStage.GRAIN_DISCOVERY
+    assert state["current_analysis_stage"] == AnalysisStage.DIMENSIONAL_DISCOVERY
+    assert state["last_successful_stage"] == AnalysisStage.GRAIN_DISCOVERY
+    assert resolve_render_stage(state) == AnalysisStage.DIMENSIONAL_DISCOVERY
     assert artifact.version == 2
     assert artifact.row_count == 181476
     assert artifact.field_count == 38
     assert artifact.status.value == "READY_WITH_WARNINGS"
 
 
-def test_transition_preserves_analysis_and_prepared_version_and_synchronizes_state():
+def test_real_advanced_analysis_must_not_be_forced_back_to_grain():
+    """The mutable PMCG homologation case has already advanced to Dimensional."""
     state, repository = _real_state()
     artifact = state["current_prepared_artifact"]
-    before_versions = [(item.prepared_dataset_id, item.version)
-                       for item in repository.list_prepared_datasets(REAL_ANALYSIS_ID)]
+    before_versions = [
+        (item.prepared_dataset_id, item.version)
+        for item in repository.list_prepared_datasets(REAL_ANALYSIS_ID)
+    ]
+
+    # Simulating an old session marker must not override the lifecycle resolved
+    # from persistence.
     state["current_analysis_stage"] = AnalysisStage.PREPARED_DATASET
     state["last_successful_stage"] = AnalysisStage.QUALITY
 
-    assert transition_prepared_to_grain(state) == AnalysisStage.GRAIN_DISCOVERY
+    with pytest.raises(
+        ValueError,
+        match="persistência resolveu DIMENSIONAL_DISCOVERY",
+    ):
+        transition_prepared_to_grain(state)
 
-    assert state["analysis_id"] == state["current_analysis_id"] == REAL_ANALYSIS_ID
-    assert state["selected_analysis_id"] == REAL_ANALYSIS_ID
-    assert state["last_successful_stage"] == AnalysisStage.PREPARED_DATASET
-    assert state["current_prepared_artifact"] is artifact
+    # No Prepared version is created or replaced by the refused backward transition.
     assert artifact.version == 2
-    assert before_versions == [(item.prepared_dataset_id, item.version)
-                               for item in repository.list_prepared_datasets(REAL_ANALYSIS_ID)]
+    assert before_versions == [
+        (item.prepared_dataset_id, item.version)
+        for item in repository.list_prepared_datasets(REAL_ANALYSIS_ID)
+    ]
 
 
-def test_grain_router_never_silently_falls_back_to_prepared():
+def test_dimensional_router_does_not_depend_on_prepared_session_cache():
+    """At Dimensional, the Prepared artifact is resolved by the stage that needs it."""
     state, _ = _real_state()
     state["current_prepared_artifact"] = None
+    state["current_prepared_dataset_id"] = None
 
-    assert resolve_render_stage(state) == AnalysisStage.GRAIN_DISCOVERY
-    assert state["current_analysis_stage"] == AnalysisStage.GRAIN_DISCOVERY
-    assert state["current_prepared_artifact"].version == 2
+    assert resolve_render_stage(state) == AnalysisStage.DIMENSIONAL_DISCOVERY
+    assert state["current_analysis_stage"] == AnalysisStage.DIMENSIONAL_DISCOVERY
 
+    # The generic router must not silently move the workflow backwards merely
+    # to repopulate a cache. Persistence-backed consumers resolve the artifact.
+    assert state["current_prepared_artifact"] is None
+    artifact = validate_grain_prepared_artifact(state)
+    assert artifact.version == 2
+    assert artifact.prepared_dataset_id == "8d60c32c-2363-4f48-80be-d108f8bcae80"
 
 def test_artifact_ownership_rejects_analysis_document_and_fingerprint_mismatch():
     state, _ = _real_state()
@@ -101,7 +117,7 @@ def test_restart_rehydrates_same_grain_stage_and_source_is_immutable():
     select_analysis(restarted, first["analysis_id"], first["source_document_id"])
     resume_persistent_analysis(restarted, repository, first["analysis_id"])
 
-    assert resolve_render_stage(restarted) == AnalysisStage.GRAIN_DISCOVERY
+    assert resolve_render_stage(restarted) == AnalysisStage.DIMENSIONAL_DISCOVERY
     assert restarted["analysis_id"] == REAL_ANALYSIS_ID
     assert restarted["current_prepared_artifact"].version == 2
     assert hashlib.sha256(REAL_SOURCE.read_bytes()).hexdigest() == before
