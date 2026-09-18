@@ -27,7 +27,7 @@ class SQLiteBusinessContextStore:
             connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS business_contexts (
-                    business_context_id TEXT PRIMARY KEY,
+                    business_context_id TEXT NOT NULL,
                     source_document_id TEXT NOT NULL REFERENCES source_documents(source_document_id),
                     analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id) ON DELETE CASCADE,
                     prepared_dataset_id TEXT NOT NULL REFERENCES prepared_datasets(prepared_dataset_id),
@@ -37,6 +37,7 @@ class SQLiteBusinessContextStore:
                     context_json TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
+                    PRIMARY KEY (business_context_id, version),
                     UNIQUE(prepared_dataset_id, version)
                 );
                 CREATE INDEX IF NOT EXISTS idx_business_contexts_dataset
@@ -142,7 +143,8 @@ class SQLiteBusinessContextStore:
                 ),
             )
             row = connection.execute(
-                "SELECT * FROM business_contexts WHERE business_context_id = ?",
-                (persisted.business_context_id,),
+                "SELECT * FROM business_contexts "
+                "WHERE business_context_id = ? AND version = ?",
+                (persisted.business_context_id, persisted.version),
             ).fetchone()
         return self._record(row)
