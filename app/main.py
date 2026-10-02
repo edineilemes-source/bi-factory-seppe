@@ -17,6 +17,7 @@ from app.components.postgresql_ddl_view import render_postgresql_ddl
 from app.components.dimensional_etl_plan_view import render_dimensional_etl_plan
 from app.components.dimensional_transformation_view import render_dimensional_transformation
 from app.components.database_dry_run_view import render_database_dry_run
+from app.components.official_fiscal_dashboard_view import render_official_fiscal_dashboard
 from app.session_state import (
     initialize_session_state,
     reset_analysis_state,
@@ -172,6 +173,17 @@ def run() -> None:
     initialize_session_state(st.session_state)
     repository = _repository()
     st.title("BI Factory SEPPE")
+
+    mode = st.sidebar.radio(
+        "Área",
+        ("BI Fiscal Oficial", "BI Factory — Planilhas"),
+        index=0,
+        key="app_area",
+    )
+    if mode == "BI Fiscal Oficial":
+        render_official_fiscal_dashboard()
+        return
+
     if st.sidebar.checkbox("BI MVP por Analysis ID (artefatos persistidos)", value=st.query_params.get("mvp") == "1"):
         from app.components.bi_mvp_view import render_bi_mvp
         render_bi_mvp(repository)
