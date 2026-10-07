@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """Example: executive fiscal dashboard project."""
 import json
+import sys
+from pathlib import Path
+
+# Allow direct execution: python scripts/dashboard_project_example.py
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from core.dashboard_project import *
 
 def kpi(title, field, x):
