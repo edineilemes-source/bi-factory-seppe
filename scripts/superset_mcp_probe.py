@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Probe Superset 6.1 MCP from inside the Superset container.
+"""Probe the Superset 6.1 MCP tool-search interface.
 
-Run:
+Run from the BI Factory repo:
   docker exec -i superset_app python - < scripts/superset_mcp_probe.py
 """
 import asyncio
@@ -12,62 +12,75 @@ MCP_URL = "http://127.0.0.1:5008/mcp"
 TARGET_DATASET = "vw_execucao_orcamentaria"
 
 
+def plain(value):
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
+    if isinstance(value, list):
+        return [plain(v) for v in value]
+    return value
+
+
 def dump(label, value):
     print(f"\n=== {label} ===")
     try:
-        if hasattr(value, "model_dump"):
-            value = value.model_dump(mode="json")
-        print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+        print(json.dumps(plain(value), ensure_ascii=False, indent=2, default=str))
     except Exception:
         print(value)
 
 
-async def call(client, name, arguments=None):
-    result = await client.call_tool(name, arguments or {})
+async def proxy(client, name, arguments=None):
+    """Invoke a hidden Superset tool through the 6.1 call_tool proxy."""
+    result = await client.call_tool(
+        "call_tool",
+        {"name": name, "arguments": arguments or {}},
+    )
     dump(name, result)
+    return result
+
+
+async def search(client, query=None):
+    args = {} if query is None else {"query": query}
+    result = await client.call_tool("search_tools", args)
+    dump(f"SEARCH {query or 'ALL'}", result)
     return result
 
 
 async def main():
     async with Client(MCP_URL) as client:
-        tools = await client.list_tools()
-        names = [t.name for t in tools]
-        dump("MCP TOOLS", names)
+        visible = await client.list_tools()
+        dump("VISIBLE MCP TOOLS", [t.name for t in visible])
 
-        required = [
-            "health_check",
-            "list_datasets",
-            "get_dataset_info",
-            "get_chart_type_schema",
-            "generate_chart",
-            "generate_dashboard",
+        # Pinned tool: proves transport + Superset context.
+        health = await client.call_tool("health_check", {})
+        dump("health_check", health)
+
+        # Superset 6.1 hides most tools behind search_tools/call_tool by default.
+        # Discover only the capabilities needed by the BI Factory.
+        queries = [
+            "list datasets",
+            "dataset info",
+            "chart type schema",
+            "generate chart",
+            "generate dashboard",
+            "chart preview data",
         ]
-        missing = [name for name in required if name not in names]
-        if missing:
-            raise SystemExit(f"Ferramentas MCP ausentes: {missing}")
+        for query in queries:
+            await search(client, query)
 
-        await call(client, "health_check")
+        # Exercise read-only hidden tools through the proxy.
+        await proxy(client, "list_datasets", {"search": TARGET_DATASET})
 
-        # Print exact schemas for the tools that the BI Factory will use.
-        for tool in tools:
-            if tool.name in {
-                "list_datasets",
-                "get_dataset_info",
-                "get_chart_type_schema",
-                "generate_chart",
-                "generate_dashboard",
-            }:
-                dump(f"SCHEMA {tool.name}", getattr(tool, "inputSchema", None))
-
-        # Discover the fiscal dataset. The output gives us the exact dataset id.
-        await call(client, "list_datasets", {"search": TARGET_DATASET})
-
-        # Ask Superset itself for the installed-version chart schemas.
-        for chart_type in ("big_number", "xy", "table", "treemap_v2"):
+        # Discover installed-version configuration contracts. Some chart type
+        # identifiers vary; failures are printed and do not stop the probe.
+        for chart_type in ("big_number", "echarts_timeseries_line", "table", "treemap_v2"):
             try:
-                await call(client, "get_chart_type_schema", {"chart_type": chart_type})
+                await proxy(
+                    client,
+                    "get_chart_type_schema",
+                    {"chart_type": chart_type},
+                )
             except Exception as exc:
-                print(f"\n[WARN] schema {chart_type}: {exc}")
+                print(f"\n[WARN] get_chart_type_schema({chart_type}): {exc}")
 
         print("\nPROBE_OK")
 
