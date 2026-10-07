@@ -18,6 +18,7 @@ from app.components.dimensional_etl_plan_view import render_dimensional_etl_plan
 from app.components.dimensional_transformation_view import render_dimensional_transformation
 from app.components.database_dry_run_view import render_database_dry_run
 from app.components.official_fiscal_dashboard_view import render_official_fiscal_dashboard
+from app.components.dashboard_project_designer_view import render_dashboard_project_designer
 from app.session_state import (
     initialize_session_state,
     reset_analysis_state,
@@ -176,12 +177,15 @@ def run() -> None:
 
     mode = st.sidebar.radio(
         "Área",
-        ("BI Fiscal Oficial", "BI Factory — Planilhas"),
+        ("BI Fiscal Oficial", "Projetos de Dashboard", "BI Factory — Planilhas"),
         index=0,
         key="app_area",
     )
     if mode == "BI Fiscal Oficial":
         render_official_fiscal_dashboard()
+        return
+    if mode == "Projetos de Dashboard":
+        render_dashboard_project_designer()
         return
 
     if st.sidebar.checkbox("BI MVP por Analysis ID (artefatos persistidos)", value=st.query_params.get("mvp") == "1"):
