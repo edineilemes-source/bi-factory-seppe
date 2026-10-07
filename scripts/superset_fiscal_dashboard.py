@@ -12,14 +12,27 @@ import urllib.parse
 import urllib.request
 
 
-def request(base, path, token=None, method="GET", payload=None):
+def request(base, path, token=None, method="GET", payload=None, csrf_token=None):
     data = None if payload is None else json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    if csrf_token and method in {"POST", "PUT", "DELETE", "PATCH"}:
+        headers["X-CSRFToken"] = csrf_token
     req = urllib.request.Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=60) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            raw = response.read()
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Superset API {method} {path} -> HTTP {exc.code}: {detail}"
+        ) from exc
+
+
+def csrf(base, token):
+    return request(base, "/api/v1/security/csrf_token/", token)["result"]
 
 
 def login(base, username, password):
@@ -36,7 +49,7 @@ def find_one(base, token, resource, column, value):
     return rows[0] if rows else None
 
 
-def create_chart(base, token, dataset_id, title, viz_type, params):
+def create_chart(base, token, csrf_token, dataset_id, title, viz_type, params):
     existing = find_one(base, token, "chart", "slice_name", title)
     body = {
         "slice_name": title,
@@ -46,9 +59,9 @@ def create_chart(base, token, dataset_id, title, viz_type, params):
         "params": json.dumps(params, separators=(",", ":")),
     }
     if existing:
-        request(base, f"/api/v1/chart/{existing['id']}", token, "PUT", body)
+        request(base, f"/api/v1/chart/{existing['id']}", token, "PUT", body, csrf_token)
         return existing["id"]
-    return request(base, "/api/v1/chart/", token, "POST", body)["id"]
+    return request(base, "/api/v1/chart/", token, "POST", body, csrf_token)["id"]
 
 
 def big_number_params(column, subtitle, number_format=".3s"):
@@ -73,6 +86,7 @@ def main():
     p.add_argument("--password", default="admin")
     args = p.parse_args()
     token = login(args.base_url, args.username, args.password)
+    csrf_token = csrf(args.base_url, token)
 
     dataset = find_one(args.base_url, token, "dataset", "table_name", "vw_execucao_orcamentaria")
     if not dataset:
@@ -90,7 +104,7 @@ def main():
     ]
     chart_ids = []
     for title, column, fmt in specs:
-        chart_ids.append(create_chart(args.base_url, token, dataset_id, title,
+        chart_ids.append(create_chart(args.base_url, token, csrf_token, dataset_id, title,
                                       "big_number_total", big_number_params(column, title, fmt)))
 
     line_params = {
@@ -113,7 +127,7 @@ def main():
         "y_axis_format": ".3s",
         "x_axis_time_format": "smart_date",
     }
-    chart_ids.append(create_chart(args.base_url, token, dataset_id,
+    chart_ids.append(create_chart(args.base_url, token, csrf_token, dataset_id,
                                   "Evolução Acumulada por Bimestre",
                                   "echarts_timeseries_line", line_params))
 
@@ -122,14 +136,14 @@ def main():
     body = {"dashboard_title": dashboard_title, "published": True, "slug": "execucao-orcamentaria-campo-grande"}
     if dashboard:
         dashboard_id = dashboard["id"]
-        request(args.base_url, f"/api/v1/dashboard/{dashboard_id}", token, "PUT", body)
+        request(args.base_url, f"/api/v1/dashboard/{dashboard_id}", token, "PUT", body, csrf_token)
     else:
-        dashboard_id = request(args.base_url, "/api/v1/dashboard/", token, "POST", body)["id"]
+        dashboard_id = request(args.base_url, "/api/v1/dashboard/", token, "POST", body, csrf_token)["id"]
 
     # Attach charts by updating dashboard_ids on each chart. Layout can then be
     # refined in the dashboard editor while chart definitions remain generated.
     for chart_id in chart_ids:
-        request(args.base_url, f"/api/v1/chart/{chart_id}", token, "PUT", {"dashboards": [dashboard_id]})
+        request(args.base_url, f"/api/v1/chart/{chart_id}", token, "PUT", {"dashboards": [dashboard_id]}, csrf_token)
 
     print(f"Superset dashboard provisionado: {dashboard_title}")
     print(f"Dashboard ID: {dashboard_id}")
