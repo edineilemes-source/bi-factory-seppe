@@ -4,6 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
+import streamlit.components.v1 as components
+
 import streamlit as st
 
 from core.dashboard_project import (
@@ -58,22 +61,83 @@ def _build_project(name, audience_name, audience_type, objective, filters, kpis,
         refresh_policy="Conforme atualização da fonte analítica",
     )
 
+DATA_PATH = Path(__file__).resolve().parents[2] / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
+
+def _load_fiscal_data(path: Path = DATA_PATH) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    frame = pd.read_csv(path)
+    if frame.empty or not {"ano", "bimestre"}.issubset(frame.columns):
+        raise ValueError("Dados fiscais vazios ou sem exercício/bimestre")
+    return frame.sort_values(["ano", "bimestre"]).reset_index(drop=True)
+
+def _format_brl(value: float) -> str:
+    return ("R$ {:,.2f}".format(value)).replace(",", "#").replace(".", ",").replace("#", ".")
+
+def _echarts_html(frame: pd.DataFrame, chart: DashboardComponent) -> str:
+    """Generate a sandboxed ECharts visualization from trusted field bindings."""
+    labels = [f"{int(v)}º bim." for v in frame["bimestre"]]
+    series = [
+        {"name": m.label, "type": "line", "smooth": True,
+         "data": [float(v) for v in frame[m.field]]}
+        for m in chart.metrics
+    ]
+    option = {
+        "tooltip": {"trigger": "axis"},
+        "legend": {"type": "scroll", "top": 0},
+        "grid": {"left": 75, "right": 28, "top": 65, "bottom": 48},
+        "xAxis": {"type": "category", "data": labels},
+        "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+        "series": series,
+    }
+    return (
+        '<div id="chart" style="width:100%;height:340px"></div>'
+        '<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>'
+        '<script>const option=' + json.dumps(option, ensure_ascii=False) + ';'
+        'const el=document.getElementById("chart");'
+        'if(window.echarts){const chart=echarts.init(el);chart.setOption(option);'
+        'new ResizeObserver(()=>chart.resize()).observe(el);}'
+        'else{el.textContent="Não foi possível carregar ECharts. Verifique a conexão.";}</script>'
+    )
+
 def _render_preview(project: DashboardProject):
     page = project.pages[0]
-    st.markdown("### Prévia da composição")
-    if page.global_filters:
-        st.caption("Filtros: " + " · ".join(item.label for item in page.global_filters))
+    st.markdown("### Prévia com dados oficiais")
+    st.caption("Fonte: SICONFI/RREO 2025 · granularidade bimestral. "
+               "Não representa movimentação diária ou semanal.")
+    try:
+        frame = _load_fiscal_data()
+    except (FileNotFoundError, ValueError) as exc:
+        st.warning("Dataset fiscal não encontrado. Gere o relatório oficial antes de visualizar valores.")
+        st.caption(str(exc))
+        return
+    years = sorted(frame["ano"].dropna().astype(int).unique(), reverse=True)
+    year = st.selectbox("Exercício da prévia", years, key="designer_preview_year")
+    year_frame = frame[frame["ano"] == year]
+    periods = sorted(year_frame["bimestre"].astype(int).unique())
+    period = st.selectbox("Fechamento do bimestre", periods, index=len(periods)-1, key="designer_preview_period")
+    filtered = year_frame[year_frame["bimestre"] <= period]
+    final = filtered.iloc[-1]
+    st.caption(f"Valores acumulados até o {period}º bimestre de {year}.")
     kpis = [c for c in page.components if c.component_type == ComponentType.KPI]
     for start in range(0, len(kpis), 4):
         cols = st.columns(4)
-        for col, component in zip(cols, kpis[start:start + 4]):
-            col.metric(component.title, "—")
+        for col, component in zip(cols, kpis[start:start+4]):
+            field = component.metrics[0].field
+            if field in final.index:
+                col.metric(component.title, _format_brl(float(final[field])))
+            else:
+                col.warning(f"Campo indisponível: {field}")
     for component in page.components:
         if component.component_type == ComponentType.LINE:
             with st.container(border=True):
                 st.markdown(f"#### {component.title}")
-                st.caption("Séries: " + " · ".join(m.label for m in component.metrics))
-                st.info("Prévia estrutural — o renderer ECharts será conectado à consulta da fato na próxima etapa.")
+                if all(m.field in filtered.columns for m in component.metrics):
+                    components.html(_echarts_html(filtered, component), height=365)
+                else:
+                    st.warning("Métrica não encontrada no dataset.")
+    st.caption("O filtro de bimestre determina o fechamento dos KPIs e o limite da série histórica. "
+               "Valores acumulados não são somados entre bimestres.")
 
 def render_dashboard_project_designer() -> None:
     st.subheader("Projetos de Dashboard")
