@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -169,6 +170,22 @@ def render_dashboard_project_designer() -> None:
         return
 
     _render_preview(project)
+    st.markdown("### Publicação")
+    st.caption("Publique a configuração para a Sala de Situação. A publicação não modifica a fonte fiscal.")
+    if st.button("Publicar na Sala de Situação", type="primary"):
+        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(".tmp")
+        try:
+            temporary.write_text(
+                json.dumps(project.model_dump(mode="json"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            os.replace(temporary, target)
+        except OSError as exc:
+            st.error(f"Falha ao publicar: {exc}")
+        else:
+            st.success("Projeto publicado. Atualize a Sala de Situação na porta 8503.")
     st.markdown("### Especificação")
     st.download_button(
         "Baixar especificação JSON",
