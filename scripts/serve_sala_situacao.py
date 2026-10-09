@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "web" / "sala_situacao" / "index.html"
 DATA = ROOT / "storage" / "reports" / "official_fiscal" / "rreo-2025-dashboard.json"
+PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -21,6 +22,8 @@ class Handler(BaseHTTPRequestHandler):
             path, mime = PAGE, "text/html; charset=utf-8"
         elif route == "/api/fiscal":
             path, mime = DATA, "application/json; charset=utf-8"
+        elif route == "/api/dashboard-project":
+            path, mime = PUBLISHED, "application/json; charset=utf-8"
         elif route == "/health":
             self._send(200, b'{"status":"ok"}', "application/json")
             return
@@ -28,7 +31,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b'{"error":"not_found"}', "application/json")
             return
         if not path.is_file():
-            self._send(503, json.dumps({"error": "dataset_unavailable" if route == "/api/fiscal" else "page_unavailable"}).encode(), "application/json")
+            self._send(503, json.dumps({"error": "dataset_unavailable" if route == "/api/fiscal" else "project_not_published" if route == "/api/dashboard-project" else "page_unavailable"}).encode(), "application/json")
             return
         self._send(200, path.read_bytes(), mime)
 
