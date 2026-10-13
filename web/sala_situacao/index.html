@@ -33,13 +33,18 @@ function drawPublished(current,historical){
   grid.replaceChildren();
   publishedComponents.forEach((component,index)=>{
     const field=component.metrics?.[0]?.field;
-    if(!allowedFields.has(field))return;
+    const validMetrics=(component.metrics||[]).filter(m=>allowedFields.has(m.field));
+    if(!validMetrics.length)return;
     const type=component.component_type;
     if(!["KPI","LINE","BAR","TABLE"].includes(type))return;
     const width=Math.max(3,Math.min(12,Number(component.position?.width)||12));
     const card=document.createElement("article");
     card.className=type==="KPI"?"card":"panel";
     card.style.setProperty("--span",String(width));
+    const safeHex=v=>typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v:null;
+    if(safeHex(component.background_color))card.style.backgroundColor=component.background_color;
+    if(safeHex(component.text_color))card.style.color=component.text_color;
+    if(["Inter","Arial","Georgia","Verdana","Roboto"].includes(component.font_family))card.style.fontFamily=component.font_family;
     const title=document.createElement(type==="KPI"?"div":"h3");
     title.textContent=component.title||field;
     if(type==="KPI"){
@@ -57,10 +62,10 @@ function drawPublished(current,historical){
         const table=document.createElement("table");
         table.className="data-table";
         const header=document.createElement("tr");
-        ["Bimestre",component.metrics[0].label||component.title].forEach(s=>{const th=document.createElement("th");th.textContent=s;header.append(th)});
+        ["Bimestre",...validMetrics.map(m=>m.label||m.field)].forEach(s=>{const th=document.createElement("th");th.textContent=s;header.append(th)});
         const thead=document.createElement("thead");thead.append(header);table.append(thead);
         const tbody=document.createElement("tbody");
-        historical.forEach(r=>{const tr=document.createElement("tr");[r.bimestre+"º",brl(Number(r[field]))].forEach(s=>{const td=document.createElement("td");td.textContent=s;tr.append(td)});tbody.append(tr)});
+        historical.forEach(r=>{const tr=document.createElement("tr");[r.bimestre+"º",...validMetrics.map(m=>brl(Number(r[m.field)))].forEach(s=>{const td=document.createElement("td");td.textContent=s;tr.append(td)});tbody.append(tr)});
         table.append(tbody);scroll.append(table);card.append(scroll);
       }else{
         const target=document.createElement("div");
@@ -71,12 +76,12 @@ function drawPublished(current,historical){
         if(!window.echarts){target.textContent="ECharts indisponível";return}
         const chart=echarts.init(target);
         publishedCharts.push(chart);
-        chart.setOption({color:["#168baf"],tooltip:{trigger:"axis",valueFormatter:brl},
-          grid:{top:30,left:76,right:25,bottom:45},
+        chart.setOption({color:(component.series_colors||[]).filter(safeHex).length?(component.series_colors||[]).filter(safeHex):["#168baf","#35a78b","#e3a243","#727ad1"],tooltip:{trigger:"axis",valueFormatter:brl},legend:{type:"scroll",top:0},
+          grid:{top:55,left:76,right:25,bottom:45},
           xAxis:{type:"category",data:historical.map(r=>r.bimestre+"º bim.")},
           yAxis:{type:"value",axisLabel:{formatter:v=>(v/1e9).toFixed(1)+" bi"}},
-          series:[{name:component.metrics[0].label,type:type==="BAR"?"bar":"line",
-            smooth:type==="LINE",barMaxWidth:45,data:historical.map(r=>Number(r[field]))}]});
+          series:validMetrics.map(m=>({name:m.label||m.field,type:type==="BAR"?"bar":"line",
+            smooth:type==="LINE",barMaxWidth:45,data:historical.map(r=>Number(r[m.field]))}))});
         return;
       }
     }
