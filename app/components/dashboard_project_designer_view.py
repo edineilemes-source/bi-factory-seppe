@@ -79,7 +79,7 @@ def _echarts_html(frame: pd.DataFrame, chart: DashboardComponent) -> str:
     """Generate a sandboxed ECharts visualization from trusted field bindings."""
     labels = [f"{int(v)}º bim." for v in frame["bimestre"]]
     series = [
-        {"name": m.label, "type": "line", "smooth": True,
+        {"name": m.label, "type": "bar" if chart.component_type == ComponentType.BAR else "line", "smooth": True,
          "data": [float(v) for v in frame[m.field]]}
         for m in chart.metrics
     ]
@@ -130,11 +130,14 @@ def _render_preview(project: DashboardProject):
             else:
                 col.warning(f"Campo indisponível: {field}")
     for component in page.components:
-        if component.component_type == ComponentType.LINE:
+        if component.component_type in (ComponentType.LINE, ComponentType.BAR, ComponentType.TABLE):
             with st.container(border=True):
                 st.markdown(f"#### {component.title}")
                 if all(m.field in filtered.columns for m in component.metrics):
-                    components.html(_echarts_html(filtered, component), height=365)
+                    if component.component_type == ComponentType.TABLE:
+                        st.dataframe(filtered[["bimestre"] + [m.field for m in component.metrics]].rename(columns={"bimestre":"Bimestre", **{m.field:m.label for m in component.metrics}}), hide_index=True, use_container_width=True)
+                    else:
+                        components.html(_echarts_html(filtered, component), height=365)
                 else:
                     st.warning("Métrica não encontrada no dataset.")
     st.caption("O filtro de bimestre determina o fechamento dos KPIs e o limite da série histórica. "
