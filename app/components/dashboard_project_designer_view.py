@@ -283,7 +283,7 @@ def render_dashboard_project_designer() -> None:
                 if item["type"] != "KPI":
                     old_colors = item.get("series_colors", [])
                     item["series_colors"] = [
-                        st.color_picker(f"Cor: {metric}", value=old_colors[i] if i < len(old_colors) else "#168BAF",
+                        st.color_picker(f"Cor: {metric}", value=old_colors[i] if i < len(old_colors) else ["#168BAF", "#E3A243", "#35A78B", "#727AD1", "#D65A75", "#607D8B"][i % 6],
                                         key=f"series_{uid}_{metric}")
                         for i, metric in enumerate(item["metrics"])
                     ]
