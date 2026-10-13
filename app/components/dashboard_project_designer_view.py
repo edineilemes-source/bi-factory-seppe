@@ -160,7 +160,7 @@ def _add_component_dialog(kind: str):
     st.caption(f"Objeto: {labels[kind]} · fonte fiscal oficial, bimestral")
     available = list(FISCAL_METRICS) if kind != "KPI" else [m for m in FISCAL_METRICS if not _component_exists(items, kind, m)]
     if not available:
-        st.warning("Todas as métricas disponíveis já têm um componente deste tipo.")
+        st.warning("Todas as métricas disponíveis já têm um KPI.")
         if st.button("Fechar"):
             st.rerun()
         return
@@ -178,7 +178,7 @@ def _add_component_dialog(kind: str):
             st.error("Selecione pelo menos uma métrica.")
         elif not title.strip():
             st.error("Informe um título.")
-        elif _component_exists(items, kind, metric):
+        elif kind == "KPI" and _component_exists(items, kind, metric):
             st.warning("Este tipo de componente com esta métrica já existe.")
         else:
             items.append({"id": str(uuid4()), "type": kind, "metric": metric,
@@ -233,6 +233,21 @@ def render_dashboard_project_designer() -> None:
             + [{"type": "LINE", "metric": "Receita realizada", "title": "Evolução da receita", "width": 12}]
         )
     items = st.session_state["dashboard_items"]
+    st.caption("Você pode começar com uma página vazia ou carregar um modelo. Nenhum KPI ou gráfico é obrigatório.")
+    start_actions = st.columns(2)
+    if start_actions[0].button("Nova página vazia", use_container_width=True, key="designer_blank_page"):
+        st.session_state["dashboard_items"] = []
+        st.rerun()
+    if start_actions[1].button("Carregar modelo fiscal", use_container_width=True, key="designer_load_template"):
+        st.session_state["dashboard_items"] = (
+            [{"id": str(uuid4()), "type": "KPI", "metric": m, "title": m, "width": 3}
+             for m in ["Receita realizada", "Despesa empenhada", "Despesa liquidada", "Despesa paga"]]
+            + [{"id": str(uuid4()), "type": "LINE", "metric": "Receita realizada",
+                "metrics": ["Receita realizada"], "title": "Evolução da receita", "width": 12}]
+        )
+        st.rerun()
+    st.caption("Métricas disponíveis: " + " · ".join(FISCAL_METRICS))
+    st.caption("Dimensões da fonte atual: Ano e Bimestre. Dados acumulados por bimestre.")
     st.caption("Catálogo Apache ECharts · escolha o tipo de visualização antes de configurar as métricas.")
     if st.button("＋ Abrir biblioteca de visualizações", type="primary", use_container_width=True):
         st.session_state["dashboard_show_catalog"] = True
