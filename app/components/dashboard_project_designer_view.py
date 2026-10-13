@@ -187,6 +187,26 @@ def _add_component_dialog(kind: str):
             st.rerun()
 
 
+@st.dialog("Biblioteca de visualizações · Apache ECharts")
+def _chart_catalog_dialog():
+    categories = {
+        "Indicadores": [("KPI", "Cartão KPI")],
+        "Comparações": [("BAR", "Barras / Colunas")],
+        "Evolução": [("LINE", "Linhas")],
+        "Detalhamento": [("TABLE", "Tabela")],
+    }
+    category = st.radio("Categoria", list(categories), horizontal=True, key="catalog_category")
+    options = categories[category]
+    labels = [label for _, label in options]
+    selected = st.radio("Modelo", labels, key="catalog_model")
+    st.caption("A visualização utilizará o Apache ECharts e a fonte fiscal validada. Outros modelos serão liberados após validação dos dados e do contrato de publicação.")
+    if st.button("Configurar este objeto", type="primary", use_container_width=True):
+        kind = next(kind for kind, label in options if label == selected)
+        st.session_state["dashboard_show_catalog"] = False
+        st.session_state["dashboard_dialog_kind"] = kind
+        st.rerun()
+
+
 def render_dashboard_project_designer() -> None:
     st.subheader("Projetos de Dashboard")
     st.write("Monte produtos de informação diferentes sobre fatos e dimensões já validadas pela BI Factory.")
@@ -213,14 +233,14 @@ def render_dashboard_project_designer() -> None:
             + [{"type": "LINE", "metric": "Receita realizada", "title": "Evolução da receita", "width": 12}]
         )
     items = st.session_state["dashboard_items"]
-    choices = [("KPI", "＋ KPI"), ("LINE", "＋ Linha"), ("BAR", "＋ Barras"), ("TABLE", "＋ Tabela")]
-    buttons = st.columns(4)
-    for column, (kind, label) in zip(buttons, choices):
-        if column.button(label, key=f"dashboard_add_{kind}", use_container_width=True):
-            st.session_state["dashboard_dialog_kind"] = kind
+    st.caption("Catálogo Apache ECharts · escolha o tipo de visualização antes de configurar as métricas.")
+    if st.button("＋ Abrir biblioteca de visualizações", type="primary", use_container_width=True):
+        st.session_state["dashboard_show_catalog"] = True
     requested_kind = st.session_state.pop("dashboard_dialog_kind", None)
-    if requested_kind in ("KPI", "LINE", "BAR", "TABLE"):
+    if requested_kind:
         _add_component_dialog(requested_kind)
+    elif st.session_state.get("dashboard_show_catalog"):
+        _chart_catalog_dialog()
     for i, item in enumerate(items):
         if "id" not in item:
             item["id"] = str(uuid4())
