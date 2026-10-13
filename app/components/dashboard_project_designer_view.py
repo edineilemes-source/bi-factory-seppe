@@ -91,9 +91,11 @@ def _echarts_html(frame: pd.DataFrame, chart: DashboardComponent) -> str:
         "xAxis": {"type": "category", "data": labels},
         "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
         "series": series,
+        "color": chart.series_colors or ["#168BAF", "#35A78B", "#E3A243", "#727AD1"],
+        "textStyle": {"fontFamily": chart.font_family, "color": chart.text_color},
     }
     return (
-        '<div id="chart" style="width:100%;height:340px"></div>'
+        '<div id="chart" style="width:100%;height:340px;background:' + chart.background_color + ';"></div>'
         '<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>'
         '<script>const option=' + json.dumps(option, ensure_ascii=False) + ';'
         'const el=document.getElementById("chart");'
@@ -156,13 +158,14 @@ def _add_component_dialog(kind: str):
               "BAR": "Gráfico de barras", "TABLE": "Tabela"}
     items = st.session_state["dashboard_items"]
     st.caption(f"Objeto: {labels[kind]} · fonte fiscal oficial, bimestral")
-    available = [m for m in FISCAL_METRICS if not _component_exists(items, kind, m)]
+    available = list(FISCAL_METRICS) if kind != "KPI" else [m for m in FISCAL_METRICS if not _component_exists(items, kind, m)]
     if not available:
         st.warning("Todas as métricas disponíveis já têm um componente deste tipo.")
         if st.button("Fechar"):
             st.rerun()
         return
-    metric = st.selectbox("Qual indicador deseja apresentar?", available, key="new_component_metric")
+    selected = (st.selectbox("Indicador", available, key="new_component_metric") if kind == "KPI" else st.multiselect("Métricas no mesmo objeto", available, default=available[:1], key="new_component_metrics"))
+    metric = selected if kind == "KPI" else (selected[0] if selected else "")
     title = st.text_input("Título do componente",
                           value=metric if kind == "KPI" else f"{labels[kind]} — {metric}",
                           key="new_component_title")
@@ -171,12 +174,15 @@ def _add_component_dialog(kind: str):
     if kind != "KPI":
         st.info("Dimensão disponível: Bimestre. Os dados são acumulados por bimestre.")
     if st.button("Adicionar ao painel", type="primary", use_container_width=True):
-        if not title.strip():
+        if not metric:
+            st.error("Selecione pelo menos uma métrica.")
+        elif not title.strip():
             st.error("Informe um título.")
         elif _component_exists(items, kind, metric):
             st.warning("Este tipo de componente com esta métrica já existe.")
         else:
             items.append({"id": str(uuid4()), "type": kind, "metric": metric,
+                          "metrics": [metric] if kind == "KPI" else selected,
                           "title": title.strip(), "width": width})
             st.rerun()
 
@@ -221,8 +227,30 @@ def render_dashboard_project_designer() -> None:
         uid = item["id"]
         with st.expander(f"{i+1}. {item['title']} · {item['type']}", expanded=False):
             item["title"] = st.text_input("Título", value=item["title"], key=f"item_title_{uid}")
-            item["metric"] = st.selectbox("Métrica", list(FISCAL_METRICS),
-                index=list(FISCAL_METRICS).index(item["metric"]), key=f"item_metric_{uid}")
+            if item["type"] == "KPI":
+                item["metric"] = st.selectbox("Métrica", list(FISCAL_METRICS),
+                    index=list(FISCAL_METRICS).index(item["metric"]), key=f"item_metric_{uid}")
+                item["metrics"] = [item["metric"]]
+            else:
+                item["metrics"] = st.multiselect("Métricas deste objeto", list(FISCAL_METRICS),
+                    default=item.get("metrics", [item["metric"]]), key=f"item_metrics_{uid}")
+                if item["metrics"]:
+                    item["metric"] = item["metrics"][0]
+                else:
+                    st.warning("Selecione ao menos uma métrica.")
+            with st.expander("Aparência", expanded=False):
+                item["background_color"] = st.color_picker("Fundo", value=item.get("background_color", "#FFFFFF"), key=f"bg_{uid}")
+                item["text_color"] = st.color_picker("Texto", value=item.get("text_color", "#19283B"), key=f"fg_{uid}")
+                fonts = ["Inter", "Arial", "Georgia", "Verdana", "Roboto"]
+                item["font_family"] = st.selectbox("Fonte", fonts,
+                    index=fonts.index(item.get("font_family", "Inter")), key=f"font_{uid}")
+                if item["type"] != "KPI":
+                    old_colors = item.get("series_colors", [])
+                    item["series_colors"] = [
+                        st.color_picker(f"Cor: {metric}", value=old_colors[i] if i < len(old_colors) else "#168BAF",
+                                        key=f"series_{uid}_{metric}")
+                        for i, metric in enumerate(item["metrics"])
+                    ]
             item["width"] = st.select_slider("Largura no grid (12 colunas)", options=[3, 4, 6, 8, 12],
                 value=item["width"], key=f"item_width_{uid}")
             if item["type"] != "KPI":
@@ -237,6 +265,9 @@ def render_dashboard_project_designer() -> None:
             if controls[2].button("Remover", key=f"item_remove_{uid}"):
                 items.pop(i)
                 st.rerun()
+    if any(not item.get("metrics", [item["metric"]]) for item in items):
+        st.error("Há componente sem métricas. Selecione pelo menos uma métrica.")
+        return
     kpis = [item["metric"] for item in items if item["type"] == "KPI"]
     trend = [item["metric"] for item in items if item["type"] == "LINE"]
     audience_map = {"Executivo": AudienceType.EXECUTIVE, "Gerencial": AudienceType.MANAGERIAL, "Técnico": AudienceType.TECHNICAL, "Público": AudienceType.PUBLIC}
@@ -257,7 +288,11 @@ def render_dashboard_project_designer() -> None:
                       granularity="BIMESTRAL")] if visual_type != ComponentType.KPI else [])
         arranged.append(DashboardComponent(
             title=item["title"], component_type=visual_type, source_id="fiscal",
-            metrics=[_metric(item["metric"])], dimensions=dimension,
+            metrics=[_metric(m) for m in item.get("metrics", [item["metric"]])], dimensions=dimension,
+            background_color=item.get("background_color", "#FFFFFF"),
+            text_color=item.get("text_color", "#19283B"),
+            font_family=item.get("font_family", "Inter"),
+            series_colors=item.get("series_colors", []),
             position=GridPosition(x=0, y=cursor_y, width=item["width"],
                                   height=2 if visual_type == ComponentType.KPI else 5),
         ))
