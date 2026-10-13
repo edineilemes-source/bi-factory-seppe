@@ -144,6 +144,43 @@ def _render_preview(project: DashboardProject):
     st.caption("O filtro de bimestre determina o fechamento dos KPIs e o limite da série histórica. "
                "Valores acumulados não são somados entre bimestres.")
 
+def _component_exists(items, kind, metric, exclude_id=None):
+    """Prevent identical type/metric visualizations in the same project."""
+    return any(item["type"] == kind and item["metric"] == metric
+               and item.get("id") != exclude_id for item in items)
+
+
+@st.dialog("Adicionar componente")
+def _add_component_dialog(kind: str):
+    labels = {"KPI": "Indicador KPI", "LINE": "Gráfico de linha",
+              "BAR": "Gráfico de barras", "TABLE": "Tabela"}
+    items = st.session_state["dashboard_items"]
+    st.caption(f"Objeto: {labels[kind]} · fonte fiscal oficial, bimestral")
+    available = [m for m in FISCAL_METRICS if not _component_exists(items, kind, m)]
+    if not available:
+        st.warning("Todas as métricas disponíveis já têm um componente deste tipo.")
+        if st.button("Fechar"):
+            st.rerun()
+        return
+    metric = st.selectbox("Qual indicador deseja apresentar?", available, key="new_component_metric")
+    title = st.text_input("Título do componente",
+                          value=metric if kind == "KPI" else f"{labels[kind]} — {metric}",
+                          key="new_component_title")
+    width = st.selectbox("Largura", [3, 4, 6, 8, 12],
+                         index=0 if kind == "KPI" else 4, key="new_component_width")
+    if kind != "KPI":
+        st.info("Dimensão disponível: Bimestre. Os dados são acumulados por bimestre.")
+    if st.button("Adicionar ao painel", type="primary", use_container_width=True):
+        if not title.strip():
+            st.error("Informe um título.")
+        elif _component_exists(items, kind, metric):
+            st.warning("Este tipo de componente com esta métrica já existe.")
+        else:
+            items.append({"id": str(uuid4()), "type": kind, "metric": metric,
+                          "title": title.strip(), "width": width})
+            st.rerun()
+
+
 def render_dashboard_project_designer() -> None:
     st.subheader("Projetos de Dashboard")
     st.write("Monte produtos de informação diferentes sobre fatos e dimensões já validadas pela BI Factory.")
@@ -170,18 +207,14 @@ def render_dashboard_project_designer() -> None:
             + [{"type": "LINE", "metric": "Receita realizada", "title": "Evolução da receita", "width": 12}]
         )
     items = st.session_state["dashboard_items"]
-    # Explicit actions avoid accidental reuse of the previous selectbox choice.
     choices = [("KPI", "＋ KPI"), ("LINE", "＋ Linha"), ("BAR", "＋ Barras"), ("TABLE", "＋ Tabela")]
     buttons = st.columns(4)
     for column, (kind, label) in zip(buttons, choices):
         if column.button(label, key=f"dashboard_add_{kind}", use_container_width=True):
-            default_metric = next(iter(FISCAL_METRICS))
-            items.append({"id": str(uuid4()), "type": kind, "metric": default_metric,
-                          "title": default_metric if kind == "KPI" else {
-                              "LINE": "Evolução da receita", "BAR": "Receita por bimestre",
-                              "TABLE": "Tabela da execução"}[kind],
-                          "width": 3 if kind == "KPI" else 12})
-            st.rerun()
+            st.session_state["dashboard_dialog_kind"] = kind
+    requested_kind = st.session_state.pop("dashboard_dialog_kind", None)
+    if requested_kind in ("KPI", "LINE", "BAR", "TABLE"):
+        _add_component_dialog(requested_kind)
     for i, item in enumerate(items):
         if "id" not in item:
             item["id"] = str(uuid4())
