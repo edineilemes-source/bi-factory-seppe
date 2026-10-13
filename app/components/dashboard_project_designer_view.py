@@ -199,7 +199,7 @@ def render_dashboard_project_designer() -> None:
                 items[i-1],items[i]=items[i],items[i-1]
                 st.rerun()
             if controls[1].button("↓ Descer", key=f"item_down_{uid}", disabled=i==len(items)-1):
-                items[i+1],items[i]=items[i+1],items[i]
+                items[i+1],items[i]=items[i],items[i+1]
                 st.rerun()
             if controls[2].button("Remover", key=f"item_remove_{uid}"):
                 items.pop(i)
