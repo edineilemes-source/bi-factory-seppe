@@ -103,6 +103,10 @@ class DashboardComponent(BaseModel):
     local_filters: list[DashboardFilter] = Field(default_factory=list)
     position: GridPosition
     description: str | None = None
+    background_color: str = "#FFFFFF"
+    text_color: str = "#19283B"
+    series_colors: list[str] = Field(default_factory=list)
+    font_family: Literal["Inter", "Arial", "Georgia", "Verdana", "Roboto"] = "Inter"
 
     @model_validator(mode="after")
     def validate_visual_contract(self):
