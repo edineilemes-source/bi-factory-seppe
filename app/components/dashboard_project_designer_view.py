@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from uuid import uuid4
 from pathlib import Path
 
 import pandas as pd
@@ -169,32 +170,38 @@ def render_dashboard_project_designer() -> None:
             + [{"type": "LINE", "metric": "Receita realizada", "title": "Evolução da receita", "width": 12}]
         )
     items = st.session_state["dashboard_items"]
-    add_type = st.selectbox("Adicionar visualização", ["KPI", "LINE", "BAR", "TABLE"], key="dashboard_add_type",
-                            format_func=lambda v: {"KPI":"Indicador KPI","LINE":"Gráfico de linha",
-                                                    "BAR":"Gráfico de barras","TABLE":"Tabela"}[v])
-    if st.button("＋ Adicionar componente"):
-        default_metric = next(iter(FISCAL_METRICS))
-        items.append({"type": add_type, "metric": default_metric,
-                      "title": default_metric if add_type == "KPI" else "Novo gráfico",
-                      "width": 3 if add_type == "KPI" else 12})
-        st.rerun()
+    # Explicit actions avoid accidental reuse of the previous selectbox choice.
+    choices = [("KPI", "＋ KPI"), ("LINE", "＋ Linha"), ("BAR", "＋ Barras"), ("TABLE", "＋ Tabela")]
+    buttons = st.columns(4)
+    for column, (kind, label) in zip(buttons, choices):
+        if column.button(label, key=f"dashboard_add_{kind}", use_container_width=True):
+            default_metric = next(iter(FISCAL_METRICS))
+            items.append({"id": str(uuid4()), "type": kind, "metric": default_metric,
+                          "title": default_metric if kind == "KPI" else {
+                              "LINE": "Evolução da receita", "BAR": "Receita por bimestre",
+                              "TABLE": "Tabela da execução"}[kind],
+                          "width": 3 if kind == "KPI" else 12})
+            st.rerun()
     for i, item in enumerate(items):
+        if "id" not in item:
+            item["id"] = str(uuid4())
+        uid = item["id"]
         with st.expander(f"{i+1}. {item['title']} · {item['type']}", expanded=False):
-            item["title"] = st.text_input("Título", value=item["title"], key=f"item_title_{i}")
+            item["title"] = st.text_input("Título", value=item["title"], key=f"item_title_{uid}")
             item["metric"] = st.selectbox("Métrica", list(FISCAL_METRICS),
-                index=list(FISCAL_METRICS).index(item["metric"]), key=f"item_metric_{i}")
+                index=list(FISCAL_METRICS).index(item["metric"]), key=f"item_metric_{uid}")
             item["width"] = st.select_slider("Largura no grid (12 colunas)", options=[3, 4, 6, 8, 12],
-                value=item["width"], key=f"item_width_{i}")
+                value=item["width"], key=f"item_width_{uid}")
             if item["type"] != "KPI":
                 st.caption("Dimensão: Bimestre · granularidade bimestral (fixa nesta fonte)")
             controls = st.columns(3)
-            if controls[0].button("↑ Subir", key=f"item_up_{i}", disabled=i==0):
+            if controls[0].button("↑ Subir", key=f"item_up_{uid}", disabled=i==0):
                 items[i-1],items[i]=items[i],items[i-1]
                 st.rerun()
-            if controls[1].button("↓ Descer", key=f"item_down_{i}", disabled=i==len(items)-1):
-                items[i+1],items[i]=items[i],items[i+1]
+            if controls[1].button("↓ Descer", key=f"item_down_{uid}", disabled=i==len(items)-1):
+                items[i+1],items[i]=items[i+1],items[i]
                 st.rerun()
-            if controls[2].button("Remover", key=f"item_remove_{i}"):
+            if controls[2].button("Remover", key=f"item_remove_{uid}"):
                 items.pop(i)
                 st.rerun()
     kpis = [item["metric"] for item in items if item["type"] == "KPI"]
