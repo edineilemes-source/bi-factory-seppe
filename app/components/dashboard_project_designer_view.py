@@ -238,7 +238,8 @@ def render_dashboard_project_designer() -> None:
                     item["metric"] = item["metrics"][0]
                 else:
                     st.warning("Selecione ao menos uma métrica.")
-            with st.expander("Aparência", expanded=False):
+            with st.container(border=True):
+                st.markdown("**Aparência do componente**")
                 item["background_color"] = st.color_picker("Fundo", value=item.get("background_color", "#FFFFFF"), key=f"bg_{uid}")
                 item["text_color"] = st.color_picker("Texto", value=item.get("text_color", "#19283B"), key=f"fg_{uid}")
                 fonts = ["Inter", "Arial", "Georgia", "Verdana", "Roboto"]
