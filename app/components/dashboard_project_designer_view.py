@@ -157,10 +157,45 @@ def render_dashboard_project_designer() -> None:
     st.markdown("### Filtros")
     filters = st.multiselect("Filtros globais", list(FISCAL_FILTERS), default=["Exercício", "Bimestre"])
 
-    st.markdown("### Componentes")
-    kpis = st.multiselect("KPIs", list(FISCAL_METRICS), default=["Receita realizada", "Despesa empenhada", "Despesa liquidada", "Despesa paga", "Resultado orçamentário formal", "Margem receita × liquidada"])
-    trend = st.multiselect("Séries do gráfico de evolução", list(FISCAL_METRICS), default=["Receita realizada", "Despesa empenhada", "Despesa liquidada", "Despesa paga"])
-
+    st.markdown("### Editor de componentes")
+    st.caption("Adicione, configure e reordene cada elemento. A série histórica disponível é bimestral.")
+    if "dashboard_items" not in st.session_state:
+        st.session_state["dashboard_items"] = (
+            [{"type": "KPI", "metric": m, "title": m, "width": 3}
+             for m in ["Receita realizada", "Despesa empenhada", "Despesa liquidada", "Despesa paga"]]
+            + [{"type": "LINE", "metric": "Receita realizada", "title": "Evolução da receita", "width": 12}]
+        )
+    items = st.session_state["dashboard_items"]
+    add_type = st.selectbox("Adicionar visualização", ["KPI", "LINE", "BAR", "TABLE"], key="dashboard_add_type",
+                            format_func=lambda v: {"KPI":"Indicador KPI","LINE":"Gráfico de linha",
+                                                    "BAR":"Gráfico de barras","TABLE":"Tabela"}[v])
+    if st.button("＋ Adicionar componente"):
+        default_metric = next(iter(FISCAL_METRICS))
+        items.append({"type": add_type, "metric": default_metric,
+                      "title": default_metric if add_type == "KPI" else "Novo gráfico",
+                      "width": 3 if add_type == "KPI" else 12})
+        st.rerun()
+    for i, item in enumerate(items):
+        with st.expander(f"{i+1}. {item['title']} · {item['type']}", expanded=False):
+            item["title"] = st.text_input("Título", value=item["title"], key=f"item_title_{i}")
+            item["metric"] = st.selectbox("Métrica", list(FISCAL_METRICS),
+                index=list(FISCAL_METRICS).index(item["metric"]), key=f"item_metric_{i}")
+            item["width"] = st.select_slider("Largura no grid (12 colunas)", options=[3, 4, 6, 8, 12],
+                value=item["width"], key=f"item_width_{i}")
+            if item["type"] != "KPI":
+                st.caption("Dimensão: Bimestre · granularidade bimestral (fixa nesta fonte)")
+            controls = st.columns(3)
+            if controls[0].button("↑ Subir", key=f"item_up_{i}", disabled=i==0):
+                items[i-1],items[i]=items[i],items[i-1]
+                st.rerun()
+            if controls[1].button("↓ Descer", key=f"item_down_{i}", disabled=i==len(items)-1):
+                items[i+1],items[i]=items[i],items[i+1]
+                st.rerun()
+            if controls[2].button("Remover", key=f"item_remove_{i}"):
+                items.pop(i)
+                st.rerun()
+    kpis = [item["metric"] for item in items if item["type"] == "KPI"]
+    trend = [item["metric"] for item in items if item["type"] == "LINE"]
     audience_map = {"Executivo": AudienceType.EXECUTIVE, "Gerencial": AudienceType.MANAGERIAL, "Técnico": AudienceType.TECHNICAL, "Público": AudienceType.PUBLIC}
     output_map = {"Web": OutputType.WEB, "PDF": OutputType.PDF, "Excel": OutputType.EXCEL, "Impressão": OutputType.PRINT}
     try:
@@ -169,6 +204,22 @@ def render_dashboard_project_designer() -> None:
         st.error(f"Projeto inválido: {exc}")
         return
 
+    # Replace the initial template components with the individually edited composition.
+    arranged = []
+    cursor_y = 0
+    for item in items:
+        visual_type = ComponentType(item["type"])
+        dimension = ([DimensionBinding(field="bimestre", label="Bimestre",
+                      role=FieldRole.TEMPORAL_DIMENSION if visual_type == ComponentType.LINE else FieldRole.DIMENSION,
+                      granularity="BIMESTRAL")] if visual_type != ComponentType.KPI else [])
+        arranged.append(DashboardComponent(
+            title=item["title"], component_type=visual_type, source_id="fiscal",
+            metrics=[_metric(item["metric"])], dimensions=dimension,
+            position=GridPosition(x=0, y=cursor_y, width=item["width"],
+                                  height=2 if visual_type == ComponentType.KPI else 5),
+        ))
+        cursor_y += 2 if visual_type == ComponentType.KPI else 5
+    project.pages[0].components = arranged
     _render_preview(project)
     st.markdown("### Publicação")
     st.caption("Publique a configuração para a Sala de Situação. A publicação não modifica a fonte fiscal.")
