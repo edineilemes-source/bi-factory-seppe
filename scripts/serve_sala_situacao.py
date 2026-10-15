@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "web" / "sala_situacao" / "index.html"
+STUDIO = ROOT / "web" / "sala_situacao" / "studio.html"
 DATA = ROOT / "storage" / "reports" / "official_fiscal" / "rreo-2025-dashboard.json"
 PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
 
@@ -20,6 +21,8 @@ class Handler(BaseHTTPRequestHandler):
         route = self.path.split("?", 1)[0]
         if route in ("/", "/index.html"):
             path, mime = PAGE, "text/html; charset=utf-8"
+        elif route in ("/studio", "/studio.html"):
+            path, mime = STUDIO, "text/html; charset=utf-8"
         elif route == "/api/fiscal":
             path, mime = DATA, "application/json; charset=utf-8"
         elif route == "/api/dashboard-project":
