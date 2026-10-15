@@ -221,7 +221,8 @@ def _render_visual_studio() -> None:
     html = studio.read_text(encoding="utf-8")
     # The standalone studio normally fetches the fiscal API on 8503.
     # Within Streamlit 8502, inject the validated dataset instead.
-    payload = json.dumps(frame.to_dict(orient="records"), ensure_ascii=False, allow_nan=False)
+    safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
+    payload = json.dumps(safe_rows, ensure_ascii=False, allow_nan=False)
     html = html.replace('fetch("/api/fiscal")', 'Promise.resolve(' + payload + ')')
     components.html(html, height=920, scrolling=True)
 
