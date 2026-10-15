@@ -80,8 +80,8 @@ function drawPublished(current,historical){
           grid:{top:55,left:76,right:25,bottom:45},
           xAxis:{type:"category",data:historical.map(r=>r.bimestre+"º bim.")},
           yAxis:{type:"value",axisLabel:{formatter:v=>(v/1e9).toFixed(1)+" bi"}},
-          series:validMetrics.map(m=>({name:m.label||m.field,type:type==="BAR"?"bar":"line",
-            smooth:type==="LINE",barMaxWidth:45,data:historical.map(r=>Number(r[m.field]))}))});
+          series:validMetrics.map(m=>({name:m.label||m.field,type:["BAR","STACK","HORIZONTAL","PIE","DONUT"].includes(component.visual_subtype||type)?"bar":"line",
+            smooth:type==="LINE",stack:component.visual_subtype==="STACK"?"total":undefined,areaStyle:component.visual_subtype==="AREA"?{}:undefined,barMaxWidth:45,data:historical.map(r=>Number(r[m.field]))}))});
         return;
       }
     }
