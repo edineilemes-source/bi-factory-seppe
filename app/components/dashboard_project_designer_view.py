@@ -223,11 +223,32 @@ def _render_visual_studio() -> None:
         return
     safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
     event = _studio_component(rows=safe_rows, key="bi_factory_visual_studio", height=920)
-    if not isinstance(event, dict) or event.get("action") != "publish":
+    if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
         return
     item = event.get("component")
     if not isinstance(item, dict):
         st.error("Componente inválido para publicação.")
+        return
+    if event["action"] == "unpublish":
+        identifier = str(item.get("id", ""))
+        if not identifier or len(identifier) > 128:
+            st.error("Identificador inválido.")
+            return
+        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        if not target.exists():
+            st.info("Nenhum projeto publicado.")
+            return
+        try:
+            project = json.loads(target.read_text(encoding="utf-8"))
+            for page in project.get("pages", []):
+                page["components"] = [c for c in page.get("components", []) if c.get("id") != identifier]
+            temporary = target.with_suffix(".tmp")
+            temporary.write_text(json.dumps(project, ensure_ascii=False, indent=2), encoding="utf-8")
+            os.replace(temporary, target)
+        except (OSError, ValueError, TypeError) as exc:
+            st.error(f"Falha ao retirar componente: {exc}")
+        else:
+            st.success("Componente retirado da Sala de Situação.")
         return
     metric_names = item.get("metrics", [])
     if not isinstance(metric_names, list) or not metric_names or any(m not in FISCAL_METRICS for m in metric_names):
