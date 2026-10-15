@@ -207,8 +207,31 @@ def _chart_catalog_dialog():
         st.rerun()
 
 
+def _render_visual_studio() -> None:
+    """Embed the ECharts editor directly in the 8502 Streamlit application."""
+    studio = Path(__file__).resolve().parents[2] / "web/sala_situacao/studio.html"
+    if not studio.exists():
+        st.error("Estúdio Visual não encontrado. Atualize o repositório.")
+        return
+    try:
+        frame = _load_fiscal_data()
+    except (FileNotFoundError, ValueError) as exc:
+        st.error(f"Fonte fiscal indisponível: {exc}")
+        return
+    html = studio.read_text(encoding="utf-8")
+    # The standalone studio normally fetches the fiscal API on 8503.
+    # Within Streamlit 8502, inject the validated dataset instead.
+    payload = json.dumps(frame.to_dict(orient="records"), ensure_ascii=False, allow_nan=False)
+    html = html.replace('fetch("/api/fiscal")', 'Promise.resolve(' + payload + ')')
+    components.html(html, height=920, scrolling=True)
+
+
 def render_dashboard_project_designer() -> None:
     st.subheader("Projetos de Dashboard")
+    mode = st.radio("Ambiente de edição", ["Estúdio Visual (novo)", "Editor clássico"], horizontal=True, key="dashboard_editor_mode")
+    if mode == "Estúdio Visual (novo)":
+        _render_visual_studio()
+        return
     st.write("Monte produtos de informação diferentes sobre fatos e dimensões já validadas pela BI Factory.")
 
     left, right = st.columns([1, 1])
