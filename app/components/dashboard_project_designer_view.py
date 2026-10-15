@@ -223,7 +223,7 @@ def _render_visual_studio() -> None:
     # Within Streamlit 8502, inject the validated dataset instead.
     safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
     payload = json.dumps(safe_rows, ensure_ascii=False, allow_nan=False)
-    html = html.replace('fetch("/api/fiscal")', 'Promise.resolve(' + payload + ')')
+    html = html.replace("</head>", "<script>window.BI_FACTORY_DATA=" + payload + ";</script></head>")
     components.html(html, height=920, scrolling=True)
 
 
