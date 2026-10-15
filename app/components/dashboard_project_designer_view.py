@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit.components.v1 as components
+from streamlit.components.v1 import declare_component
 
 import streamlit as st
 
@@ -207,24 +208,80 @@ def _chart_catalog_dialog():
         st.rerun()
 
 
+_studio_component = declare_component(
+    "bi_factory_visual_studio",
+    path=str(Path(__file__).resolve().parent / "studio_frontend"),
+)
+
+
 def _render_visual_studio() -> None:
-    """Embed the ECharts editor directly in the 8502 Streamlit application."""
-    studio = Path(__file__).resolve().parents[2] / "web/sala_situacao/studio.html"
-    if not studio.exists():
-        st.error("Estúdio Visual não encontrado. Atualize o repositório.")
-        return
+    """Visual designer at 8502; server-side publication only."""
     try:
         frame = _load_fiscal_data()
     except (FileNotFoundError, ValueError) as exc:
         st.error(f"Fonte fiscal indisponível: {exc}")
         return
-    html = studio.read_text(encoding="utf-8")
-    # The standalone studio normally fetches the fiscal API on 8503.
-    # Within Streamlit 8502, inject the validated dataset instead.
     safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
-    payload = json.dumps(safe_rows, ensure_ascii=False, allow_nan=False)
-    html = html.replace("</head>", "<script>window.BI_FACTORY_DATA=" + payload + ";</script></head>")
-    components.html(html, height=920, scrolling=True)
+    event = _studio_component(rows=safe_rows, key="bi_factory_visual_studio", height=920)
+    if not isinstance(event, dict) or event.get("action") != "publish":
+        return
+    item = event.get("component")
+    if not isinstance(item, dict):
+        st.error("Componente inválido para publicação.")
+        return
+    metric_names = item.get("metrics", [])
+    if not isinstance(metric_names, list) or not metric_names or any(m not in FISCAL_METRICS for m in metric_names):
+        st.error("Métricas não reconhecidas. Publicação cancelada.")
+        return
+    kind = item.get("type")
+    supported = {"KPI": "KPI", "LINE": "LINE", "BAR": "BAR", "TABLE": "TABLE",
+                 "STACK": "BAR", "HORIZONTAL": "BAR", "AREA": "LINE",
+                 "PIE": "BAR", "DONUT": "BAR"}
+    if kind not in supported:
+        st.error("Tipo de gráfico não reconhecido.")
+        return
+    identifier = str(item.get("id", ""))
+    if not identifier or len(identifier) > 128:
+        st.error("Identificador de componente inválido.")
+        return
+    colors = [v for v in item.get("colors", []) if isinstance(v, str) and len(v) == 7 and v.startswith("#")]
+    component = {
+        "id": identifier,
+        "title": str(item.get("title", "Visualização"))[:180],
+        "component_type": supported[kind],
+        "visual_subtype": kind,
+        "metrics": [{"field": FISCAL_METRICS[m], "label": m, "aggregation": "MAX", "number_format": "BRL_COMPACT"} for m in metric_names[:7]],
+        "dimensions": [{"field": "bimestre", "label": "Bimestre", "role": "TEMPORAL_DIMENSION", "granularity": "BIMESTRAL"}] if kind != "KPI" else [],
+        "position": {"x": 0, "y": 0, "width": max(3, min(12, int(item.get("width", 6)))), "height": 5},
+        "background_color": item.get("bg", "#FFFFFF"),
+        "text_color": item.get("text", "#19283B"),
+        "series_colors": colors,
+        "font_family": "Inter",
+    }
+    target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if target.exists():
+            project = json.loads(target.read_text(encoding="utf-8"))
+        else:
+            project = {"name": "Sala de Situação — SEPPE", "audience": {"name": "Painel executivo"}, "pages": [{"title": "Visão principal", "components": []}]}
+        pages = project.setdefault("pages", [{"title": "Visão principal", "components": []}])
+        if not pages:
+            pages.append({"title": "Visão principal", "components": []})
+        existing = pages[0].setdefault("components", [])
+        idx = next((i for i, c in enumerate(existing) if c.get("id") == identifier), None)
+        if idx is None:
+            existing.append(component)
+        else:
+            existing[idx] = component
+        tmp = target.with_suffix(".tmp")
+        tmp.write_text(json.dumps(project, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, target)
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        st.error(f"Falha na publicação: {exc}")
+    else:
+        st.success(f"Componente '{component['title']}' publicado na Sala de Situação (8503).")
+
 
 
 def render_dashboard_project_designer() -> None:
