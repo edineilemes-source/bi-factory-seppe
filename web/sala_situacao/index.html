@@ -65,7 +65,7 @@ function drawPublished(current,historical){
         ["Bimestre",...validMetrics.map(m=>m.label||m.field)].forEach(s=>{const th=document.createElement("th");th.textContent=s;header.append(th)});
         const thead=document.createElement("thead");thead.append(header);table.append(thead);
         const tbody=document.createElement("tbody");
-        historical.forEach(r=>{const tr=document.createElement("tr");[r.bimestre+"º",...validMetrics.map(m=>brl(Number(r[m.field]))].forEach(s=>{const td=document.createElement("td");td.textContent=s;tr.append(td)});tbody.append(tr)});
+        historical.forEach(r=>{const tr=document.createElement("tr");[r.bimestre+"º",...validMetrics.map(m=>brl(Number(r[m.field])))].forEach(s=>{const td=document.createElement("td");td.textContent=s;tr.append(td)});tbody.append(tr)});
         table.append(tbody);scroll.append(table);card.append(scroll);
       }else{
         const target=document.createElement("div");
