@@ -222,7 +222,17 @@ def _render_visual_studio() -> None:
         st.error(f"Fonte fiscal indisponível: {exc}")
         return
     safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
-    event = _studio_component(rows=safe_rows, key="bi_factory_visual_studio", height=920)
+    published_items = []
+    if st.session_state.pop("studio_open_published", False):
+        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        try:
+            project = json.loads(target.read_text(encoding="utf-8"))
+            published_items = [item for page in project.get("pages", [])
+                               for item in page.get("components", [])]
+        except (OSError, ValueError, TypeError) as exc:
+            st.error(f"Não foi possível abrir o produto publicado: {exc}")
+    event = _studio_component(rows=safe_rows, published_components=published_items,
+                              key="bi_factory_visual_studio", height=920)
     if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
         return
     item = event.get("component")
