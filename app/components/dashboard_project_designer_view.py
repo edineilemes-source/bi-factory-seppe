@@ -273,7 +273,7 @@ def _render_visual_studio() -> None:
                               load_published=load_published, product_id=product_id,
                               result=st.session_state.get("studio_publish_result"),
                               key="bi_factory_visual_studio_" + (product_id or "legacy"), height=920)
-    if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
+    if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish", "sync_all"):
         return
     event_id = event.get("event_id")
     if not event_id or event_id == st.session_state.get("studio_last_event_id"):
@@ -285,6 +285,64 @@ def _render_visual_studio() -> None:
     item = event.get("component")
     if not isinstance(item, dict):
         st.error("Componente inválido para publicação.")
+        return
+    if event["action"] == "sync_all":
+        supplied = event.get("components")
+        if not isinstance(supplied, list) or len(supplied) > 100:
+            st.error("Lista de componentes inválida (máximo 100).")
+            return
+        supported_types = {"KPI": "KPI", "LINE": "LINE", "BAR": "BAR", "TABLE": "TABLE",
+                           "STACK": "BAR", "HORIZONTAL": "BAR", "AREA": "LINE",
+                           "PIE": "BAR", "DONUT": "BAR"}
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
+        target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
+        try:
+            prior = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+            prior_components = {x.get("id"): x for page in prior.get("pages", []) for x in page.get("components", [])}
+            result_components = []
+            seen = set()
+            for item in supplied:
+                if not isinstance(item, dict):
+                    raise ValueError("Objeto inválido")
+                identifier = str(item.get("id", ""))
+                kind = item.get("type")
+                names = item.get("metrics")
+                if not identifier or len(identifier) > 128 or identifier in seen:
+                    raise ValueError("Identificador ausente, repetido ou muito longo")
+                if kind not in supported_types or not isinstance(names, list) or not names or any(m not in FISCAL_METRICS for m in names):
+                    raise ValueError("Tipo ou métricas inválidas: " + identifier)
+                seen.add(identifier)
+                colors = [v for v in item.get("colors", []) if isinstance(v, str) and len(v) == 7 and v.startswith("#")]
+                result_components.append({
+                    "id": identifier, "product_id": product_id or None,
+                    "title": str(item.get("title", "Visualização"))[:180],
+                    "component_type": supported_types[kind], "visual_subtype": kind,
+                    "metrics": [{"field": FISCAL_METRICS[m], "label": m, "aggregation": "MAX", "number_format": "BRL_COMPACT"} for m in names[:7]],
+                    "dimensions": [{"field": "bimestre", "label": "Bimestre", "role": "TEMPORAL_DIMENSION", "granularity": "BIMESTRAL"}] if kind != "KPI" else [],
+                    "position": {"x": 0, "y": 0, "width": max(3, min(12, int(item.get("width", 6)))), "height": 5},
+                    "background_color": item.get("bg", "#FFFFFF"), "text_color": item.get("text", "#19283B"),
+                    "series_colors": colors, "font_family": "Inter",
+                    "created_at": prior_components.get(identifier, {}).get("created_at", now), "updated_at": now,
+                })
+            name = current_product["name"] if product_id else prior.get("name", "Sala Executiva — Execução Orçamentária")
+            project = {"name": name, "product_id": product_id or None,
+                       "audience": prior.get("audience", {"name": "Painel executivo"}),
+                       "created_at": prior.get("created_at", now), "updated_at": now,
+                       "pages": [{"title": "Visão principal", "components": result_components}]}
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_suffix(".tmp")
+            temporary.write_text(json.dumps(project, ensure_ascii=False, indent=2), encoding="utf-8")
+            os.replace(temporary, target)
+            if product_id:
+                from app.components.information_product_registry import sync_product_components
+                sync_product_components(product_id, [x["id"] for x in result_components], "Publicado")
+            st.session_state["studio_publish_result"] = {"message": f"Produto sincronizado: {len(result_components)} componentes na 8503."}
+            st.success(st.session_state["studio_publish_result"]["message"])
+            st.rerun()
+        except (ValueError, TypeError, OSError, KeyError) as exc:
+            st.error(f"Falha na sincronização: {exc}")
         return
     if event["action"] == "unpublish":
         identifier = str(item.get("id", ""))
