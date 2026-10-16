@@ -248,7 +248,7 @@ def _render_visual_studio() -> None:
     chosen = st.session_state.get("studio_product_id", "")
     labels = list(options)
     default_index = next((i for i, label in enumerate(labels) if options[label] == chosen), 0)
-    label = st.selectbox("Produto em edição", labels, index=default_index, key="studio_product_choice")
+    label = st.selectbox("Produto em edição", labels, index=default_index)
     product_id = options[label]
     st.session_state["studio_product_id"] = product_id
     if product_id:
@@ -298,6 +298,13 @@ def _render_visual_studio() -> None:
         except (OSError, ValueError, TypeError) as exc:
             st.error(f"Falha ao retirar componente: {exc}")
         else:
+            if product_id:
+                from app.components.information_product_registry import sync_product_components
+                try:
+                    ids = [c["id"] for page in project.get("pages", []) for c in page.get("components", []) if c.get("product_id") == product_id]
+                    sync_product_components(product_id, ids)
+                except (OSError, ValueError, KeyError) as exc:
+                    st.warning(f"Retirada concluída, mas catálogo não atualizado: {exc}")
             st.success("Componente retirado da Sala de Situação.")
         return
     metric_names = item.get("metrics", [])
@@ -360,6 +367,13 @@ def _render_visual_studio() -> None:
     except (OSError, ValueError, TypeError, KeyError) as exc:
         st.error(f"Falha na publicação: {exc}")
     else:
+        if product_id:
+            from app.components.information_product_registry import sync_product_components
+            try:
+                ids = [c["id"] for page in project.get("pages", []) for c in page.get("components", []) if c.get("product_id") == product_id]
+                sync_product_components(product_id, ids, "Publicado")
+            except (OSError, ValueError, KeyError) as exc:
+                st.warning(f"Publicação concluída, mas catálogo não atualizado: {exc}")
         st.success(f"Componente '{component['title']}' publicado na Sala de Situação (8503).")
 
 
