@@ -36,9 +36,8 @@ def render_object_library() -> None:
         st.write("Atualização:", project.get("refresh_policy", "Conforme atualização da fonte; periodicidade não informada"))
         st.write("Gráficos e indicadores:", len(components))
         if st.button("Abrir no Estúdio Visual para editar", type="primary", key="library_open_studio"):
-            st.session_state["app_area"] = "Projetos de Dashboard"
-            st.session_state["dashboard_editor_mode"] = "Estúdio Visual (novo)"
             st.session_state["studio_open_published"] = True
+            st.query_params["open_studio"] = "1"
             st.rerun()
     st.markdown("### Outros produtos")
     st.info("PDFs e páginas de transparência serão inventariados quando forem registrados como produtos gerenciados. "
