@@ -261,7 +261,8 @@ def _render_visual_studio() -> None:
     published_items = []
     load_published = st.session_state.pop("studio_open_published", False)
     if load_published:
-        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
+        target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
         try:
             project = json.loads(target.read_text(encoding="utf-8"))
             published_items = [item for page in project.get("pages", [])
@@ -349,7 +350,8 @@ def _render_visual_studio() -> None:
         if not identifier or len(identifier) > 128:
             st.error("Identificador inválido.")
             return
-        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
+    target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
         if not target.exists():
             st.info("Nenhum projeto publicado.")
             return
@@ -404,7 +406,8 @@ def _render_visual_studio() -> None:
         "series_colors": colors,
         "font_family": "Inter",
     }
-    target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+    root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
+    target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
     target.parent.mkdir(parents=True, exist_ok=True)
     try:
         if target.exists():
@@ -584,7 +587,8 @@ def render_dashboard_project_designer() -> None:
     st.markdown("### Publicação")
     st.caption("Publique a configuração para a Sala de Situação. A publicação não modifica a fonte fiscal.")
     if st.button("Publicar na Sala de Situação", type="primary"):
-        target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
+        root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
+    target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(".tmp")
         try:
