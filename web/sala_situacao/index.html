@@ -47,10 +47,12 @@ function drawPublished(current,historical){
     if(["Inter","Arial","Georgia","Verdana","Roboto"].includes(component.font_family))card.style.fontFamily=component.font_family;
     const title=document.createElement(type==="KPI"?"div":"h3");
     title.textContent=component.title||field;
+    if(safeHex(component.text_color))title.style.color=component.text_color;
     if(type==="KPI"){
       title.className="label";
       const value=document.createElement("div");
       value.className="value";
+      if(safeHex(component.text_color))value.style.color=component.text_color;
       value.textContent=compact(Number(current[field]));
       value.title=brl(Number(current[field]));
       card.append(title,value);
@@ -76,12 +78,31 @@ function drawPublished(current,historical){
         if(!window.echarts){target.textContent="ECharts indisponível";return}
         const chart=echarts.init(target);
         publishedCharts.push(chart);
-        chart.setOption({color:(component.series_colors||[]).filter(safeHex).length?(component.series_colors||[]).filter(safeHex):["#168baf","#35a78b","#e3a243","#727ad1"],tooltip:{trigger:"axis",valueFormatter:brl},legend:{type:"scroll",top:0},
-          grid:{top:55,left:76,right:25,bottom:45},
-          xAxis:{type:"category",data:historical.map(r=>r.bimestre+"º bim.")},
-          yAxis:{type:"value",axisLabel:{formatter:v=>(v/1e9).toFixed(1)+" bi"}},
-          series:validMetrics.map(m=>({name:m.label||m.field,type:["BAR","STACK","HORIZONTAL","PIE","DONUT"].includes(component.visual_subtype||type)?"bar":"line",
-            smooth:type==="LINE",stack:component.visual_subtype==="STACK"?"total":undefined,areaStyle:component.visual_subtype==="AREA"?{}:undefined,barMaxWidth:45,data:historical.map(r=>Number(r[m.field]))}))});
+        const subtype=component.visual_subtype||type;
+        const palette=(component.series_colors||[]).filter(safeHex);
+        const option={color:palette.length?palette:["#168baf","#e3a243","#35a78b","#727ad1"],
+          textStyle:{color:component.text_color||"#19283b"},
+          tooltip:{trigger:["PIE","DONUT"].includes(subtype)?"item":"axis",valueFormatter:brl},
+          legend:{type:"scroll",top:0}};
+        if(["PIE","DONUT"].includes(subtype)){
+          const metric=validMetrics[0];
+          option.series=[{name:metric.label||metric.field,type:"pie",
+            radius:subtype==="DONUT"?["42%","72%"]:"72%",
+            data:historical.map(r=>({name:r.bimestre+"º bim.",value:Number(r[metric.field])}))}];
+        }else{
+          const horizontal=subtype==="HORIZONTAL";
+          const categories={type:"category",data:historical.map(r=>r.bimestre+"º bim.")};
+          const values={type:"value",axisLabel:{formatter:v=>(v/1e9).toFixed(1)+" bi"}};
+          option.grid={top:55,left:horizontal?100:76,right:25,bottom:45};
+          option.xAxis=horizontal?values:categories;
+          option.yAxis=horizontal?categories:values;
+          option.series=validMetrics.map(m=>({name:m.label||m.field,
+            type:["BAR","STACK","HORIZONTAL"].includes(subtype)?"bar":"line",
+            smooth:subtype==="LINE",stack:subtype==="STACK"?"total":undefined,
+            areaStyle:subtype==="AREA"?{}:undefined,barMaxWidth:45,
+            data:historical.map(r=>Number(r[m.field]))}));
+        }
+        chart.setOption(option);
         return;
       }
     }
