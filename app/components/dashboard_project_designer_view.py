@@ -351,7 +351,7 @@ def _render_visual_studio() -> None:
             st.error("Identificador inválido.")
             return
         root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
-    target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
+        target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
         if not target.exists():
             st.info("Nenhum projeto publicado.")
             return
