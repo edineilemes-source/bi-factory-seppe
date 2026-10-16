@@ -45,6 +45,12 @@ def render_object_library() -> None:
                 edited_refresh = st.text_input("Regra de atualização", value=product.get("refresh_policy", "Manual"))
                 edited_destination = st.text_input("Destino", value=product.get("destination", ""))
                 save = st.form_submit_button("Salvar ficha")
+            if product["type"] in ("Painel", "Portal"):
+                if st.button("Abrir produto no Estúdio Visual", key="open_" + product["id"]):
+                    st.session_state["studio_product_id"] = product["id"]
+                    st.session_state["studio_open_published"] = True
+                    st.query_params["open_studio"] = "1"
+                    st.rerun()
             if save:
                 try:
                     update_product(product["id"], name=edited_name, description=edited_description,
@@ -75,6 +81,7 @@ def render_object_library() -> None:
         st.write("Atualização:", project.get("refresh_policy", "Conforme atualização da fonte; periodicidade não informada"))
         st.write("Gráficos e indicadores:", len(components))
         if st.button("Abrir no Estúdio Visual para editar", type="primary", key="library_open_studio"):
+            st.session_state["studio_product_id"] = project.get("product_id") or ""
             st.session_state["studio_open_published"] = True
             st.query_params["open_studio"] = "1"
             st.rerun()
