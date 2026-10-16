@@ -271,7 +271,7 @@ def _render_visual_studio() -> None:
     event = _studio_component(rows=safe_rows, published_components=published_items,
                               load_published=load_published, product_id=product_id,
                               result=st.session_state.get("studio_publish_result"),
-                              key="bi_factory_visual_studio", height=920)
+                              key="bi_factory_visual_studio_" + (product_id or "legacy"), height=920)
     if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
         return
     event_id = event.get("event_id")
