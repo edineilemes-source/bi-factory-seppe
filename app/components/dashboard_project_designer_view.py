@@ -248,7 +248,8 @@ def _render_visual_studio() -> None:
     chosen = st.session_state.get("studio_product_id", "")
     labels = list(options)
     default_index = next((i for i, label in enumerate(labels) if options[label] == chosen), 0)
-    label = st.selectbox("Produto em edição", labels, index=default_index)
+    label = st.selectbox("Produto em edição", labels, index=default_index,
+                         key="studio_product_selector_" + (chosen or "legacy"))
     product_id = options[label]
     st.session_state["studio_product_id"] = product_id
     if product_id:
