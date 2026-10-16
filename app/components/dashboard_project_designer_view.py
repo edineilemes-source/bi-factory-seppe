@@ -588,7 +588,7 @@ def render_dashboard_project_designer() -> None:
     st.caption("Publique a configuração para a Sala de Situação. A publicação não modifica a fonte fiscal.")
     if st.button("Publicar na Sala de Situação", type="primary"):
         root = Path(__file__).resolve().parents[2] / "storage/dashboard_projects"
-    target = root / "published.json" if not product_id else root / "products" / (product_id + ".json")
+        target = root / "published.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(".tmp")
         try:
