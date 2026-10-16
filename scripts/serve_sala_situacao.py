@@ -8,25 +8,57 @@ import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+from uuid import UUID
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "web" / "sala_situacao" / "index.html"
 STUDIO = ROOT / "web" / "sala_situacao" / "studio.html"
 DATA = ROOT / "storage" / "reports" / "official_fiscal" / "rreo-2025-dashboard.json"
 PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
+PRODUCTS = ROOT / "storage" / "dashboard_projects" / "products"
+REGISTRY = ROOT / "storage" / "information_products" / "registry.json"
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        route = self.path.split("?", 1)[0]
+        url = urlsplit(self.path)
+        route = url.path
         if route in ("/", "/index.html"):
             path, mime = PAGE, "text/html; charset=utf-8"
         elif route in ("/studio", "/studio.html"):
             path, mime = STUDIO, "text/html; charset=utf-8"
         elif route == "/api/fiscal":
             path, mime = DATA, "application/json; charset=utf-8"
+        elif route == "/api/dashboard-products":
+            products = []
+            if PUBLISHED.is_file():
+                try:
+                    legacy = json.loads(PUBLISHED.read_text(encoding="utf-8"))
+                    products.append({"id": "legacy", "name": legacy.get("name", "Sala de Gestão")})
+                except (OSError, ValueError):
+                    pass
+            if REGISTRY.is_file():
+                try:
+                    for product in json.loads(REGISTRY.read_text(encoding="utf-8")):
+                        if product.get("type") in ("Painel", "Portal") and (PRODUCTS / (product["id"] + ".json")).is_file():
+                            products.append({"id": product["id"], "name": product["name"], "code": product.get("code")})
+                except (OSError, ValueError, KeyError, TypeError):
+                    pass
+            self._send(200, json.dumps(products, ensure_ascii=False).encode("utf-8"), "application/json")
+            return
         elif route == "/api/dashboard-project":
-            path, mime = PUBLISHED, "application/json; charset=utf-8"
+            identifier = parse_qs(url.query).get("product", ["legacy"])[0]
+            if identifier == "legacy":
+                path = PUBLISHED
+            else:
+                try:
+                    identifier = str(UUID(identifier))
+                except ValueError:
+                    self._send(400, b'{"error":"invalid_product_id"}', "application/json")
+                    return
+                path = PRODUCTS / (identifier + ".json")
+            mime = "application/json; charset=utf-8"
         elif route == "/health":
             self._send(200, b'{"status":"ok"}', "application/json")
             return
