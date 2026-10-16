@@ -176,6 +176,11 @@ def run() -> None:
     repository = _repository()
     st.title("BI Factory SEPPE")
 
+    if st.query_params.get("open_studio") == "1":
+        st.session_state["app_area"] = "Projetos de Dashboard"
+        st.session_state["dashboard_editor_mode"] = "Estúdio Visual (novo)"
+        del st.query_params["open_studio"]
+
     mode = st.sidebar.radio(
         "Área",
         ("BI Fiscal Oficial", "Projetos de Dashboard", "Biblioteca de Objetos", "BI Factory — Planilhas"),
