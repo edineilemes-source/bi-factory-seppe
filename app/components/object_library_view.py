@@ -35,15 +35,11 @@ def render_object_library() -> None:
         st.write("Alterado em:", project.get("updated_at", "Não informado"))
         st.write("Atualização:", project.get("refresh_policy", "Conforme atualização da fonte; periodicidade não informada"))
         st.write("Gráficos e indicadores:", len(components))
-        for c in components:
-            with st.expander(c.get("title", "Objeto sem título")):
-                st.write("Tipo:", c.get("visual_subtype", c.get("component_type", "Não informado")))
-                st.write("Métricas:", ", ".join(m.get("label", m.get("field", "")) for m in c.get("metrics", [])))
-                st.write("Dimensões:", ", ".join(d.get("label", d.get("field", "")) for d in c.get("dimensions", [])) or "Nenhuma")
-                st.write("Identificador:", c.get("id", "Legado: não informado"))
-                st.write("Criado em:", c.get("created_at", "Não informado"))
-                st.write("Alterado em:", c.get("updated_at", "Não informado"))
-                st.json({"cores": c.get("series_colors", []), "posição": c.get("position", {})})
+        if st.button("Abrir no Estúdio Visual para editar", type="primary", key="library_open_studio"):
+            st.session_state["app_area"] = "Projetos de Dashboard"
+            st.session_state["dashboard_editor_mode"] = "Estúdio Visual (novo)"
+            st.session_state["studio_open_published"] = True
+            st.rerun()
     st.markdown("### Outros produtos")
     st.info("PDFs e páginas de transparência serão inventariados quando forem registrados como produtos gerenciados. "
             "Não são presumidos a partir de arquivos sem metadados.")
