@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit.components.v1 as components
 from streamlit.components.v1 import declare_component
+from app.components.information_product_registry import TYPES, create_product, load_registry, update_product
 
 import streamlit as st
 
@@ -221,9 +222,44 @@ def _render_visual_studio() -> None:
     except (FileNotFoundError, ValueError) as exc:
         st.error(f"Fonte fiscal indisponível: {exc}")
         return
+    st.markdown("#### Produto de informação")
+    with st.expander("Criar novo produto (ficha de identificação)"):
+        with st.form("studio_create_product"):
+            new_name = st.text_input("Nome do produto")
+            new_type = st.selectbox("Tipo de produto", TYPES)
+            new_description = st.text_area("Descrição")
+            new_refresh = st.selectbox("Atualização", ["Manual", "Conforme fonte", "Diária", "Semanal", "Mensal"])
+            new_destination = st.text_input("Destino / distribuição")
+            create = st.form_submit_button("Criar produto", type="primary")
+        if create:
+            try:
+                new_product = create_product(new_name, new_type, new_description, new_refresh, new_destination)
+                st.session_state["studio_product_id"] = new_product["id"]
+                st.success("Produto cadastrado: " + new_product["code"])
+            except (ValueError, OSError) as exc:
+                st.error(str(exc))
+    try:
+        products = load_registry()
+    except (OSError, ValueError) as exc:
+        st.error(f"Catálogo indisponível: {exc}")
+        return
+    options = {"Sala publicada (legado)": ""}
+    options.update({p["code"] + " · " + p["name"]: p["id"] for p in products})
+    chosen = st.session_state.get("studio_product_id", "")
+    labels = list(options)
+    default_index = next((i for i, label in enumerate(labels) if options[label] == chosen), 0)
+    label = st.selectbox("Produto em edição", labels, index=default_index, key="studio_product_choice")
+    product_id = options[label]
+    st.session_state["studio_product_id"] = product_id
+    if product_id:
+        current_product = next(p for p in products if p["id"] == product_id)
+        st.caption(f"Chave: {current_product['code']} · Tipo: {current_product['type']} · Versão: {current_product['version']}")
+        if current_product["type"] not in ("Painel", "Portal"):
+            st.info("Este produto possui ficha cadastrada. A publicação web na 8503 é reservada aos painéis.")
     safe_rows = frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
     published_items = []
-    if st.session_state.pop("studio_open_published", False):
+    load_published = st.session_state.pop("studio_open_published", False)
+    if load_published:
         target = Path(__file__).resolve().parents[2] / "storage/dashboard_projects/published.json"
         try:
             project = json.loads(target.read_text(encoding="utf-8"))
@@ -232,8 +268,12 @@ def _render_visual_studio() -> None:
         except (OSError, ValueError, TypeError) as exc:
             st.error(f"Não foi possível abrir o produto publicado: {exc}")
     event = _studio_component(rows=safe_rows, published_components=published_items,
+                              load_published=load_published, product_id=product_id,
                               key="bi_factory_visual_studio", height=920)
     if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
+        return
+    if product_id and next((p for p in products if p["id"] == product_id), {}).get("type") not in ("Painel", "Portal"):
+        st.error("Somente painéis e portais podem ser enviados à 8503.")
         return
     item = event.get("component")
     if not isinstance(item, dict):
@@ -278,6 +318,7 @@ def _render_visual_studio() -> None:
     colors = [v for v in item.get("colors", []) if isinstance(v, str) and len(v) == 7 and v.startswith("#")]
     component = {
         "id": identifier,
+        "product_id": product_id or None,
         "title": str(item.get("title", "Visualização"))[:180],
         "component_type": supported[kind],
         "visual_subtype": kind,
@@ -301,10 +342,18 @@ def _render_visual_studio() -> None:
             pages.append({"title": "Visão principal", "components": []})
         existing = pages[0].setdefault("components", [])
         idx = next((i for i, c in enumerate(existing) if c.get("id") == identifier), None)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        component["created_at"] = existing[idx].get("created_at", now) if idx is not None else now
+        component["updated_at"] = now
         if idx is None:
             existing.append(component)
         else:
             existing[idx] = component
+        project.setdefault("created_at", now)
+        project["updated_at"] = now
+        if product_id:
+            project["product_id"] = product_id
         tmp = target.with_suffix(".tmp")
         tmp.write_text(json.dumps(project, ensure_ascii=False, indent=2), encoding="utf-8")
         os.replace(tmp, target)
