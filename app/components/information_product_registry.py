@@ -67,3 +67,17 @@ def update_product(identifier: str, **changes: str) -> dict:
             save_registry(products)
             return product
     raise KeyError(identifier)
+
+def sync_product_components(identifier: str, component_ids: list[str], status: str | None = None) -> dict:
+    """Persist the list of components linked to an information product."""
+    products = load_registry()
+    for product in products:
+        if product["id"] == identifier:
+            product["components"] = list(dict.fromkeys(component_ids))
+            if status is not None:
+                product["status"] = status
+            product["updated_at"] = _now()
+            product["version"] += 1
+            save_registry(products)
+            return product
+    raise KeyError(identifier)
