@@ -111,4 +111,15 @@ function drawPublished(current,historical){
 }
 async function init(){try{const publication=await fetch("/api/dashboard-project",{cache:"no-store"});if(publication.ok){const project=await publication.json();const page=project.pages?.[0];publishedComponents=Array.isArray(page?.components)?page.components:null;if(publishedComponents){el("default-area").hidden=true;el("published-area").hidden=false;}const kpis=page?.components?.filter(c=>c.component_type==="KPI"&&c.metrics?.length===1)||[];const allowed=new Set(["receita_realizada_acumulada","despesa_empenhada_acumulada","despesa_liquidada_acumulada","despesa_paga_acumulada","resultado_orcamentario_formal","margem_receita_menos_liquidada","liquidada_nao_paga"]);const configured=kpis.map(c=>[c.title,c.metrics[0].field]).filter(([,field])=>allowed.has(field));if(configured.length)metrics=configured;publishedName=project.name||publishedName;document.querySelector(".title").textContent=publishedName;document.querySelector(".eyebrow").textContent="Inteligência fiscal · "+(project.audience?.name||"Painel executivo");}const response=await fetch("/api/fiscal",{cache:"no-store"});if(!response.ok)throw Error("Dados oficiais indisponíveis (HTTP "+response.status+"). Gere o relatório fiscal no Codespace.");const data=await response.json();if(!Array.isArray(data)||!data.length)throw Error("O relatório fiscal está vazio.");rows=data.filter(r=>Number.isFinite(Number(r.ano))&&Number.isFinite(Number(r.bimestre))&&metrics.every(([,f])=>Number.isFinite(Number(r[f])))&&Number.isFinite(Number(r.resultado_orcamentario_formal))).sort((a,b)=>a.ano-b.ano||a.bimestre-b.bimestre);if(!rows.length)throw Error("Nenhum período válido no relatório.");el("period").replaceChildren(...rows.slice().reverse().map(r=>{const o=document.createElement("option");o.value=r.ano+"-"+r.bimestre;o.textContent=r.bimestre+"º bimestre / "+r.ano;return o}));el("period").addEventListener("change",draw);el("dashboard").hidden=false;draw();window.addEventListener("resize",()=>{trendChart?.resize();compareChart?.resize();publishedCharts.forEach(c=>c.resize())})}catch(e){el("error").hidden=false;el("error").textContent=e.message}}
 init();
+let publicationSignature=null;
+setInterval(async()=>{
+  try{
+    const response=await fetch("/api/dashboard-project",{cache:"no-store"});
+    if(!response.ok)return;
+    const project=await response.json();
+    const signature=JSON.stringify({name:project.name,pages:project.pages,updated_at:project.updated_at});
+    if(publicationSignature===null){publicationSignature=signature;return}
+    if(signature!==publicationSignature)window.location.reload();
+  }catch(error){/* Keep the current view if the connection is temporarily unavailable. */}
+},15000);
 </script></body></html>
