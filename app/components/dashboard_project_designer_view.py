@@ -351,10 +351,8 @@ def _render_visual_studio() -> None:
             project = json.loads(target.read_text(encoding="utf-8"))
         else:
             project = {"name": "Sala de Situação — SEPPE", "audience": {"name": "Painel executivo"}, "pages": [{"title": "Visão principal", "components": []}]}
-        if product_id and project.get("product_id") != product_id:
-            project = {"name": current_product["name"], "product_id": product_id,
-                       "audience": {"name": "Painel executivo"},
-                       "pages": [{"title": "Visão principal", "components": []}]}
+        if product_id and project.get("product_id") not in (None, product_id):
+            raise ValueError("A 8503 já está vinculada a outro produto. Troca de sala exige publicação controlada.")
         pages = project.setdefault("pages", [{"title": "Visão principal", "components": []}])
         if not pages:
             pages.append({"title": "Visão principal", "components": []})
