@@ -283,10 +283,6 @@ def _render_visual_studio() -> None:
     if product_id and next((p for p in products if p["id"] == product_id), {}).get("type") not in ("Painel", "Portal"):
         st.error("Somente painéis e portais podem ser enviados à 8503.")
         return
-    item = event.get("component")
-    if not isinstance(item, dict):
-        st.error("Componente inválido para publicação.")
-        return
     if event["action"] == "sync_all":
         supplied = event.get("components")
         if not isinstance(supplied, list) or len(supplied) > 100:
@@ -344,6 +340,10 @@ def _render_visual_studio() -> None:
             st.rerun()
         except (ValueError, TypeError, OSError, KeyError) as exc:
             st.error(f"Falha na sincronização: {exc}")
+        return
+    item = event.get("component")
+    if not isinstance(item, dict):
+        st.error("Componente inválido para publicação.")
         return
     if event["action"] == "unpublish":
         identifier = str(item.get("id", ""))
