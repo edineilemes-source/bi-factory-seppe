@@ -313,6 +313,7 @@ def _render_visual_studio() -> None:
                     st.warning(f"Retirada concluída, mas catálogo não atualizado: {exc}")
             st.session_state["studio_publish_result"] = {"id": identifier, "published": False, "message": "Componente retirado da Sala de Situação."}
             st.success("Componente retirado da Sala de Situação.")
+            st.rerun()
         return
     metric_names = item.get("metrics", [])
     if not isinstance(metric_names, list) or not metric_names or any(m not in FISCAL_METRICS for m in metric_names):
@@ -385,6 +386,7 @@ def _render_visual_studio() -> None:
                 st.warning(f"Publicação concluída, mas catálogo não atualizado: {exc}")
         st.session_state["studio_publish_result"] = {"id": identifier, "published": True, "message": "Publicado na Sala de Situação. Atualize a 8503."}
         st.success(f"Componente '{component['title']}' publicado na Sala de Situação (8503).")
+        st.rerun()
 
 
 
