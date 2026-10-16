@@ -269,9 +269,14 @@ def _render_visual_studio() -> None:
             st.error(f"Não foi possível abrir o produto publicado: {exc}")
     event = _studio_component(rows=safe_rows, published_components=published_items,
                               load_published=load_published, product_id=product_id,
+                              result=st.session_state.get("studio_publish_result"),
                               key="bi_factory_visual_studio", height=920)
     if not isinstance(event, dict) or event.get("action") not in ("publish", "unpublish"):
         return
+    event_id = event.get("event_id")
+    if not event_id or event_id == st.session_state.get("studio_last_event_id"):
+        return
+    st.session_state["studio_last_event_id"] = event_id
     if product_id and next((p for p in products if p["id"] == product_id), {}).get("type") not in ("Painel", "Portal"):
         st.error("Somente painéis e portais podem ser enviados à 8503.")
         return
@@ -305,6 +310,7 @@ def _render_visual_studio() -> None:
                     sync_product_components(product_id, ids)
                 except (OSError, ValueError, KeyError) as exc:
                     st.warning(f"Retirada concluída, mas catálogo não atualizado: {exc}")
+            st.session_state["studio_publish_result"] = {"id": identifier, "published": False, "message": "Componente retirado da Sala de Situação."}
             st.success("Componente retirado da Sala de Situação.")
         return
     metric_names = item.get("metrics", [])
@@ -374,6 +380,7 @@ def _render_visual_studio() -> None:
                 sync_product_components(product_id, ids, "Publicado")
             except (OSError, ValueError, KeyError) as exc:
                 st.warning(f"Publicação concluída, mas catálogo não atualizado: {exc}")
+        st.session_state["studio_publish_result"] = {"id": identifier, "published": True, "message": "Publicado na Sala de Situação. Atualize a 8503."}
         st.success(f"Componente '{component['title']}' publicado na Sala de Situação (8503).")
 
 
