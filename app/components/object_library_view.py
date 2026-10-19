@@ -102,7 +102,7 @@ def render_object_library() -> None:
                 return
             path = next((label for label, fid in folder_labels.items() if fid == identifier), folder["name"])
             count = sum(p.get("folder_id") == identifier for p in registered)
-            prefix = "　" * min(depth, 6) + ("📂 " if selected == identifier else "📁 ")
+            prefix = ("│   " * min(depth, 6)) + ("└── 📂 " if depth and selected == identifier else "└── 📁 " if depth else "📂 " if selected == identifier else "📁 ")
             if st.button(prefix + folder["name"] + (f" ({count})" if count else ""),
                          key="library_folder_" + identifier, help=path,
                          use_container_width=True, type="primary" if selected == identifier else "secondary"):
@@ -124,8 +124,9 @@ def render_object_library() -> None:
         if not visible:
             st.info("Nenhum produto nesta localização. Selecione outra pasta ou crie um produto.")
         for product in visible:
+            location = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
             with st.expander(("📊 " if product["type"] in ("Painel", "Portal") else "📄 ") +
-                             product["name"] + " · " + product["code"]):
+                             product["name"] + " · " + product["code"] + "  |  📁 " + location):
                 st.caption("Tipo: " + product["type"] + " · Versão: " + str(product.get("version", 1)) +
                            " · Situação: " + product.get("status", "Não informado"))
                 st.write(product.get("description") or "Sem descrição.")
