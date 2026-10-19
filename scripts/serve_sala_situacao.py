@@ -18,6 +18,7 @@ DATA = ROOT / "storage" / "reports" / "official_fiscal" / "rreo-2025-dashboard.j
 PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
 PRODUCTS = ROOT / "storage" / "dashboard_projects" / "products"
 REGISTRY = ROOT / "storage" / "information_products" / "registry.json"
+FOLDERS = ROOT / "storage" / "information_products" / "folders.json"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -30,19 +31,32 @@ class Handler(BaseHTTPRequestHandler):
             path, mime = STUDIO, "text/html; charset=utf-8"
         elif route == "/api/fiscal":
             path, mime = DATA, "application/json; charset=utf-8"
+        elif route == "/api/dashboard-folders":
+            try:
+                if FOLDERS.is_file():
+                    folders = json.loads(FOLDERS.read_text(encoding="utf-8"))
+                else:
+                    folders = [{"id": "default-" + str(i), "name": name, "parent_id": None, "order": i}
+                               for i, name in enumerate(("Finanças Públicas", "Saúde", "Educação", "Planejamento"))]
+                self._send(200, json.dumps(folders, ensure_ascii=False).encode("utf-8"), "application/json")
+            except (OSError, ValueError) as exc:
+                self._send(500, json.dumps({"error": str(exc)}).encode("utf-8"), "application/json")
+            return
         elif route == "/api/dashboard-products":
             products = []
             if PUBLISHED.is_file():
                 try:
                     legacy = json.loads(PUBLISHED.read_text(encoding="utf-8"))
-                    products.append({"id": "legacy", "name": legacy.get("name", "Sala de Gestão")})
+                    products.append({"id": "legacy", "name": legacy.get("name", "Sala de Gestão"), "folder_id": None, "visibility": "Interno"})
                 except (OSError, ValueError):
                     pass
             if REGISTRY.is_file():
                 try:
                     for product in json.loads(REGISTRY.read_text(encoding="utf-8")):
                         if product.get("type") in ("Painel", "Portal") and (PRODUCTS / (product["id"] + ".json")).is_file():
-                            products.append({"id": product["id"], "name": product["name"], "code": product.get("code")})
+                            products.append({"id": product["id"], "name": product["name"], "code": product.get("code"),
+                                             "folder_id": product.get("folder_id"), "visibility": product.get("visibility", "Interno"),
+                                             "type": product.get("type")})
                 except (OSError, ValueError, KeyError, TypeError):
                     pass
             self._send(200, json.dumps(products, ensure_ascii=False).encode("utf-8"), "application/json")
