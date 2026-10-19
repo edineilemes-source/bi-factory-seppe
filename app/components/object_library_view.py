@@ -89,12 +89,6 @@ def render_object_library() -> None:
     with left:
         st.markdown("**Pastas e subpastas**")
         st.caption("Selecione uma pasta para ver os produtos à direita.")
-        if st.button("▦ Todos os produtos", use_container_width=True, type="primary" if selected == "__all__" else "secondary"):
-            st.session_state["library_folder_id"] = "__all__"
-            st.rerun()
-        if st.button("▤ Sem pasta", use_container_width=True, type="primary" if selected is None else "secondary"):
-            st.session_state["library_folder_id"] = None
-            st.rerun()
         def draw_folder(folder, depth=0, ancestors=frozenset()):
             identifier = folder["id"]
             if identifier in ancestors:
@@ -113,53 +107,73 @@ def render_object_library() -> None:
         for folder in sorted((f for f in folders if not f.get("parent_id") or f["parent_id"] not in {x["id"] for x in folders}), key=lambda f: f["name"].casefold()):
             draw_folder(folder)
     with right:
+        st.markdown("**Produtos de informação**")
+        all_col, loose_col = st.columns(2)
+        with all_col:
+            if st.button("▦ Todos os produtos", use_container_width=True,
+                         type="primary" if selected == "__all__" else "secondary"):
+                st.session_state["library_folder_id"] = "__all__"
+                st.rerun()
+        with loose_col:
+            if st.button("▤ Sem pasta", use_container_width=True,
+                         type="primary" if selected is None else "secondary"):
+                st.session_state["library_folder_id"] = None
+                st.rerun()
         current_path = ("Todos os produtos" if selected == "__all__" else
                         "Sem pasta" if selected is None else
                         next((label for label, fid in folder_labels.items() if fid == selected), "Pasta"))
-        st.markdown("**Localização: " + current_path + "**")
-        search = st.text_input("Buscar nesta localização", placeholder="Nome, código ou tipo do produto", key="library_search")
+        st.caption("Localização selecionada: " + current_path)
+        search = st.text_input("Buscar produtos", placeholder="Nome, código ou tipo", key="library_search")
         visible = [p for p in registered if (selected == "__all__" or p.get("folder_id") == selected)
                    and search.casefold() in (p["name"] + " " + p["code"] + " " + p["type"]).casefold()]
-        st.caption(f"{len(visible)} produto(s) nesta visualização. Abra um produto para consultar ou editar sua ficha.")
+        st.caption(f"{len(visible)} produto(s) encontrados. Clique em um produto para abrir a ficha.")
         if not visible:
-            st.info("Nenhum produto nesta localização. Selecione outra pasta ou crie um produto.")
-        for product in visible:
-            location = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
-            with st.expander(("📊 " if product["type"] in ("Painel", "Portal") else "📄 ") +
-                             product["name"] + " · " + product["code"] + "  |  📁 " + location):
-                st.caption("Tipo: " + product["type"] + " · Versão: " + str(product.get("version", 1)) +
-                           " · Situação: " + product.get("status", "Não informado"))
-                st.write(product.get("description") or "Sem descrição.")
-                st.caption("Criado: " + product.get("created_at", "Não informado") +
-                           " · Alterado: " + product.get("updated_at", "Não informado"))
-                st.write("Componentes associados:", len(product.get("components", [])))
-                if product["type"] in ("Painel", "Portal"):
-                    if st.button("Abrir no Estúdio Visual", key="open_" + product["id"], type="primary"):
-                        st.session_state["studio_product_id"] = product["id"]
-                        st.session_state["studio_open_published"] = True
-                        st.query_params["open_studio"] = "1"
-                        st.rerun()
-                if product["id"] == "__legacy__":
-                    st.caption("Produto original: edite o conteúdo pelo Estúdio Visual.")
-                    continue
-                with st.form("edit_" + product["id"]):
-                    st.markdown("**Editar identificação e localização**")
-                    edited_name = st.text_input("Nome", value=product["name"])
-                    edited_description = st.text_area("Descrição", value=product.get("description", ""))
-                    edited_refresh = st.text_input("Regra de atualização", value=product.get("refresh_policy", "Manual"))
-                    edited_destination = st.text_input("Destino", value=product.get("destination", ""))
-                    current_folder = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
-                    edited_folder = st.selectbox("Mover para pasta", list(folder_labels), index=list(folder_labels).index(current_folder))
-                    edited_visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"],
-                        index=["Interno", "Público", "Restrito"].index(product.get("visibility", "Interno"))
-                        if product.get("visibility", "Interno") in ("Interno", "Público", "Restrito") else 0)
-                    save = st.form_submit_button("Salvar alterações")
-                if save:
-                    try:
-                        update_product(product["id"], name=edited_name, description=edited_description,
-                                       refresh_policy=edited_refresh, destination=edited_destination,
-                                       folder_id=folder_labels[edited_folder], visibility=edited_visibility)
-                        st.success("Ficha atualizada.")
-                        st.rerun()
-                    except (ValueError, OSError) as exc:
-                        st.error(str(exc))
+            st.info("Nenhum produto nesta localização.")
+        groups = [
+            ("Sem pasta", [p for p in visible if not p.get("folder_id")]),
+            ("Nas pastas", [p for p in visible if p.get("folder_id")]),
+        ]
+        for group_title, group_products in groups:
+            st.markdown("#### " + group_title + f" ({len(group_products)})")
+            if not group_products:
+                st.caption("Nenhum produto neste grupo.")
+            for product in group_products:
+                location = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
+                with st.expander(("📊 " if product["type"] in ("Painel", "Portal") else "📄 ") +
+                                 product["name"] + " · " + product["code"] + "  |  📁 " + location):
+                    st.caption("Tipo: " + product["type"] + " · Versão: " + str(product.get("version", 1)) +
+                               " · Situação: " + product.get("status", "Não informado"))
+                    st.write(product.get("description") or "Sem descrição.")
+                    st.caption("Criado: " + product.get("created_at", "Não informado") +
+                               " · Alterado: " + product.get("updated_at", "Não informado"))
+                    st.write("Componentes associados:", len(product.get("components", [])))
+                    if product["type"] in ("Painel", "Portal"):
+                        if st.button("Abrir no Estúdio Visual", key="open_" + product["id"], type="primary"):
+                            st.session_state["studio_product_id"] = product["id"]
+                            st.session_state["studio_open_published"] = True
+                            st.query_params["open_studio"] = "1"
+                            st.rerun()
+                    if product["id"] == "__legacy__":
+                        st.caption("Produto original: edite o conteúdo pelo Estúdio Visual.")
+                        continue
+                    with st.form("edit_" + product["id"]):
+                        st.markdown("**Editar identificação e localização**")
+                        edited_name = st.text_input("Nome", value=product["name"])
+                        edited_description = st.text_area("Descrição", value=product.get("description", ""))
+                        edited_refresh = st.text_input("Regra de atualização", value=product.get("refresh_policy", "Manual"))
+                        edited_destination = st.text_input("Destino", value=product.get("destination", ""))
+                        current_folder = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
+                        edited_folder = st.selectbox("Mover para pasta", list(folder_labels), index=list(folder_labels).index(current_folder))
+                        edited_visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"],
+                            index=["Interno", "Público", "Restrito"].index(product.get("visibility", "Interno"))
+                            if product.get("visibility", "Interno") in ("Interno", "Público", "Restrito") else 0)
+                        save = st.form_submit_button("Salvar alterações")
+                    if save:
+                        try:
+                            update_product(product["id"], name=edited_name, description=edited_description,
+                                           refresh_policy=edited_refresh, destination=edited_destination,
+                                           folder_id=folder_labels[edited_folder], visibility=edited_visibility)
+                            st.success("Ficha atualizada.")
+                            st.rerun()
+                        except (ValueError, OSError) as exc:
+                            st.error(str(exc))
