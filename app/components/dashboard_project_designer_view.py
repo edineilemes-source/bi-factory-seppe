@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit.components.v1 as components
 from streamlit.components.v1 import declare_component
-from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder
+from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder, folder_choices
 
 import streamlit as st
 
@@ -230,8 +230,7 @@ def _render_visual_studio() -> None:
             new_description = st.text_area("Descrição")
             new_refresh = st.selectbox("Atualização", ["Manual", "Conforme fonte", "Diária", "Semanal", "Mensal"])
             new_destination = st.text_input("Destino / distribuição")
-            folder_options = {"Sem pasta": None}
-            folder_options.update({f["name"] + " · " + f["id"][:8]: f["id"] for f in load_folders()})
+            folder_options = folder_choices()
             new_folder = st.selectbox("Pasta do produto", list(folder_options))
             new_visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"])
             create = st.form_submit_button("Criar produto", type="primary")
