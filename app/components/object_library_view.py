@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
-from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder
+from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder, folder_choices
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
@@ -17,8 +17,7 @@ def render_object_library() -> None:
     st.caption("Inventário dos produtos, componentes, destinos e configurações disponíveis. "
                "Metadados não registrados aparecem como 'Não informado', sem datas inventadas.")
     folders = load_folders()
-    folder_labels = {"Sem pasta": None}
-    folder_labels.update({("↳ " if f.get("parent_id") else "") + f["name"] + " · " + f["id"][:8]: f["id"] for f in folders})
+    folder_labels = folder_choices()
     with st.expander("Gerenciar pastas e subpastas"):
         with st.form("create_folder"):
             folder_name = st.text_input("Nome da pasta")
