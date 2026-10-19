@@ -109,7 +109,36 @@ function drawPublished(current,historical){
     grid.append(card);
   });
 }
-async function init(){try{const activeProduct=new URLSearchParams(location.search).get("product")||"legacy";const menu=el("product-menu");try{const listResponse=await fetch("/api/dashboard-products",{cache:"no-store"});if(listResponse.ok){const products=await listResponse.json();menu.replaceChildren();products.forEach(p=>{const link=document.createElement("a");link.href=p.id==="legacy"?"/":"/?product="+encodeURIComponent(p.id);link.textContent="▥  "+p.name;link.className=p.id===activeProduct?"active":"";menu.append(link)})}}catch(error){/* Keep dashboard usable without menu metadata. */}const publication=await fetch("/api/dashboard-project?product="+encodeURIComponent(activeProduct),{cache:"no-store"});if(publication.ok){const project=await publication.json();const page=project.pages?.[0];publishedComponents=Array.isArray(page?.components)?page.components:null;if(publishedComponents){el("default-area").hidden=true;el("published-area").hidden=false;}const kpis=page?.components?.filter(c=>c.component_type==="KPI"&&c.metrics?.length===1)||[];const allowed=new Set(["receita_realizada_acumulada","despesa_empenhada_acumulada","despesa_liquidada_acumulada","despesa_paga_acumulada","resultado_orcamentario_formal","margem_receita_menos_liquidada","liquidada_nao_paga"]);const configured=kpis.map(c=>[c.title,c.metrics[0].field]).filter(([,field])=>allowed.has(field));if(configured.length)metrics=configured;publishedName=project.name||publishedName;document.querySelector(".title").textContent=publishedName;document.querySelector(".eyebrow").textContent="Inteligência fiscal · "+(project.audience?.name||"Painel executivo");}const response=await fetch("/api/fiscal",{cache:"no-store"});if(!response.ok)throw Error("Dados oficiais indisponíveis (HTTP "+response.status+"). Gere o relatório fiscal no Codespace.");const data=await response.json();if(!Array.isArray(data)||!data.length)throw Error("O relatório fiscal está vazio.");rows=data.filter(r=>Number.isFinite(Number(r.ano))&&Number.isFinite(Number(r.bimestre))&&metrics.every(([,f])=>Number.isFinite(Number(r[f])))&&Number.isFinite(Number(r.resultado_orcamentario_formal))).sort((a,b)=>a.ano-b.ano||a.bimestre-b.bimestre);if(!rows.length)throw Error("Nenhum período válido no relatório.");el("period").replaceChildren(...rows.slice().reverse().map(r=>{const o=document.createElement("option");o.value=r.ano+"-"+r.bimestre;o.textContent=r.bimestre+"º bimestre / "+r.ano;return o}));el("period").addEventListener("change",draw);el("dashboard").hidden=false;draw();window.addEventListener("resize",()=>{trendChart?.resize();compareChart?.resize();publishedCharts.forEach(c=>c.resize())})}catch(e){el("error").hidden=false;el("error").textContent=e.message}}
+async function init(){try{const activeProduct=new URLSearchParams(location.search).get("product")||"legacy";const menu=el("product-menu");
+try{
+ const [pr,fr]=await Promise.all([fetch("/api/dashboard-products"),fetch("/api/dashboard-folders")]);
+ if(pr.ok&&fr.ok){
+  const products=await pr.json(),folders=await fr.json();
+  menu.replaceChildren();
+  const search=document.createElement("input");search.placeholder="Buscar produtos";search.type="search";
+  search.style.cssText="width:100%;padding:9px;margin-bottom:12px";menu.append(search);
+  const tree=document.createElement("div");menu.append(tree);
+  const render=()=>{
+   tree.replaceChildren();
+   const q=search.value.toLowerCase();
+   const visible=products.filter(p=>(p.name+" "+(p.code||"")).toLowerCase().includes(q));
+   const link=p=>{const a=document.createElement("a");a.href=p.id==="legacy"?"/":"/?product="+encodeURIComponent(p.id);a.textContent="▥ "+p.name;a.className=p.id===activeProduct?"active":"";return a};
+   const folder=(f,seen)=>{
+    if(seen.has(f.id))return null;
+    const d=document.createElement("details");d.open=true;
+    const s=document.createElement("summary");s.textContent="📁 "+f.name;d.append(s);
+    visible.filter(p=>p.folder_id===f.id).forEach(p=>d.append(link(p)));
+    folders.filter(x=>x.parent_id===f.id).forEach(x=>{const child=folder(x,new Set([...seen,f.id]));if(child)d.append(child)});
+    return d;
+   };
+   folders.filter(f=>!f.parent_id||!folders.some(x=>x.id===f.parent_id)).forEach(f=>tree.append(folder(f,new Set())));
+   const loose=visible.filter(p=>!p.folder_id||!folders.some(f=>f.id===p.folder_id));
+   if(loose.length){const d=document.createElement("details");d.open=true;const s=document.createElement("summary");s.textContent="📁 Sem pasta";d.append(s);loose.forEach(p=>d.append(link(p)));tree.append(d)}
+  };
+  search.addEventListener("input",render);render();
+ }
+}catch(error){}
+const publication=await fetch("/api/dashboard-project?product="+encodeURIComponent(activeProduct),{cache:"no-store"});if(publication.ok){const project=await publication.json();const page=project.pages?.[0];publishedComponents=Array.isArray(page?.components)?page.components:null;if(publishedComponents){el("default-area").hidden=true;el("published-area").hidden=false;}const kpis=page?.components?.filter(c=>c.component_type==="KPI"&&c.metrics?.length===1)||[];const allowed=new Set(["receita_realizada_acumulada","despesa_empenhada_acumulada","despesa_liquidada_acumulada","despesa_paga_acumulada","resultado_orcamentario_formal","margem_receita_menos_liquidada","liquidada_nao_paga"]);const configured=kpis.map(c=>[c.title,c.metrics[0].field]).filter(([,field])=>allowed.has(field));if(configured.length)metrics=configured;publishedName=project.name||publishedName;document.querySelector(".title").textContent=publishedName;document.querySelector(".eyebrow").textContent="Inteligência fiscal · "+(project.audience?.name||"Painel executivo");}const response=await fetch("/api/fiscal",{cache:"no-store"});if(!response.ok)throw Error("Dados oficiais indisponíveis (HTTP "+response.status+"). Gere o relatório fiscal no Codespace.");const data=await response.json();if(!Array.isArray(data)||!data.length)throw Error("O relatório fiscal está vazio.");rows=data.filter(r=>Number.isFinite(Number(r.ano))&&Number.isFinite(Number(r.bimestre))&&metrics.every(([,f])=>Number.isFinite(Number(r[f])))&&Number.isFinite(Number(r.resultado_orcamentario_formal))).sort((a,b)=>a.ano-b.ano||a.bimestre-b.bimestre);if(!rows.length)throw Error("Nenhum período válido no relatório.");el("period").replaceChildren(...rows.slice().reverse().map(r=>{const o=document.createElement("option");o.value=r.ano+"-"+r.bimestre;o.textContent=r.bimestre+"º bimestre / "+r.ano;return o}));el("period").addEventListener("change",draw);el("dashboard").hidden=false;draw();window.addEventListener("resize",()=>{trendChart?.resize();compareChart?.resize();publishedCharts.forEach(c=>c.resize())})}catch(e){el("error").hidden=false;el("error").textContent=e.message}}
 init();
 let publicationSignature=null;
 setInterval(async()=>{
