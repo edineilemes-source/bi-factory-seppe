@@ -112,23 +112,56 @@ def render_object_library() -> None:
         by_parent.setdefault(folder.get("parent_id"), []).append(folder)
     with left:
         st.markdown("**PASTAS**")
-        st.caption("Navegue pela estrutura de assuntos.")
+        st.caption("Use a seta para expandir; clique no nome para filtrar.")
+        expanded = st.session_state.setdefault("library_expanded_folders", [])
+        folder_ids = {folder["id"] for folder in folders}
         def draw_folder(folder, depth=0, ancestors=frozenset()):
             identifier = folder["id"]
             if identifier in ancestors:
-                st.error("Ciclo na hierarquia de pastas.")
+                st.error("Hierarquia de pastas inválida: referência circular.")
                 return
-            path = next((label for label, fid in folder_labels.items() if fid == identifier), folder["name"])
+            children = sorted(by_parent.get(identifier, []), key=lambda f: f["name"].casefold())
             count = sum(p.get("folder_id") == identifier for p in registered)
-            prefix = ("│   " * min(depth, 6)) + ("└── 📂 " if depth and selected == identifier else "└── 📁 " if depth else "📂 " if selected == identifier else "📁 ")
-            if st.button(prefix + folder["name"] + (f" ({count})" if count else ""),
-                         key="library_folder_" + identifier, help=path,
-                         use_container_width=True, type="primary" if selected == identifier else "secondary"):
-                st.session_state["library_folder_id"] = identifier
-                st.rerun()
-            for child in sorted(by_parent.get(identifier, []), key=lambda f: f["name"].casefold()):
-                draw_folder(child, depth + 1, ancestors | {identifier})
-        for folder in sorted((f for f in folders if not f.get("parent_id") or f["parent_id"] not in {x["id"] for x in folders}), key=lambda f: f["name"].casefold()):
+            path = next((label for label, fid in folder_labels.items() if fid == identifier), folder["name"])
+            # Columns create a real clickable disclosure control, not a simulated text tree.
+            indent = min(depth, 6) * 16
+            with st.container():
+                if indent:
+                    st.markdown(
+                        f'<div style="height:0;border-left:2px solid #e5edf6;margin-left:{indent}px"></div>',
+                        unsafe_allow_html=True,
+                    )
+                toggle_col, name_col = st.columns([0.19, 0.81], gap="small")
+                with toggle_col:
+                    if children:
+                        is_open = identifier in expanded
+                        if st.button("▾" if is_open else "▸", key="folder_toggle_" + identifier,
+                                     help="Recolher subpastas" if is_open else "Expandir subpastas",
+                                     use_container_width=True):
+                            st.session_state["library_expanded_folders"] = (
+                                [fid for fid in expanded if fid != identifier] if is_open
+                                else [*expanded, identifier]
+                            )
+                            st.rerun()
+                    else:
+                        st.caption("·")
+                with name_col:
+                    label = ("📂 " if identifier == selected else "📁 ") + folder["name"]
+                    if count:
+                        label += f"  · {count}"
+                    if st.button(label, key="library_folder_" + identifier, help=path,
+                                 use_container_width=True,
+                                 type="primary" if selected == identifier else "secondary"):
+                        st.session_state["library_folder_id"] = identifier
+                        st.rerun()
+            if identifier in expanded:
+                for child in children:
+                    draw_folder(child, depth + 1, ancestors | {identifier})
+        roots = sorted(
+            (f for f in folders if not f.get("parent_id") or f["parent_id"] not in folder_ids),
+            key=lambda f: f["name"].casefold(),
+        )
+        for folder in roots:
             draw_folder(folder)
     with right:
         st.markdown("**PRODUTOS**")
@@ -149,7 +182,7 @@ def render_object_library() -> None:
         groups = [
             ("Sem pasta", [p for p in visible if not p.get("folder_id")]),
             ("Nas pastas", [p for p in visible if p.get("folder_id")]),
-        ]
+        ] if selected == "__all__" else [(current_path, visible)]
         for group_title, group_products in groups:
             st.markdown("##### " + group_title + f"  ·  {len(group_products)}")
             if not group_products:
