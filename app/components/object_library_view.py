@@ -13,9 +13,34 @@ PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
 
 
 def render_object_library() -> None:
-    st.subheader("Biblioteca de Objetos de Informação")
-    st.caption("Inventário dos produtos, componentes, destinos e configurações disponíveis. "
-               "Metadados não registrados aparecem como 'Não informado', sem datas inventadas.")
+    st.markdown("""
+    <style>
+    /* Identidade visual da biblioteca: navegação discreta, conteúdo em primeiro plano. */
+    div[data-testid="stMainBlockContainer"] {max-width: 1500px;}
+    div[data-testid="stVerticalBlock"] div[data-testid="stExpander"] {
+        border: 1px solid #e4eaf2; border-radius: 12px; background: #fff;
+        box-shadow: 0 2px 12px rgba(19, 41, 72, .025);
+    }
+    div[data-testid="stVerticalBlock"] div[data-testid="stExpander"] summary:hover {
+        background: #f5f8fc; border-radius: 12px;
+    }
+    div[data-testid="stVerticalBlock"] button[kind="secondary"] {
+        border-color: #e3eaf3; border-radius: 9px; background: #fff;
+        color: #273d58; font-weight: 500;
+    }
+    div[data-testid="stVerticalBlock"] button[kind="secondary"]:hover {
+        border-color: #8bb1d7; background: #f2f7fc; color: #174f84;
+    }
+    div[data-testid="stVerticalBlock"] button[kind="primary"] {
+        border-radius: 9px; background: #1766a3; border-color: #1766a3;
+    }
+    div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+        background: #105184; border-color: #105184;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown("## Biblioteca de objetos")
+    st.caption("Encontre, organize e gerencie os produtos de informação da SEPPE.")
     folders = load_folders()
     folder_labels = folder_choices()
     try:
@@ -43,8 +68,7 @@ def render_object_library() -> None:
         except (ValueError, OSError) as exc:
             st.warning("Erro ao carregar publicação original: " + str(exc))
 
-    st.markdown("**Organização:** Pastas → Subpastas → Produtos de informação → Gráficos e indicadores")
-    st.caption("Pastas organizam os produtos; os gráficos pertencem aos produtos. A Sala de Gestão na porta 8503 exibe somente o que foi publicado.")
+
     with st.expander("＋ Criar pasta, subpasta ou produto", expanded=False):
         tab_folder, tab_product = st.tabs(["Nova pasta ou subpasta", "Novo produto"])
         with tab_folder:
@@ -77,8 +101,8 @@ def render_object_library() -> None:
                 except (ValueError, OSError) as exc:
                     st.error(str(exc))
 
-    st.markdown("### Explorador de objetos")
-    left, right = st.columns([1, 2.5], gap="large")
+    st.markdown("### Explorar biblioteca")
+    left, right = st.columns([1.05, 2.9], gap="large")
     selected = st.session_state.get("library_folder_id", "__all__")
     valid_ids = {"__all__", None} | {f["id"] for f in folders}
     if selected not in valid_ids:
@@ -87,8 +111,8 @@ def render_object_library() -> None:
     for folder in folders:
         by_parent.setdefault(folder.get("parent_id"), []).append(folder)
     with left:
-        st.markdown("**Pastas e subpastas**")
-        st.caption("Selecione uma pasta para ver os produtos à direita.")
+        st.markdown("**PASTAS**")
+        st.caption("Navegue pela estrutura de assuntos.")
         def draw_folder(folder, depth=0, ancestors=frozenset()):
             identifier = folder["id"]
             if identifier in ancestors:
@@ -107,26 +131,19 @@ def render_object_library() -> None:
         for folder in sorted((f for f in folders if not f.get("parent_id") or f["parent_id"] not in {x["id"] for x in folders}), key=lambda f: f["name"].casefold()):
             draw_folder(folder)
     with right:
-        st.markdown("**Produtos de informação**")
-        all_col, loose_col = st.columns(2)
-        with all_col:
-            if st.button("▦ Todos os produtos", use_container_width=True,
-                         type="primary" if selected == "__all__" else "secondary"):
-                st.session_state["library_folder_id"] = "__all__"
-                st.rerun()
-        with loose_col:
-            if st.button("▤ Sem pasta", use_container_width=True,
-                         type="primary" if selected is None else "secondary"):
-                st.session_state["library_folder_id"] = None
-                st.rerun()
+        st.markdown("**PRODUTOS**")
+        if st.button("▦ Ver todos os produtos", use_container_width=False,
+                     type="primary" if selected == "__all__" else "secondary"):
+            st.session_state["library_folder_id"] = "__all__"
+            st.rerun()
         current_path = ("Todos os produtos" if selected == "__all__" else
                         "Sem pasta" if selected is None else
                         next((label for label, fid in folder_labels.items() if fid == selected), "Pasta"))
-        st.caption("Localização selecionada: " + current_path)
+        st.caption("Visualizando: " + current_path)
         search = st.text_input("Buscar produtos", placeholder="Nome, código ou tipo", key="library_search")
         visible = [p for p in registered if (selected == "__all__" or p.get("folder_id") == selected)
                    and search.casefold() in (p["name"] + " " + p["code"] + " " + p["type"]).casefold()]
-        st.caption(f"{len(visible)} produto(s) encontrados. Clique em um produto para abrir a ficha.")
+        st.caption(f"{len(visible)} produto(s) · Selecione um item para consultar ou editar.")
         if not visible:
             st.info("Nenhum produto nesta localização.")
         groups = [
@@ -134,7 +151,7 @@ def render_object_library() -> None:
             ("Nas pastas", [p for p in visible if p.get("folder_id")]),
         ]
         for group_title, group_products in groups:
-            st.markdown("#### " + group_title + f" ({len(group_products)})")
+            st.markdown("##### " + group_title + f"  ·  {len(group_products)}")
             if not group_products:
                 st.caption("Nenhum produto neste grupo.")
             for product in group_products:
