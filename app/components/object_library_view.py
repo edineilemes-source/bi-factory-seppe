@@ -134,51 +134,45 @@ def render_object_library() -> None:
         by_parent.setdefault(folder.get("parent_id"), []).append(folder)
     with left:
         st.markdown("**PASTAS**")
-        st.caption("Use a seta para expandir; clique no nome para filtrar.")
-        expanded = st.session_state.setdefault("library_expanded_folders", [])
+        st.caption("Clique na pasta para abrir suas subpastas e visualizar os produtos.")
         folder_ids = {folder["id"] for folder in folders}
+        parent_of = {folder["id"]: folder.get("parent_id") for folder in folders}
+        def is_descendant(folder_id, ancestor_id):
+            visited = set()
+            current = folder_id
+            while current and current not in visited:
+                if current == ancestor_id:
+                    return True
+                visited.add(current)
+                current = parent_of.get(current)
+            return False
+
         def draw_folder(folder, depth=0, ancestors=frozenset()):
             identifier = folder["id"]
             if identifier in ancestors:
                 st.error("Hierarquia de pastas inválida: referência circular.")
                 return
             children = sorted(by_parent.get(identifier, []), key=lambda f: f["name"].casefold())
-            count = sum(p.get("folder_id") == identifier for p in registered)
             path = next((label for label, fid in folder_labels.items() if fid == identifier), folder["name"])
-            # Child folders are indented beneath their parent, with left-aligned labels.
-            with st.container():
-                if depth:
-                    spacer, toggle_col, name_col = st.columns(
-                        [min(depth, 6) * 0.13, 0.19, max(0.35, 0.81 - min(depth, 6) * 0.13)],
-                        gap="small",
-                    )
-                    with spacer:
-                        st.empty()
-                else:
-                    toggle_col, name_col = st.columns([0.19, 0.81], gap="small")
-                with toggle_col:
-                    if children:
-                        is_open = identifier in expanded
-                        if st.button("▾" if is_open else "▸", key="folder_toggle_" + identifier,
-                                     help="Recolher subpastas" if is_open else "Expandir subpastas",
-                                     use_container_width=True):
-                            st.session_state["library_expanded_folders"] = (
-                                [fid for fid in expanded if fid != identifier] if is_open
-                                else [*expanded, identifier]
-                            )
-                            st.rerun()
-                    else:
-                        st.caption("·")
-                with name_col:
-                    label = ("📂 " if identifier == selected else "📁 ") + folder["name"]
-                    if count:
-                        label += f"  · {count}"
-                    if st.button(label, key="library_folder_" + identifier, help=path,
-                                 use_container_width=True,
-                                 type="primary" if selected == identifier else "secondary"):
-                        st.session_state["library_folder_id"] = identifier
-                        st.rerun()
-            if identifier in expanded:
+            count = sum(p.get("folder_id") == identifier for p in registered)
+            # O nome da pasta é o único controle: sem setas separadas.
+            if depth:
+                indent_col, folder_col = st.columns([min(depth, 6) * 0.12, max(0.28, 1 - min(depth, 6) * 0.12)], gap="small")
+                with indent_col:
+                    st.empty()
+            else:
+                folder_col = st.container()
+            with folder_col:
+                label = ("📂 " if selected == identifier else "📁 ") + folder["name"]
+                if count:
+                    label += f" · {count}"
+                if st.button(label, key="library_folder_" + identifier, help=path,
+                             use_container_width=True,
+                             type="primary" if selected == identifier else "secondary"):
+                    st.session_state["library_folder_id"] = identifier
+                    st.rerun()
+            # A ramificação selecionada abre automaticamente até a pasta ativa.
+            if selected != "__all__" and selected is not None and is_descendant(selected, identifier):
                 for child in children:
                     draw_folder(child, depth + 1, ancestors | {identifier})
         roots = sorted(
@@ -198,15 +192,32 @@ def render_object_library() -> None:
                         next((label for label, fid in folder_labels.items() if fid == selected), "Pasta"))
         st.caption("Visualizando: " + current_path)
         search = st.text_input("Buscar produtos", placeholder="Nome, código ou tipo", key="library_search")
-        visible = [p for p in registered if (selected == "__all__" or p.get("folder_id") == selected)
-                   and search.casefold() in (p["name"] + " " + p["code"] + " " + p["type"]).casefold()]
+        def matches_search(product):
+            return search.casefold() in (
+                product["name"] + " " + product["code"] + " " + product["type"]
+            ).casefold()
+        if selected == "__all__":
+            visible = [p for p in registered if matches_search(p)]
+            groups = [
+                ("Sem pasta", [p for p in visible if not p.get("folder_id")]),
+                ("Nas pastas", [p for p in visible if p.get("folder_id")]),
+            ]
+        elif selected is None:
+            visible = [p for p in registered if not p.get("folder_id") and matches_search(p)]
+            groups = [("Sem pasta", visible)]
+        else:
+            visible = [
+                p for p in registered
+                if p.get("folder_id") and is_descendant(p["folder_id"], selected)
+                and matches_search(p)
+            ]
+            groups = [
+                ("Diretamente nesta pasta", [p for p in visible if p.get("folder_id") == selected]),
+                ("Nas subpastas", [p for p in visible if p.get("folder_id") != selected]),
+            ]
         st.caption(f"{len(visible)} produto(s) · Selecione um item para consultar ou editar.")
         if not visible:
             st.info("Nenhum produto nesta localização.")
-        groups = [
-            ("Sem pasta", [p for p in visible if not p.get("folder_id")]),
-            ("Nas pastas", [p for p in visible if p.get("folder_id")]),
-        ] if selected == "__all__" else [(current_path, visible)]
         for group_title, group_products in groups:
             st.markdown("##### " + group_title + f"  ·  {len(group_products)}")
             if not group_products:
