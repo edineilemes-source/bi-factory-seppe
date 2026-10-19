@@ -38,7 +38,13 @@ def render_object_library() -> None:
     div[data-testid="stVerticalBlock"] button[kind="primary"] {
         border-radius: 9px; background: #1766a3; border-color: #1766a3;
     }
-    div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+    /* Alinhar o conteúdo dos botões de pasta à esquerda, sem deslocar as setas. */
+    div[data-testid="stVerticalBlock"] button[kind="secondary"] p,
+    div[data-testid="stVerticalBlock"] button[kind="primary"] p {
+        text-align: left;
+        width: 100%;
+    }
+        div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
         background: #105184; border-color: #105184;
     }
     </style>
