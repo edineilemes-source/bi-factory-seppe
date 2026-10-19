@@ -122,16 +122,16 @@ try{
    tree.replaceChildren();
    const q=search.value.toLowerCase();
    const visible=products.filter(p=>(p.name+" "+(p.code||"")).toLowerCase().includes(q));
-   const link=p=>{const a=document.createElement("a");a.href=p.id==="legacy"?"/":"/?product="+encodeURIComponent(p.id);a.textContent="▥ "+p.name;a.className=p.id===activeProduct?"active":"";return a};
+   const link=p=>{const a=document.createElement("a");a.href=p.id==="legacy"?"/":"/?product="+encodeURIComponent(p.id);a.textContent="▥ "+p.name;a.className=p.id===activeProduct?"active":"";a.title=p.code||p.name;a.style.cssText="display:block;padding:9px 10px;margin:3px 0 3px 9px;border-radius:7px;font-size:13px";return a};
    const folder=(f,seen)=>{
     if(seen.has(f.id))return null;
-    const d=document.createElement("details");d.open=true;
-    const s=document.createElement("summary");s.textContent="📁 "+f.name;d.append(s);
+    const d=document.createElement("details");d.open=true;d.style.cssText="padding-left:9px;margin:6px 0";
+    const s=document.createElement("summary");s.textContent="📁 "+f.name;s.style.cssText="cursor:pointer;font-weight:600;padding:9px 0";d.append(s);
     visible.filter(p=>p.folder_id===f.id).forEach(p=>d.append(link(p)));
     folders.filter(x=>x.parent_id===f.id).forEach(x=>{const child=folder(x,new Set([...seen,f.id]));if(child)d.append(child)});
     return d;
    };
-   folders.filter(f=>!f.parent_id||!folders.some(x=>x.id===f.parent_id)).forEach(f=>tree.append(folder(f,new Set())));
+   folders.filter(f=>!f.parent_id||!folders.some(x=>x.id===f.parent_id)).forEach(f=>{const node=folder(f,new Set());if(node)tree.append(node)});
    const loose=visible.filter(p=>!p.folder_id||!folders.some(f=>f.id===p.folder_id));
    if(loose.length){const d=document.createElement("details");d.open=true;const s=document.createElement("summary");s.textContent="📁 Sem pasta";d.append(s);loose.forEach(p=>d.append(link(p)));tree.append(d)}
   };
