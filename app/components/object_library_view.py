@@ -38,6 +38,18 @@ def render_object_library() -> None:
     div[data-testid="stVerticalBlock"] button[kind="primary"] {
         border-radius: 9px; background: #1766a3; border-color: #1766a3;
     }
+    /* Streamlit centraliza o conteúdo por padrão: direcionar apenas aos botões de pastas. */
+    [class*="st-key-library_folder_"] button {
+        justify-content: flex-start !important;
+        text-align: left !important;
+        padding-left: 12px !important;
+    }
+    [class*="st-key-library_folder_"] button > div,
+    [class*="st-key-library_folder_"] button p {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        width: auto !important;
+    }
     /* Alinhar o conteúdo dos botões de pasta à esquerda, sem deslocar as setas. */
     div[data-testid="stVerticalBlock"] button[kind="secondary"] p,
     div[data-testid="stVerticalBlock"] button[kind="primary"] p {
@@ -133,15 +145,17 @@ def render_object_library() -> None:
             children = sorted(by_parent.get(identifier, []), key=lambda f: f["name"].casefold())
             count = sum(p.get("folder_id") == identifier for p in registered)
             path = next((label for label, fid in folder_labels.items() if fid == identifier), folder["name"])
-            # Columns create a real clickable disclosure control, not a simulated text tree.
-            indent = min(depth, 6) * 16
+            # Child folders are indented beneath their parent, with left-aligned labels.
             with st.container():
-                if indent:
-                    st.markdown(
-                        f'<div style="height:0;border-left:2px solid #e5edf6;margin-left:{indent}px"></div>',
-                        unsafe_allow_html=True,
+                if depth:
+                    spacer, toggle_col, name_col = st.columns(
+                        [min(depth, 6) * 0.13, 0.19, max(0.35, 0.81 - min(depth, 6) * 0.13)],
+                        gap="small",
                     )
-                toggle_col, name_col = st.columns([0.19, 0.81], gap="small")
+                    with spacer:
+                        st.empty()
+                else:
+                    toggle_col, name_col = st.columns([0.19, 0.81], gap="small")
                 with toggle_col:
                     if children:
                         is_open = identifier in expanded
