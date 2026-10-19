@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit.components.v1 as components
 from streamlit.components.v1 import declare_component
-from app.components.information_product_registry import TYPES, create_product, load_registry, update_product
+from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder
 
 import streamlit as st
 
@@ -230,10 +230,15 @@ def _render_visual_studio() -> None:
             new_description = st.text_area("Descrição")
             new_refresh = st.selectbox("Atualização", ["Manual", "Conforme fonte", "Diária", "Semanal", "Mensal"])
             new_destination = st.text_input("Destino / distribuição")
+            folder_options = {"Sem pasta": None}
+            folder_options.update({f["name"] + " · " + f["id"][:8]: f["id"] for f in load_folders()})
+            new_folder = st.selectbox("Pasta do produto", list(folder_options))
+            new_visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"])
             create = st.form_submit_button("Criar produto", type="primary")
         if create:
             try:
-                new_product = create_product(new_name, new_type, new_description, new_refresh, new_destination)
+                new_product = create_product(new_name, new_type, new_description, new_refresh, new_destination,
+                                             folder_options[new_folder], new_visibility)
                 st.session_state["studio_product_id"] = new_product["id"]
                 st.success("Produto cadastrado: " + new_product["code"])
             except (ValueError, OSError) as exc:
