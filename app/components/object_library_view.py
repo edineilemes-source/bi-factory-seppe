@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
-from app.components.information_product_registry import TYPES, create_product, load_registry, update_product
+from app.components.information_product_registry import TYPES, create_product, load_registry, update_product, load_folders, create_folder
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLISHED = ROOT / "storage" / "dashboard_projects" / "published.json"
@@ -16,6 +16,21 @@ def render_object_library() -> None:
     st.subheader("Biblioteca de Objetos de Informação")
     st.caption("Inventário dos produtos, componentes, destinos e configurações disponíveis. "
                "Metadados não registrados aparecem como 'Não informado', sem datas inventadas.")
+    folders = load_folders()
+    folder_labels = {"Sem pasta": None}
+    folder_labels.update({("↳ " if f.get("parent_id") else "") + f["name"] + " · " + f["id"][:8]: f["id"] for f in folders})
+    with st.expander("Gerenciar pastas e subpastas"):
+        with st.form("create_folder"):
+            folder_name = st.text_input("Nome da pasta")
+            parent_label = st.selectbox("Dentro de", list(folder_labels))
+            add_folder = st.form_submit_button("Criar pasta")
+        if add_folder:
+            try:
+                created_folder = create_folder(folder_name, folder_labels[parent_label])
+                st.success("Pasta criada: " + created_folder["name"])
+                st.rerun()
+            except (ValueError, OSError) as exc:
+                st.error(str(exc))
     with st.expander("Criar produto de informação"):
         with st.form("create_information_product"):
             name = st.text_input("Nome")
@@ -23,10 +38,12 @@ def render_object_library() -> None:
             description = st.text_area("Descrição")
             refresh = st.selectbox("Atualização", ["Manual", "Conforme fonte", "Diária", "Semanal", "Mensal"])
             destination = st.text_input("Destino")
+            folder_label = st.selectbox("Pasta", list(folder_labels))
+            visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"])
             submit = st.form_submit_button("Criar produto", type="primary")
         if submit:
             try:
-                product = create_product(name, kind, description, refresh, destination)
+                product = create_product(name, kind, description, refresh, destination, folder_labels[folder_label], visibility)
                 st.success("Produto criado: " + product["code"])
             except (ValueError, OSError) as exc:
                 st.error(str(exc))
@@ -44,6 +61,11 @@ def render_object_library() -> None:
                 edited_description = st.text_area("Descrição", value=product.get("description", ""))
                 edited_refresh = st.text_input("Regra de atualização", value=product.get("refresh_policy", "Manual"))
                 edited_destination = st.text_input("Destino", value=product.get("destination", ""))
+                current_folder = next((label for label, fid in folder_labels.items() if fid == product.get("folder_id")), "Sem pasta")
+                edited_folder = st.selectbox("Pasta", list(folder_labels), index=list(folder_labels).index(current_folder))
+                edited_visibility = st.selectbox("Visibilidade", ["Interno", "Público", "Restrito"],
+                    index=["Interno", "Público", "Restrito"].index(product.get("visibility", "Interno"))
+                    if product.get("visibility", "Interno") in ("Interno", "Público", "Restrito") else 0)
                 save = st.form_submit_button("Salvar ficha")
             if product["type"] in ("Painel", "Portal"):
                 if st.button("Abrir produto no Estúdio Visual", key="open_" + product["id"]):
@@ -54,7 +76,8 @@ def render_object_library() -> None:
             if save:
                 try:
                     update_product(product["id"], name=edited_name, description=edited_description,
-                                   refresh_policy=edited_refresh, destination=edited_destination)
+                                   refresh_policy=edited_refresh, destination=edited_destination,
+                                   folder_id=folder_labels[edited_folder], visibility=edited_visibility)
                     st.success("Ficha atualizada.")
                     st.rerun()
                 except (ValueError, OSError) as exc:
