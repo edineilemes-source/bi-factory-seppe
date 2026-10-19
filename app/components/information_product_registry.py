@@ -121,3 +121,29 @@ def create_folder(name: str, parent_id: str | None = None) -> dict:
     folders.append(folder)
     save_folders(folders)
     return folder
+
+
+def folder_choices() -> dict[str, str | None]:
+    """Return readable, fully qualified folder paths for selection controls."""
+    folders = load_folders()
+    by_id = {folder["id"]: folder for folder in folders}
+    choices: dict[str, str | None] = {"Sem pasta": None}
+    for folder in folders:
+        parts = []
+        visited = set()
+        current = folder
+        while current:
+            identifier = current["id"]
+            if identifier in visited:
+                raise ValueError("Hierarquia de pastas contém um ciclo")
+            visited.add(identifier)
+            parts.append(current["name"])
+            parent_id = current.get("parent_id")
+            if parent_id and parent_id not in by_id:
+                raise ValueError("Pasta superior não encontrada: " + str(parent_id))
+            current = by_id.get(parent_id)
+        label = " / ".join(reversed(parts))
+        if label in choices:
+            label += " · " + folder["id"][:8]
+        choices[label] = folder["id"]
+    return choices
