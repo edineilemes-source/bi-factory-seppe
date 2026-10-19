@@ -24,6 +24,25 @@ def render_object_library() -> None:
         st.error("Não foi possível carregar os produtos: " + str(exc))
         registered = []
 
+    if PUBLISHED.exists():
+        try:
+            legacy = json.loads(PUBLISHED.read_text(encoding="utf-8"))
+            count = sum(len(page.get("components", [])) for page in legacy.get("pages", []))
+            registered.append({
+                "id": "__legacy__", "code": "SEPPE-LEGADO",
+                "name": legacy.get("name") or "Sala Executiva — Execução Orçamentária",
+                "type": "Painel", "folder_id": None, "version": legacy.get("version", 1),
+                "status": "Publicado na 8503",
+                "description": legacy.get("description") or "Sala de Gestão original",
+                "created_at": legacy.get("created_at") or "Não informado",
+                "updated_at": legacy.get("updated_at") or "Não informado",
+                "components": [None] * count,
+                "refresh_policy": legacy.get("refresh_policy") or "Conforme fonte",
+                "destination": "8503 /", "visibility": "Interno",
+            })
+        except (ValueError, OSError) as exc:
+            st.warning("Erro ao carregar publicação original: " + str(exc))
+
     st.markdown("**Organização:** Pastas → Subpastas → Produtos de informação → Gráficos e indicadores")
     st.caption("Pastas organizam os produtos; os gráficos pertencem aos produtos. A Sala de Gestão na porta 8503 exibe somente o que foi publicado.")
     with st.expander("＋ Criar pasta, subpasta ou produto", expanded=False):
@@ -119,6 +138,9 @@ def render_object_library() -> None:
                         st.session_state["studio_open_published"] = True
                         st.query_params["open_studio"] = "1"
                         st.rerun()
+                if product["id"] == "__legacy__":
+                    st.caption("Produto original: edite o conteúdo pelo Estúdio Visual.")
+                    continue
                 with st.form("edit_" + product["id"]):
                     st.markdown("**Editar identificação e localização**")
                     edited_name = st.text_input("Nome", value=product["name"])
@@ -140,34 +162,3 @@ def render_object_library() -> None:
                         st.rerun()
                     except (ValueError, OSError) as exc:
                         st.error(str(exc))
-    st.markdown("### Sala de Gestão publicada")
-    if not PUBLISHED.exists():
-        st.info("Nenhuma configuração publicada foi encontrada. Publique um gráfico na 8502 para iniciar o inventário.")
-        return
-    try:
-        project = json.loads(PUBLISHED.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        st.error(f"Não foi possível ler a biblioteca: {exc}")
-        return
-    pages = project.get("pages", [])
-    components = [c for page in pages for c in page.get("components", [])]
-    st.metric("Componentes publicados", len(components))
-    st.markdown("### Produtos de informação")
-    with st.container(border=True):
-        st.markdown("**Sala de Gestão · 8503**")
-        st.write("Nome:", project.get("name", "Sala de Situação — SEPPE"))
-        st.write("Localização: Porta 8503 · /")
-        st.write("Criado em:", project.get("created_at", "Não informado"))
-        st.write("Alterado em:", project.get("updated_at", "Não informado"))
-        st.write("Atualização:", project.get("refresh_policy", "Conforme atualização da fonte; periodicidade não informada"))
-        st.write("Gráficos e indicadores:", len(components))
-        if st.button("Abrir no Estúdio Visual para editar", type="primary", key="library_open_studio"):
-            st.session_state["studio_product_id"] = project.get("product_id") or ""
-            st.session_state["studio_open_published"] = True
-            st.query_params["open_studio"] = "1"
-            st.rerun()
-    st.markdown("### Outros produtos")
-    st.info("PDFs e páginas de transparência serão inventariados quando forem registrados como produtos gerenciados. "
-            "Não são presumidos a partir de arquivos sem metadados.")
-    st.download_button("Exportar inventário JSON", data=json.dumps(project, ensure_ascii=False, indent=2),
-                       file_name="inventario-bi-factory.json", mime="application/json")
