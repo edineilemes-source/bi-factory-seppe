@@ -128,7 +128,7 @@ def folder_choices() -> dict[str, str | None]:
     folders = load_folders()
     by_id = {folder["id"]: folder for folder in folders}
     choices: dict[str, str | None] = {"Sem pasta": None}
-    for folder in folders:
+    for folder in sorted(folders, key=lambda folder: folder["name"].casefold()):
         parts = []
         visited = set()
         current = folder
@@ -146,4 +146,4 @@ def folder_choices() -> dict[str, str | None]:
         if label in choices:
             label += " · " + folder["id"][:8]
         choices[label] = folder["id"]
-    return choices
+    return dict(sorted(choices.items(), key=lambda item: (item[1] is not None, item[0].casefold())))
