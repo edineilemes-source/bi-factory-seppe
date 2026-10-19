@@ -16,7 +16,11 @@ def render_object_library() -> None:
     st.markdown("""
     <style>
     /* Identidade visual da biblioteca: navegação discreta, conteúdo em primeiro plano. */
-    div[data-testid="stMainBlockContainer"] {max-width: 1500px;}
+    div[data-testid="stMainBlockContainer"] {
+        max-width: none;
+        padding-left: 2cm;
+        padding-right: 1.25rem;
+    }
     div[data-testid="stVerticalBlock"] div[data-testid="stExpander"] {
         border: 1px solid #e4eaf2; border-radius: 12px; background: #fff;
         box-shadow: 0 2px 12px rgba(19, 41, 72, .025);
