@@ -49,6 +49,31 @@ def all_products() -> list[dict]:
     return products
 
 
+def product_components() -> dict:
+    result = {}
+    paths = [(path.stem, path) for path in sorted(PRODUCT_FILES.glob("*.json"))] if PRODUCT_FILES.is_dir() else []
+    if PUBLISHED.is_file():
+        paths.append(("legacy-published", PUBLISHED))
+    for identifier, path in paths:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            components = []
+            for page_index, page in enumerate(doc.get("pages", [])):
+                for index, item in enumerate(page.get("components", [])):
+                    if not isinstance(item, dict):
+                        continue
+                    components.append({
+                        "id": str(item.get("id") or f"{page_index}-{index}"),
+                        "name": str(item.get("title") or item.get("name") or item.get("label") or f"Componente {index + 1}"),
+                        "type": str(item.get("type") or item.get("kind") or "Objeto"),
+                        "page": str(page.get("name") or page.get("title") or f"Página {page_index + 1}"),
+                    })
+            result[identifier] = components
+        except (OSError, ValueError, TypeError):
+            result[identifier] = []
+    return result
+
+
 def inventory() -> dict:
     registered = load_list(REGISTRY)
     published = json.loads(PUBLISHED.read_text(encoding="utf-8")) if PUBLISHED.is_file() else {}
@@ -73,6 +98,7 @@ def overview() -> dict:
         "project": {"id": "pmcg-financas-publicas", "name": "PMCG — Finanças Públicas", "years": [2022, 2023, 2024, 2025, 2026]},
         "products": all_products(),
         "inventory": inventory(),
+        "components_by_product": product_components(),
         "folders": load_list(FOLDERS),
         "fiscal": {"source": "STN/SICONFI", "years": [
             {"year": year, "files": len(list((RREO / str(year)).rglob("*.json")))}
