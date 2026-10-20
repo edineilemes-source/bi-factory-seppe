@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "storage/information_products/registry.json"
 FOLDERS = ROOT / "storage/information_products/folders.json"
 RREO = ROOT / "storage/official/siconfi/rreo"
+FISCAL_REPORT = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.json"
 
 
 def load_list(path: Path) -> list:
@@ -39,11 +40,17 @@ def overview() -> dict:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        if self.path.split("?")[0] != "/api/overview":
+        route = self.path.split("?")[0]
+        if route not in ("/api/overview", "/api/fiscal-preview"):
             self.send_error(404, "Rota não encontrada")
             return
         try:
-            payload = json.dumps(overview(), ensure_ascii=False).encode("utf-8")
+            if route == "/api/fiscal-preview":
+                rows = load_list(FISCAL_REPORT)
+                result = {"source": "STN/SICONFI · RREO Anexo 01", "rows": rows, "available": FISCAL_REPORT.is_file()}
+            else:
+                result = overview()
+            payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
         except (OSError, ValueError, TypeError) as error:
             payload = json.dumps({"error": str(error)}, ensure_ascii=False).encode("utf-8")
             self.send_response(500)
@@ -54,6 +61,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+        return
 
 
 def main() -> None:
