@@ -49,10 +49,30 @@ def all_products() -> list[dict]:
     return products
 
 
+def inventory() -> dict:
+    registered = load_list(REGISTRY)
+    published = json.loads(PUBLISHED.read_text(encoding="utf-8")) if PUBLISHED.is_file() else {}
+    project_files = sorted(PRODUCT_FILES.glob("*.json")) if PRODUCT_FILES.is_dir() else []
+    items = []
+    for path in project_files:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            count = sum(len(page.get("components", [])) for page in doc.get("pages", []))
+            items.append({"id": path.stem, "name": doc.get("name", path.stem), "components": count,
+                          "registered": any(p.get("id") == path.stem for p in registered)})
+        except (OSError, ValueError, TypeError):
+            items.append({"id": path.stem, "error": "Arquivo inválido"})
+    return {"registered_products": len(registered), "saved_dashboard_files": len(project_files),
+            "saved_dashboards": items, "legacy_published": bool(published),
+            "legacy_components": sum(len(page.get("components", [])) for page in published.get("pages", [])),
+            "note": "Objetos cadastrados, componentes e painéis publicados são conjuntos distintos."}
+
+
 def overview() -> dict:
     return {
         "project": {"id": "pmcg-financas-publicas", "name": "PMCG — Finanças Públicas", "years": [2022, 2023, 2024, 2025, 2026]},
         "products": all_products(),
+        "inventory": inventory(),
         "folders": load_list(FOLDERS),
         "fiscal": {"source": "STN/SICONFI", "years": [
             {"year": year, "files": len(list((RREO / str(year)).rglob("*.json")))}
