@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "storage/information_products/registry.json"
 FOLDERS = ROOT / "storage/information_products/folders.json"
 RREO = ROOT / "storage/official/siconfi/rreo"
+PUBLISHED = ROOT / "storage/dashboard_projects/published.json"
+PRODUCT_FILES = ROOT / "storage/dashboard_projects/products"
 FISCAL_REPORT = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.json"
 
 
@@ -26,10 +28,31 @@ def load_list(path: Path) -> list:
     return value
 
 
+def all_products() -> list[dict]:
+    products = load_list(REGISTRY)
+    known = {str(item.get("id")) for item in products}
+    if PUBLISHED.is_file():
+        legacy = json.loads(PUBLISHED.read_text(encoding="utf-8"))
+        products.append({"id": "legacy-published", "name": legacy.get("name", "Painel legado publicado"),
+                         "type": "Painel", "code": "LEGADO", "folder_id": None,
+                         "status": "Publicado", "source": "published.json"})
+    if PRODUCT_FILES.is_dir():
+        for path in sorted(PRODUCT_FILES.glob("*.json")):
+            if path.stem not in known:
+                try:
+                    doc = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                products.append({"id": path.stem, "name": doc.get("name", path.stem),
+                                 "type": "Painel", "code": "SEM CADASTRO", "folder_id": None,
+                                 "status": "Projeto recuperado", "source": "products/" + path.name})
+    return products
+
+
 def overview() -> dict:
     return {
         "project": {"id": "pmcg-financas-publicas", "name": "PMCG — Finanças Públicas", "years": [2022, 2023, 2024, 2025, 2026]},
-        "products": load_list(REGISTRY),
+        "products": all_products(),
         "folders": load_list(FOLDERS),
         "fiscal": {"source": "STN/SICONFI", "years": [
             {"year": year, "files": len(list((RREO / str(year)).rglob("*.json")))}
