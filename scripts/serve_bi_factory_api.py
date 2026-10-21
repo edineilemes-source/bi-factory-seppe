@@ -70,6 +70,8 @@ def product_components() -> dict:
                         "name": str(item.get("title") or item.get("name") or item.get("label") or f"Componente {index + 1}"),
                         "type": str(item.get("type") or item.get("kind") or "Objeto"),
                         "page": str(page.get("name") or page.get("title") or f"Página {page_index + 1}"),
+                        "library_component_id": item.get("library_component_id"),
+                        "library_version": item.get("library_version"),
                     })
             result[identifier] = components
         except (OSError, ValueError, TypeError):
