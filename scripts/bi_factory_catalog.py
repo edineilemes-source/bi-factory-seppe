@@ -119,4 +119,20 @@ def write_object(path, doc):
         if os.path.exists(name):
             os.unlink(name)
 
-OPERATIONS = {"folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
+def update_component(data):
+    component_id = required(data, "id")
+    library = read(COMPONENTS)
+    item = next((c for c in library if c.get("id") == component_id), None)
+    if item is None:
+        raise ValueError("Componente inexistente")
+    if item.get("status") == "Aprovado":
+        raise ValueError("Componentes aprovados exigem fluxo de revisão antes de alterar")
+    content = data.get("content")
+    if not isinstance(content, dict):
+        raise ValueError("Conteúdo do gráfico inválido")
+    item["content"] = content
+    item["version"] = int(item.get("version", 1)) + 1
+    write(COMPONENTS, library)
+    return item
+
+OPERATIONS = {"update-component": update_component, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
