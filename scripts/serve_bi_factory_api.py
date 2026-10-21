@@ -6,6 +6,7 @@ Does not mutate project data, publications or the Streamlit installation.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,6 +19,7 @@ RREO = ROOT / "storage/official/siconfi/rreo"
 PUBLISHED = ROOT / "storage/dashboard_projects/published.json"
 PRODUCT_FILES = ROOT / "storage/dashboard_projects/products"
 FISCAL_REPORT = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.json"
+FISCAL_STUDIO_CSV = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
 
 
 def load_list(path: Path) -> list:
@@ -138,11 +140,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         route = self.path.split("?")[0]
-        if route not in ("/api/overview", "/api/fiscal-preview"):
+        if route not in ("/api/overview", "/api/fiscal-preview", "/api/studio-fiscal"):
             self.send_error(404, "Rota não encontrada")
             return
         try:
-            if route == "/api/fiscal-preview":
+            if route == "/api/studio-fiscal":
+                if not FISCAL_STUDIO_CSV.is_file():
+                    result = {"rows": [], "error": "Dataset fiscal CSV não encontrado"}
+                else:
+                    with FISCAL_STUDIO_CSV.open(encoding="utf-8-sig", newline="") as source:
+                        result = {"rows": list(csv.DictReader(source))}
+            elif route == "/api/fiscal-preview":
                 rows = load_list(FISCAL_REPORT)
                 result = {"source": "STN/SICONFI · RREO Anexo 01", "rows": rows, "available": FISCAL_REPORT.is_file()}
             else:
