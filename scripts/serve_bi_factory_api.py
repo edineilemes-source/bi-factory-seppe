@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -99,6 +100,7 @@ def overview() -> dict:
         "products": all_products(),
         "inventory": inventory(),
         "components_by_product": product_components(),
+        "shared_components": catalog_read(SHARED_COMPONENTS),
         "folders": load_list(FOLDERS),
         "fiscal": {"source": "STN/SICONFI", "years": [
             {"year": year, "files": len(list((RREO / str(year)).rglob("*.json")))}
@@ -108,6 +110,32 @@ def overview() -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
+    def do_POST(self) -> None:
+        route = self.path.split("?")[0]
+        operation = route.removeprefix("/api/create/")
+        if not route.startswith("/api/create/") or operation not in OPERATIONS:
+            self.send_error(404, "Operação não encontrada")
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length <= 0 or length > 65536:
+                raise ValueError("Tamanho de requisição inválido")
+            data = json.loads(self.rfile.read(length))
+            if not isinstance(data, dict):
+                raise ValueError("Corpo inválido")
+            result = OPERATIONS[operation](data)
+            payload = json.dumps({"ok": True, "item": result}, ensure_ascii=False).encode("utf-8")
+            status = 201
+        except (ValueError, TypeError, OSError, KeyError) as error:
+            payload = json.dumps({"error": str(error)}, ensure_ascii=False).encode("utf-8")
+            status = 400
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def do_GET(self) -> None:
         route = self.path.split("?")[0]
         if route not in ("/api/overview", "/api/fiscal-preview"):
