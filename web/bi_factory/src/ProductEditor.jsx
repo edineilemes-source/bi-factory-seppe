@@ -8,6 +8,7 @@ function PreviewObject({item,rows,filters}){
  const filtered=rows.filter(r=>Object.entries(filters).every(([k,v])=>!v||String(r[k])===String(v))).sort((a,b)=>Number(a.bimestre)-Number(b.bimestre));
  const key=METRICS.find(m=>m[0]===(item.metrics||[])[0])?.[1];
  const number=v=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1,notation:"compact"}).format(Number(v)||0);
+ if(["LINE","BAR","STACK","HORIZONTAL","AREA","PIE","DONUT","TABLE"].includes(item.type))return <iframe title={item.title} className="pe-embedded-chart" src="/studio-component.html?preview=1&single=1" onLoad={e=>{e.currentTarget.contentWindow.postMessage({type:"bi-factory:preview",items:[item]},location.origin)}}/>;
  if(item.type==="TEXT")return <p>{item.content||"Clique e escreva seu texto no painel de propriedades."}</p>;
  if(item.type==="IMAGE")return item.image_url?<img src={item.image_url} alt={item.title} style={{width:"100%",maxHeight:240,objectFit:"contain"}}/>:<p>Configure o endereço da imagem nas propriedades.</p>;
  if(item.type==="FILTER")return <p>Filtro: {item.field==="ano"?"Ano":"Bimestre"} (utilize na visualização do produto)</p>;
