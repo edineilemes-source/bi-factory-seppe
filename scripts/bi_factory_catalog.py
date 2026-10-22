@@ -64,7 +64,7 @@ def create_product(data):
     products = read(REGISTRY)
     pid = str(uuid.uuid4())
     item = {"id": pid, "name": name, "type": kind, "folder_id": folder,
-            "code": str(data.get("code") or "").strip(), "description": str(data.get("description") or "").strip(),
+            "code": "PRD-" + uuid.uuid4().hex[:10].upper(), "description": str(data.get("description") or "").strip(),
             "status": "Rascunho"}
     products.append(item)
     write(REGISTRY, products)
