@@ -105,6 +105,7 @@ def overview() -> dict:
         "inventory": inventory(),
         "components_by_product": product_components(),
         "shared_components": catalog_read(SHARED_COMPONENTS),
+        "product_canvases": {path.stem: json.loads(path.read_text(encoding="utf-8")).get("studio_items", []) for path in PRODUCT_FILES.glob("*.json")} if PRODUCT_FILES.is_dir() else {},
         "folders": load_list(FOLDERS),
         "fiscal": {"source": "STN/SICONFI", "years": [
             {"year": year, "files": len(list((RREO / str(year)).rglob("*.json")))}
