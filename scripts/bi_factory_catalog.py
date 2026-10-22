@@ -135,4 +135,20 @@ def update_component(data):
     write(COMPONENTS, library)
     return item
 
-OPERATIONS = {"update-component": update_component, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
+
+def save_canvas(data):
+    product_id = required(data, "product_id")
+    if not any(str(p.get("id")) == product_id for p in read(REGISTRY)):
+        raise ValueError("Produto não cadastrado")
+    items = data.get("items")
+    if not isinstance(items, list) or len(items) > 200:
+        raise ValueError("Lista de objetos inválida")
+    path = PRODUCT_FILES / (product_id + ".json")
+    doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"id": product_id, "pages": [{"name": "Página 1", "components": []}]}
+    doc["studio_items"] = items
+    doc["draft_status"] = "Rascunho"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_object(path, doc)
+    return {"product_id": product_id, "count": len(items)}
+
+OPERATIONS = {"update-component": update_component, "save-canvas": save_canvas, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
