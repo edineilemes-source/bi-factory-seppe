@@ -5,6 +5,7 @@ export default function FreeCanvasExperiment({onClose}){
  const element=useRef(null),fabric=useRef(null),chartConfigsRef=useRef({});
  const [chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState("landscape"),[page,setPage]=useState(FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
  const {width,height}=page;
+ const [selectedObject,setSelectedObject]=useState(false);
  useEffect(()=>{
   const canvas=new Canvas(element.current,{width:FORMATS.landscape.width,height:FORMATS.landscape.height,backgroundColor:"#ffffff",preserveObjectStacking:true,selection:true});
   fabric.current=canvas;
@@ -17,9 +18,14 @@ export default function FreeCanvasExperiment({onClose}){
   canvas.setActiveObject(canvas.item(1));canvas.requestRenderAll();
   const onDoubleClick=e=>{const id=e.target?.chartId;if(id)setChartDialog({id,item:chartConfigsRef.current[id]});};
   canvas.on("mouse:dblclick",onDoubleClick);
-  return()=>{fabric.current=null;canvas.dispose()};
+  const syncSelection=()=>setSelectedObject(Boolean(canvas.getActiveObject()));
+  canvas.on("selection:created",syncSelection);canvas.on("selection:updated",syncSelection);canvas.on("selection:cleared",syncSelection);
+  const onKey=e=>{if(!["Delete","Backspace"].includes(e.key)||e.target?.closest?.("input,textarea,[contenteditable=true]")||document.getElementById("free-chart-frame"))return;const active=canvas.getActiveObjects();if(active.length){canvas.discardActiveObject();active.forEach(obj=>canvas.remove(obj));canvas.requestRenderAll();setSelectedObject(false);}};
+  window.addEventListener("keydown",onKey);
+  return()=>{window.removeEventListener("keydown",onKey);fabric.current=null;canvas.dispose()};
  },[]);
- useEffect(()=>{if(!chartDialog)return;const listener=e=>{if(e.origin!==location.origin||e.source!==document.getElementById("free-chart-frame")?.contentWindow)return;if(e.data?.type==="bi-factory:studio-ready")e.source.postMessage({type:"bi-factory:load-product",items:chartDialog.item?[chartDialog.item]:[]},e.origin);if(e.data?.type==="bi-factory:apply-chart"){const item=e.data.components?.[0];if(!item)return;const c=fabric.current;if(!c)return;const id=chartDialog.id||crypto.randomUUID();chartConfigsRef.current[id]=item;setChartConfigs({...chartConfigsRef.current});let shape=c.getObjects().find(o=>o.chartId===id);if(!shape){shape=new Rect({left:100,top:190,width:320,height:210,fill:"#dbeafe",stroke:"#2563eb",strokeWidth:2,rx:8,ry:8});shape.chartId=id;c.add(shape)}shape.set({fill:"#dbeafe"});c.setActiveObject(shape);c.requestRenderAll();setChartDialog(null);setStatus("Configuração ECharts vinculada ao bloco selecionado. A miniatura real SVG ainda será integrada.")}};window.addEventListener("message",listener);return()=>window.removeEventListener("message",listener)},[chartDialog]);
+ useEffect(()=>{if(!chartDialog)return;const listener=e=>{if(e.origin!==location.origin||e.source!==document.getElementById("free-chart-frame")?.contentWindow)return;if(e.data?.type==="bi-factory:studio-ready")e.source.postMessage({type:"bi-factory:load-product",items:chartDialog.item?[chartDialog.item]:[]},e.origin);if(e.data?.type==="bi-factory:apply-chart"){const item=e.data.components?.[0];if(!item){setStatus("Nenhum gráfico foi devolvido pelo ECharts. Crie ou selecione um gráfico e use Aplicar ao canvas.");return;}const c=fabric.current;if(!c)return;const id=chartDialog.id||crypto.randomUUID();chartConfigsRef.current[id]=item;setChartConfigs({...chartConfigsRef.current});let shape=c.getObjects().find(o=>o.chartId===id);if(!shape){shape=new Rect({left:100,top:190,width:320,height:210,fill:"#dbeafe",stroke:"#2563eb",strokeWidth:2,rx:8,ry:8});shape.chartId=id;c.add(shape)}shape.set({fill:"#dbeafe"});c.setActiveObject(shape);c.requestRenderAll();setChartDialog(null);setStatus("Gráfico recebido do ECharts. Configuração ECharts vinculada ao bloco selecionado. A miniatura real SVG ainda será integrada.")}};window.addEventListener("message",listener);return()=>window.removeEventListener("message",listener)},[chartDialog]);
+ function removeSelected(){const c=fabric.current;if(!c)return;const objects=c.getActiveObjects();c.discardActiveObject();objects.forEach(obj=>c.remove(obj));c.requestRenderAll();setSelectedObject(false)}
  function add(kind){
   const c=fabric.current;if(!c)return;
   const top=Math.min(200+(c.getObjects().length*35),height-140);
@@ -32,7 +38,7 @@ export default function FreeCanvasExperiment({onClose}){
  return <div style={{position:"fixed",inset:0,zIndex:1000,background:"#edf2f7",display:"flex",flexDirection:"column",fontFamily:"Arial,sans-serif"}}>
   <div style={{display:"flex",alignItems:"center",gap:10,padding:12,background:"#fff",borderBottom:"1px solid #cbd5e1",flexWrap:"wrap"}}>
    <strong>Canvas Livre · Laboratório Fabric.js</strong>
-   <button onClick={()=>setChartDialog({id:null,item:null})}>+ Gráfico ECharts</button><button onClick={()=>add("shape")}>+ Figura</button><button onClick={()=>add("text")}>+ Texto</button>
+   <button onClick={()=>setChartDialog({id:null,item:null})}>+ Gráfico ECharts</button><button onClick={()=>add("shape")}>+ Figura</button><button onClick={removeSelected} disabled={!selectedObject}>Excluir selecionado</button><button onClick={()=>add("text")}>+ Texto</button>
    <label>Formato <select value={format} onChange={e=>changeFormat(e.target.value)}>{Object.entries(FORMATS).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select></label>
    <button onClick={extend}>+ 700 px de página</button>
    <label>Zoom <select value={zoom} onChange={e=>setZoom(Number(e.target.value))}><option value={0.5}>50%</option><option value={0.75}>75%</option><option value={1}>100%</option></select></label>
@@ -45,6 +51,6 @@ export default function FreeCanvasExperiment({onClose}){
     <div style={{width,height,transform:`scale(${zoom})`,transformOrigin:"top left"}}><canvas ref={element}/></div>
    </div>
   </div>
-  {chartDialog&&<div style={{position:"fixed",inset:0,zIndex:1100,background:"#0f172acc",padding:"3vh 3vw"}}><div style={{height:"94vh",background:"white",borderRadius:10,display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{padding:12,display:"flex",justifyContent:"space-between"}}><strong>Editor ECharts · Aplicar ao Canvas</strong><button onClick={()=>setChartDialog(null)}>Cancelar e voltar</button></div><iframe id="free-chart-frame" title="Editor ECharts" src="/studio-component.html?picker=1" style={{width:"100%",border:0,flex:1}}/></div></div>}
+  {chartDialog&&<div style={{position:"fixed",inset:0,zIndex:1100,background:"#0f172acc",padding:"3vh 3vw"}}><div style={{height:"94vh",background:"white",borderRadius:10,display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{padding:12,display:"flex",justifyContent:"space-between"}}><strong>Editor ECharts · Para retornar, clique em “Aplicar ao produto” dentro do ECharts</strong><button onClick={()=>setChartDialog(null)}>Cancelar e voltar</button></div><iframe id="free-chart-frame" title="Editor ECharts" src="/studio-component.html?picker=1" style={{width:"100%",border:0,flex:1}}/></div></div>}
  </div>
 }
