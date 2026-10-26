@@ -1,9 +1,9 @@
 import React,{useEffect,useRef,useState} from "react";
 import {Canvas,Rect,Textbox,Circle,FabricImage} from "fabric";
 const FORMATS={landscape:{width:1280,height:720,label:"Paisagem · 16:9"},portrait:{width:794,height:1123,label:"Retrato · A4"},long:{width:1280,height:1800,label:"Dashboard longo"}};
-export default function FreeCanvasExperiment({onClose}){
+export default function FreeCanvasExperiment({onClose,product=null,initialCanvas=null,onSave=null}){
  const element=useRef(null),fabric=useRef(null),chartConfigsRef=useRef({});
- const [chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState("landscape"),[page,setPage]=useState(FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
+ const [chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState(initialCanvas?.page?.format||"landscape"),[page,setPage]=useState(initialCanvas?.page||FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
  const {width,height}=page;
  const [selectedObject,setSelectedObject]=useState(false),[textProps,setTextProps]=useState(null);
  useEffect(()=>{
@@ -16,6 +16,7 @@ export default function FreeCanvasExperiment({onClose}){
   canvas.add(new Textbox("Gráfico A",{left:60,top:135,width:200,fontSize:24,fill:"#1e40af"}));
   canvas.add(new Textbox("Gráfico B",{left:740,top:155,width:240,fontSize:24,fill:"#166534"}));
   canvas.setActiveObject(canvas.item(1));canvas.requestRenderAll();
+  if(initialCanvas?.canvas){canvas.clear();canvas.backgroundColor="#ffffff";chartConfigsRef.current=initialCanvas.chartConfigs||{};canvas.loadFromJSON(initialCanvas.canvas).then(()=>{canvas.setDimensions({width:initialCanvas.page?.width||1280,height:initialCanvas.page?.height||720});{canvas.requestRenderAll();setStatus("Produto carregado para continuar a edição.")}).catch(err=>setStatus("Falha ao abrir canvas: "+err.message));}
   const onDoubleClick=e=>{const id=e.target?.chartId;if(id)setChartDialog({id,item:chartConfigsRef.current[id]});};
   canvas.on("mouse:dblclick",onDoubleClick);
   const syncSelection=()=>{const obj=canvas.getActiveObject();setSelectedObject(Boolean(obj));setTextProps(obj?.type==="textbox"?{fontSize:obj.fontSize,fill:obj.fill,fontFamily:obj.fontFamily,fontWeight:obj.fontWeight}:null)};
@@ -35,19 +36,20 @@ export default function FreeCanvasExperiment({onClose}){
  }
  function changeFormat(next){const dimensions=FORMATS[next];setFormat(next);setPage(dimensions);fabric.current?.setDimensions({width:dimensions.width,height:dimensions.height});fabric.current?.requestRenderAll();setStatus("Formato alterado; os objetos preservam suas coordenadas. Objetos fora da página podem ser reposicionados.")}
  function extend(){setPage(old=>{const next={...old,height:old.height+700};fabric.current?.setDimensions({width:next.width,height:next.height});fabric.current?.requestRenderAll();return next})}
+ async function saveProduct(){if(!product||!onSave)return;const c=fabric.current;if(!c)return;try{setStatus("Salvando produto...");await onSave({version:1,page:{width,height,format},canvas:c.toJSON(["chartId"]),chartConfigs:chartConfigsRef.current});setStatus("Produto salvo. Você pode continuar editando.");}catch(err){setStatus("Erro ao salvar: "+err.message)}}
  function exportJson(){const c=fabric.current;if(!c)return;const blob=new Blob([JSON.stringify({version:1,page:{width,height,format},canvas:c.toJSON(["chartId"]),chartConfigs:chartConfigsRef.current},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bi-factory-canvas-experimental.json";a.click();URL.revokeObjectURL(url);setStatus("JSON experimental exportado; não substitui o produto salvo.")}
  return <div style={{position:"fixed",inset:0,zIndex:1000,background:"#edf2f7",display:"flex",flexDirection:"column",fontFamily:"Arial,sans-serif"}}>
   <div style={{display:"flex",alignItems:"center",gap:10,padding:12,background:"#fff",borderBottom:"1px solid #cbd5e1",flexWrap:"wrap"}}>
-   <strong>Canvas Livre · Laboratório Fabric.js</strong>
+   <strong>{product?`Editor Universal · ${product.name}`:"Canvas Livre · Laboratório Fabric.js"}</strong>
    <button onClick={()=>setChartDialog({id:null,item:null})}>+ Gráfico ECharts</button><button onClick={()=>add("shape")}>+ Figura</button><button onClick={removeSelected} disabled={!selectedObject}>Excluir selecionado</button><button onClick={()=>add("text")}>+ Texto</button>
    <label>Formato <select value={format} onChange={e=>changeFormat(e.target.value)}>{Object.entries(FORMATS).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select></label>
    <button onClick={extend}>+ 700 px de página</button>
    <label>Zoom <select value={zoom} onChange={e=>setZoom(Number(e.target.value))}><option value={0.5}>50%</option><option value={0.75}>75%</option><option value={1}>100%</option></select></label>
    {textProps&&<><label>Fonte <select value={textProps.fontFamily||"Arial"} onChange={e=>updateText("fontFamily",e.target.value)}>{["Arial","Georgia","Verdana","Tahoma","Times New Roman","Courier New"].map(x=><option key={x}>{x}</option>)}</select></label><label>Tamanho <input type="number" min="8" max="160" style={{width:58}} value={textProps.fontSize||22} onChange={e=>updateText("fontSize",Number(e.target.value))}/></label><label>Cor <input type="color" value={typeof textProps.fill==="string"&&/^#[0-9a-f]{6}$/i.test(textProps.fill)?textProps.fill:"#000000"} onChange={e=>updateText("fill",e.target.value)}/></label><button onClick={()=>updateText("fontWeight",textProps.fontWeight==="bold"?"normal":"bold")}>Negrito</button></>}
-   <button onClick={exportJson}>Exportar JSON de teste</button>
+   {product&&<button onClick={saveProduct}>Salvar produto</button>}<button onClick={exportJson}>Exportar JSON de teste</button>
    <button onClick={onClose} style={{marginLeft:"auto"}}>Fechar laboratório</button>
   </div>
-  <div style={{padding:"8px 16px",fontSize:13,color:"#475569"}}>Página: {width} × {height} px. Experimento isolado: mova objetos, redimensione pelas alças e sobreponha livremente. Duplo clique edita texto. Não grava produtos existentes. {status}</div>
+  <div style={{padding:"8px 16px",fontSize:13,color:"#475569"}}>Página: {width} × {height} px. Mova objetos, redimensione pelas alças e sobreponha livremente. Duplo clique edita texto. Não grava produtos existentes. {status}</div>
   <div style={{flex:1,overflow:"auto",padding:24}}>
    <div style={{width:width*zoom,height:height*zoom,margin:"0 auto",background:"#fff",boxShadow:"0 4px 22px #0002",position:"relative"}}>
     <div style={{width,height,transform:`scale(${zoom})`,transformOrigin:"top left"}}><canvas ref={element}/></div>
