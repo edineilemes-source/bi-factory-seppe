@@ -151,4 +151,25 @@ def save_canvas(data):
     write_object(path, doc)
     return {"product_id": product_id, "count": len(items)}
 
-OPERATIONS = {"update-component": update_component, "save-canvas": save_canvas, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
+def save_free_canvas(data):
+    product_id = required(data, "product_id")
+    if not any(str(p.get("id")) == product_id for p in read(REGISTRY)):
+        raise ValueError("Produto não cadastrado")
+    canvas = data.get("canvas")
+    if not isinstance(canvas, dict) or not isinstance(canvas.get("objects"), list) or len(canvas["objects"]) > 200:
+        raise ValueError("Canvas inválido")
+    page = data.get("page")
+    if not isinstance(page, dict):
+        raise ValueError("Página inválida")
+    charts = data.get("chartConfigs", {})
+    if not isinstance(charts, dict):
+        raise ValueError("Configurações de gráficos inválidas")
+    path = PRODUCT_FILES / (product_id + ".json")
+    doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"id": product_id, "pages": [{"name": "Página 1", "components": []}]}
+    doc["free_canvas"] = {"version": 1, "canvas": canvas, "page": page, "chartConfigs": charts}
+    doc["draft_status"] = "Rascunho"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_object(path, doc)
+    return {"product_id": product_id, "count": len(canvas["objects"])}
+
+OPERATIONS = {"save-free-canvas": save_free_canvas, "update-component": update_component, "save-canvas": save_canvas, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
