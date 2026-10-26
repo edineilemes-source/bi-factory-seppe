@@ -16,7 +16,7 @@ export default function FreeCanvasExperiment({onClose,product=null,initialCanvas
   canvas.add(new Textbox("Gráfico A",{left:60,top:135,width:200,fontSize:24,fill:"#1e40af"}));
   canvas.add(new Textbox("Gráfico B",{left:740,top:155,width:240,fontSize:24,fill:"#166534"}));
   canvas.setActiveObject(canvas.item(1));canvas.requestRenderAll();
-  if(initialCanvas?.canvas){canvas.clear();canvas.backgroundColor="#ffffff";chartConfigsRef.current=initialCanvas.chartConfigs||{};canvas.loadFromJSON(initialCanvas.canvas).then(()=>{canvas.setDimensions({width:initialCanvas.page?.width||1280,height:initialCanvas.page?.height||720});{canvas.requestRenderAll();setStatus("Produto carregado para continuar a edição.")}).catch(err=>setStatus("Falha ao abrir canvas: "+err.message));}
+  if(initialCanvas?.canvas){canvas.clear();canvas.backgroundColor="#ffffff";chartConfigsRef.current=initialCanvas.chartConfigs||{};canvas.loadFromJSON(initialCanvas.canvas).then(()=>{canvas.setDimensions({width:initialCanvas.page?.width||1280,height:initialCanvas.page?.height||720});canvas.requestRenderAll();setStatus("Produto carregado para continuar a edição.")}).catch(err=>setStatus("Falha ao abrir canvas: "+err.message));}
   const onDoubleClick=e=>{const id=e.target?.chartId;if(id)setChartDialog({id,item:chartConfigsRef.current[id]});};
   canvas.on("mouse:dblclick",onDoubleClick);
   const syncSelection=()=>{const obj=canvas.getActiveObject();setSelectedObject(Boolean(obj));setTextProps(obj?.type==="textbox"?{fontSize:obj.fontSize,fill:obj.fill,fontFamily:obj.fontFamily,fontWeight:obj.fontWeight}:null)};
