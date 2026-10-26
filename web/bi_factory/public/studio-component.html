@@ -12,7 +12,22 @@ const types=[["KPI","KPI"],["LINE","Linhas"],["BAR","Colunas"],["STACK","Empilha
 const colors=["#168BAF","#E3A243","#35A78B","#727AD1","#D65A75"];let data=[],items=[],selected=null,charts=[],loadedProduct=null;
 const el=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n},money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0}).format(v);
 function sendAll(){window.parent.postMessage({isStreamlitMessage:true,type:"streamlit:setComponentValue",value:{action:"sync_all",components:items.map(({id,type,title,metrics,width,bg,text,colors})=>({id,type,title,metrics,width,bg,text,colors})),product_id:loadedProduct,event_id:crypto.randomUUID()},dataType:"json"},"*");el("status").textContent="Sincronizando produto completo com a 8503…"}
-el("publish-all").onclick=()=>window.parent.postMessage({type:new URLSearchParams(location.search).has("picker")?"bi-factory:apply-chart":productMode?"bi-factory:save-product":"bi-factory:save-component",components:items,preview:charts[0]?.getDataURL({type:"png",pixelRatio:2,backgroundColor:"#ffffff"})||null},location.origin);
+function captureForCanvas(){
+ const item=items.find(x=>x.id===selected)||items[0];if(!item)return null;
+ const tile=[...document.querySelectorAll(".tile")].find((node,index)=>items[index]?.id===item.id);
+ const plot=tile?.querySelector(".plot");
+ const instance=plot&&window.echarts?.getInstanceByDom(plot);
+ if(instance)return instance.getDataURL({type:"png",pixelRatio:2,backgroundColor:item.bg||"#ffffff"});
+ // KPI and TABLE are DOM components, not ECharts instances: render a real visual preview.
+ const canvas=document.createElement("canvas");canvas.width=880;canvas.height=560;
+ const ctx=canvas.getContext("2d");ctx.fillStyle=item.bg||"#ffffff";ctx.fillRect(0,0,880,560);
+ ctx.fillStyle=item.text||"#203047";ctx.font="bold 34px Arial";ctx.fillText(String(item.title||"Indicador").slice(0,48),35,65);
+ const lines=(plot?.innerText||"").split("\\n").map(x=>x.trim()).filter(Boolean);
+ ctx.font=item.type==="KPI"?"bold 56px Arial":"24px Arial";
+ lines.slice(0,14).forEach((line,index)=>ctx.fillText(line.slice(0,66),35,150+index*(item.type==="KPI"?70:29)));
+ return canvas.toDataURL("image/png");
+}
+el("publish-all").onclick=()=>{const picker=new URLSearchParams(location.search).has("picker");const preview=picker?captureForCanvas():null;window.parent.postMessage({type:picker?"bi-factory:apply-chart":productMode?"bi-factory:save-product":"bi-factory:save-component",components:items,preview},location.origin);};
 function sendPublication(item){const event={action:"publish",component:item,product_id:loadedProduct,event_id:crypto.randomUUID()};window.parent.postMessage({isStreamlitMessage:true,type:"streamlit:setComponentValue",value:event,dataType:"json"},"*");const status=el("status");status.textContent="Envio solicitado para 8503 · aguardando confirmação da BI Factory";}
 function sendRemoval(item){window.parent.postMessage({isStreamlitMessage:true,type:"streamlit:setComponentValue",value:{action:"unpublish",component:{id:item.id},product_id:loadedProduct,event_id:crypto.randomUUID()},dataType:"json"},"*");el("status").textContent="Retirada solicitada · aguardando confirmação da BI Factory"}
 function redraw(){charts.forEach(c=>c.dispose());charts=[];const root=el("canvas");root.replaceChildren();if(!items.length){const n=node("div","Selecione um tipo de gráfico acima para começar.");n.className="empty";root.append(n)}
