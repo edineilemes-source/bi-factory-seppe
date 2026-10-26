@@ -5,7 +5,7 @@ export default function FreeCanvasExperiment({onClose}){
  const element=useRef(null),fabric=useRef(null),chartConfigsRef=useRef({});
  const [chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState("landscape"),[page,setPage]=useState(FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
  const {width,height}=page;
- const [selectedObject,setSelectedObject]=useState(false);
+ const [selectedObject,setSelectedObject]=useState(false),[textProps,setTextProps]=useState(null);
  useEffect(()=>{
   const canvas=new Canvas(element.current,{width:FORMATS.landscape.width,height:FORMATS.landscape.height,backgroundColor:"#ffffff",preserveObjectStacking:true,selection:true});
   fabric.current=canvas;
@@ -18,19 +18,20 @@ export default function FreeCanvasExperiment({onClose}){
   canvas.setActiveObject(canvas.item(1));canvas.requestRenderAll();
   const onDoubleClick=e=>{const id=e.target?.chartId;if(id)setChartDialog({id,item:chartConfigsRef.current[id]});};
   canvas.on("mouse:dblclick",onDoubleClick);
-  const syncSelection=()=>setSelectedObject(Boolean(canvas.getActiveObject()));
+  const syncSelection=()=>{const obj=canvas.getActiveObject();setSelectedObject(Boolean(obj));setTextProps(obj?.type==="textbox"?{fontSize:obj.fontSize,fill:obj.fill,fontFamily:obj.fontFamily,fontWeight:obj.fontWeight}:null)};
   canvas.on("selection:created",syncSelection);canvas.on("selection:updated",syncSelection);canvas.on("selection:cleared",syncSelection);
   const onKey=e=>{if(!["Delete","Backspace"].includes(e.key)||e.target?.closest?.("input,textarea,[contenteditable=true]")||document.getElementById("free-chart-frame"))return;const active=canvas.getActiveObjects();if(active.length){canvas.discardActiveObject();active.forEach(obj=>canvas.remove(obj));canvas.requestRenderAll();setSelectedObject(false);}};
   window.addEventListener("keydown",onKey);
   return()=>{window.removeEventListener("keydown",onKey);fabric.current=null;canvas.dispose()};
  },[]);
  useEffect(()=>{if(!chartDialog)return;const listener=e=>{if(e.origin!==location.origin||e.source!==document.getElementById("free-chart-frame")?.contentWindow)return;if(e.data?.type==="bi-factory:studio-ready")e.source.postMessage({type:"bi-factory:load-product",items:chartDialog.item?[chartDialog.item]:[]},e.origin);if(e.data?.type==="bi-factory:apply-chart"){const item=e.data.components?.[0];if(!item){setStatus("Nenhum gráfico devolvido. Crie um gráfico e clique em Aplicar ao produto.");return;}const c=fabric.current;if(!c)return;const id=chartDialog.id||crypto.randomUUID();chartConfigsRef.current[id]=item;setChartConfigs({...chartConfigsRef.current});const old=c.getObjects().find(o=>o.chartId===id);const pos=old?{left:old.left,top:old.top,width:old.getScaledWidth(),height:old.getScaledHeight()}:{left:100,top:190,width:440,height:280};setChartDialog(null);if(!e.data.preview){setStatus("O ECharts devolveu a configuração, mas não gerou a imagem. Verifique se o gráfico foi desenhado.");return;}FabricImage.fromURL(e.data.preview).then(img=>{if(fabric.current!==c)return;img.set({left:pos.left,top:pos.top,scaleX:pos.width/img.width,scaleY:pos.height/img.height});img.chartId=id;if(old)c.remove(old);c.add(img);c.setActiveObject(img);c.requestRenderAll();setSelectedObject(true);setStatus("Gráfico ECharts renderizado no canvas. Duplo clique para editar.")}).catch(err=>setStatus("Falha ao carregar a imagem do gráfico: "+err.message));}};window.addEventListener("message",listener);return()=>window.removeEventListener("message",listener)},[chartDialog]);
+ function updateText(prop,value){const c=fabric.current,obj=c?.getActiveObject();if(!obj||obj.type!=="textbox")return;obj.set(prop,value);obj.setCoords();c.requestRenderAll();setTextProps(old=>({...old,[prop]:value}));}
  function removeSelected(){const c=fabric.current;if(!c)return;const objects=c.getActiveObjects();c.discardActiveObject();objects.forEach(obj=>c.remove(obj));c.requestRenderAll();setSelectedObject(false)}
  function add(kind){
   const c=fabric.current;if(!c)return;
   const top=Math.min(200+(c.getObjects().length*35),height-140);
   const obj=kind==="text"?new Textbox("Edite este texto com duplo clique",{left:90,top,width:320,fontSize:22,fill:"#1e293b"}):new Rect({left:90,top,width:260,height:160,fill:kind==="chart"?"#bfdbfe":"#fef3c7",stroke:"#64748b",strokeWidth:2,rx:6,ry:6});
-  c.add(obj);c.setActiveObject(obj);c.requestRenderAll();
+  c.add(obj);c.setActiveObject(obj);c.requestRenderAll();setSelectedObject(true);setTextProps(obj.type==="textbox"?{fontSize:obj.fontSize,fill:obj.fill,fontFamily:obj.fontFamily,fontWeight:obj.fontWeight}:null);
  }
  function changeFormat(next){const dimensions=FORMATS[next];setFormat(next);setPage(dimensions);fabric.current?.setDimensions({width:dimensions.width,height:dimensions.height});fabric.current?.requestRenderAll();setStatus("Formato alterado; os objetos preservam suas coordenadas. Objetos fora da página podem ser reposicionados.")}
  function extend(){setPage(old=>{const next={...old,height:old.height+700};fabric.current?.setDimensions({width:next.width,height:next.height});fabric.current?.requestRenderAll();return next})}
@@ -42,6 +43,7 @@ export default function FreeCanvasExperiment({onClose}){
    <label>Formato <select value={format} onChange={e=>changeFormat(e.target.value)}>{Object.entries(FORMATS).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select></label>
    <button onClick={extend}>+ 700 px de página</button>
    <label>Zoom <select value={zoom} onChange={e=>setZoom(Number(e.target.value))}><option value={0.5}>50%</option><option value={0.75}>75%</option><option value={1}>100%</option></select></label>
+   {textProps&&<><label>Fonte <select value={textProps.fontFamily||"Arial"} onChange={e=>updateText("fontFamily",e.target.value)}>{["Arial","Georgia","Verdana","Tahoma","Times New Roman","Courier New"].map(x=><option key={x}>{x}</option>)}</select></label><label>Tamanho <input type="number" min="8" max="160" style={{width:58}} value={textProps.fontSize||22} onChange={e=>updateText("fontSize",Number(e.target.value))}/></label><label>Cor <input type="color" value={typeof textProps.fill==="string"&&/^#[0-9a-f]{6}$/i.test(textProps.fill)?textProps.fill:"#000000"} onChange={e=>updateText("fill",e.target.value)}/></label><button onClick={()=>updateText("fontWeight",textProps.fontWeight==="bold"?"normal":"bold")}>Negrito</button></>}
    <button onClick={exportJson}>Exportar JSON de teste</button>
    <button onClick={onClose} style={{marginLeft:"auto"}}>Fechar laboratório</button>
   </div>
