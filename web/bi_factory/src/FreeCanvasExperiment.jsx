@@ -3,7 +3,7 @@ import {Canvas,Rect,Textbox,Circle,FabricImage} from "fabric";
 const FORMATS={landscape:{width:1280,height:720,label:"Paisagem · 16:9"},portrait:{width:794,height:1123,label:"Retrato · A4"},long:{width:1280,height:1800,label:"Dashboard longo"}};
 export default function FreeCanvasExperiment({onClose,product=null,initialCanvas=null,onSave=null,readOnly=false}){
  const element=useRef(null),fabric=useRef(null),chartConfigsRef=useRef({});
- const [chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState(initialCanvas?.page?.format||"landscape"),[page,setPage]=useState(initialCanvas?.page||FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
+ const [previewMode,setPreviewMode]=useState(false),[chartDialog,setChartDialog]=useState(null),[chartConfigs,setChartConfigs]=useState({}),[format,setFormat]=useState(initialCanvas?.page?.format||"landscape"),[page,setPage]=useState(initialCanvas?.page||FORMATS.landscape),[status,setStatus]=useState(""),[zoom,setZoom]=useState(0.75);
  const {width,height}=page;
  const [selectedObject,setSelectedObject]=useState(false),[textProps,setTextProps]=useState(null);
  useEffect(()=>{
@@ -34,21 +34,22 @@ export default function FreeCanvasExperiment({onClose,product=null,initialCanvas
  return <div style={{position:"fixed",inset:0,zIndex:1000,background:"#edf2f7",display:"flex",flexDirection:"column",fontFamily:"Arial,sans-serif"}}>
   <div style={{display:"flex",alignItems:"center",gap:10,padding:12,background:"#fff",borderBottom:"1px solid #cbd5e1",flexWrap:"wrap"}}>
    <strong>{product?`${readOnly?"Visualizar produto":"Editor Universal"} · ${product.name}`:"Canvas Livre · Laboratório Fabric.js"}</strong>
-   {!readOnly&&<><button onClick={()=>setChartDialog({id:null,item:null})}>+ Gráfico ECharts</button><button onClick={()=>add("shape")}>+ Figura</button><button onClick={removeSelected} disabled={!selectedObject}>Excluir selecionado</button><button onClick={()=>add("text")}>+ Texto</button>
+   {!readOnly&&<>
    <label>Formato <select value={format} onChange={e=>changeFormat(e.target.value)}>{Object.entries(FORMATS).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select></label>
    <button onClick={extend}>+ 700 px de página</button>
    </>}
-   <label>Zoom <select value={zoom} onChange={e=>setZoom(Number(e.target.value))}><option value={0.5}>50%</option><option value={0.75}>75%</option><option value={1}>100%</option></select></label>
+
    {!readOnly&&textProps&&<><label>Fonte <select value={textProps.fontFamily||"Arial"} onChange={e=>updateText("fontFamily",e.target.value)}>{["Arial","Georgia","Verdana","Tahoma","Times New Roman","Courier New"].map(x=><option key={x}>{x}</option>)}</select></label><label>Tamanho <input type="number" min="8" max="160" style={{width:58}} value={textProps.fontSize||22} onChange={e=>updateText("fontSize",Number(e.target.value))}/></label><label>Cor <input type="color" value={typeof textProps.fill==="string"&&/^#[0-9a-f]{6}$/i.test(textProps.fill)?textProps.fill:"#000000"} onChange={e=>updateText("fill",e.target.value)}/></label><button onClick={()=>updateText("fontWeight",textProps.fontWeight==="bold"?"normal":"bold")}>Negrito</button></>}
-   {product&&!readOnly&&<button onClick={saveProduct}>Salvar produto</button>}{!readOnly&&<button onClick={exportJson}>Exportar JSON de teste</button>}
+   {product&&!readOnly&&<button onClick={saveProduct}>Salvar produto</button>}{product&&!readOnly&&<button onClick={()=>{fabric.current?.discardActiveObject();fabric.current?.requestRenderAll();setPreviewMode(true)}}>Visualizar</button>}{!readOnly&&<button onClick={exportJson}>Exportar JSON</button>}
    <button onClick={onClose} style={{marginLeft:"auto"}}>Fechar</button>
   </div>
   <div style={{padding:"8px 16px",fontSize:13,color:"#475569"}}>Página: {width} × {height} px. {readOnly?"Visualização do produto (somente leitura).":"Arraste, redimensione e edite objetos; use Salvar produto para preservar as alterações."} {status}</div>
-  <div style={{flex:1,overflow:"auto",padding:24}}>
+  <div style={{display:"flex",flex:1,minHeight:0}}>{!readOnly&&!previewMode&&<aside style={{width:165,background:"#fff",borderRight:"1px solid #cbd5e1",padding:14,display:"flex",flexDirection:"column",gap:12}}><button onClick={()=>setChartDialog({id:null,item:null})}>Gráficos</button><button onClick={()=>add("shape")}>Figuras</button><button onClick={()=>add("text")}>Texto</button><button onClick={removeSelected} disabled={!selectedObject}>Excluir objeto</button><label>Zoom<select value={zoom} onChange={e=>setZoom(Number(e.target.value))}><option value={0.5}>50%</option><option value={0.75}>75%</option><option value={1}>100%</option></select></label></aside>}<div style={{flex:1,overflow:"auto",padding:24}}>
    <div style={{width:width*zoom,height:height*zoom,margin:"0 auto",background:"#fff",boxShadow:"0 4px 22px #0002",position:"relative"}}>
     <div style={{width,height,transform:`scale(${zoom})`,transformOrigin:"top left"}}><canvas ref={element}/></div>
    </div>
   </div>
+  </div>{previewMode&&<button onClick={()=>setPreviewMode(false)} style={{position:"fixed",bottom:24,right:30,zIndex:1010}}>Voltar ao editor</button>}
   {chartDialog&&<div style={{position:"fixed",inset:0,zIndex:1100,background:"#0f172acc",padding:"3vh 3vw"}}><div style={{height:"94vh",background:"white",borderRadius:10,display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{padding:12,display:"flex",justifyContent:"space-between"}}><strong>Editor ECharts · Para retornar, clique em “Aplicar ao produto” dentro do ECharts</strong><button onClick={()=>setChartDialog(null)}>Cancelar e voltar</button></div><iframe id="free-chart-frame" title="Editor ECharts" src="/studio-component.html?picker=1" style={{width:"100%",border:0,flex:1}}/></div></div>}
  </div>
 }
