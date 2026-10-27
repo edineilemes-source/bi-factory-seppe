@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BI Factory · Editor Visual (POC)</title>
+<link href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef2f7;color:#23344a;font:14px Arial}header{display:flex;gap:12px;align-items:center;padding:12px 18px;background:#fff;border-bottom:1px solid #d9e1eb}header strong{font-size:19px;margin-right:auto}button{background:#fff;border:1px solid #b8c8d8;padding:9px 12px;border-radius:6px;cursor:pointer}button.primary{background:#1769ad;color:#fff}.layout{display:grid;grid-template-columns:210px minmax(400px,1fr) 245px;min-height:calc(100vh - 62px)}aside{background:white;padding:17px;border-right:1px solid #d9e1eb}aside.right{border-left:1px solid #d9e1eb;border-right:0}aside button{width:100%;margin-bottom:8px;text-align:left}main{padding:22px;overflow:auto}.grid-stack{background:#fff;min-height:620px;border:1px solid #d9e1eb;border-radius:7px;background-image:linear-gradient(#edf2f7 1px,transparent 1px),linear-gradient(90deg,#edf2f7 1px,transparent 1px);background-size:24px 24px}.grid-stack-item-content{background:#fff;border:1px solid #b8c8d8;border-radius:7px;overflow:auto;padding:12px;cursor:move;box-shadow:0 2px 7px #0001}.grid-stack-item.selected .grid-stack-item-content{outline:2px solid #1769ad}label{display:block;margin-top:12px;font-weight:bold;font-size:12px}input,textarea,select{width:100%;padding:8px;margin-top:5px;border:1px solid #bac7d6;border-radius:5px}textarea{min-height:90px}.content{white-space:pre-wrap;overflow-wrap:anywhere}.widget-title{font-weight:bold;margin-bottom:8px}.muted{font-size:12px;color:#62758a}.preview aside{display:none}.preview .layout{display:block}.preview main{padding:12px}.preview .grid-stack-item-content{cursor:default}@media(max-width:850px){.layout{grid-template-columns:1fr}aside{border-bottom:1px solid #ddd}}
+</style></head><body>
+<header><strong>BI Factory · Editor Visual (protótipo isolado)</strong><button id="preview">Visualizar</button><button id="save" class="primary">Salvar no navegador</button><button id="export">Exportar JSON</button><button id="import">Importar JSON</button><input id="file" type="file" accept=".json,application/json" hidden></header>
+<div class="layout"><aside><h3>Objetos</h3><button data-add="text">+ Texto</button><button data-add="image">+ Imagem</button><button data-add="dashboard">+ Painel / dashboard</button><button data-add="title">+ Título</button><p class="muted">Arraste os objetos e redimensione pelas bordas. Este protótipo não publica dados nem altera o BI Factory.</p></aside><main><div class="grid-stack"></div><p class="muted" id="status">Layout local · sem autenticação ou publicação.</p></main><aside class="right"><h3>Propriedades</h3><div id="properties">Selecione um objeto.</div></aside></div>
+<script>
+'use strict';
+const KEY='bi-factory-gridstack-poc-v1';
+const grid=GridStack.init({column:12,cellHeight:72,margin:8,float:true,disableOneColumnMode:true},'.grid-stack');
+let objects={},selected=null,preview=false;
+const $=id=>document.getElementById(id);
+function makeId(){return crypto.randomUUID()}
+function defaultObj(type){return {id:makeId(),type,title:type==='title'?'Novo título':type==='dashboard'?'Dashboard':'',text:type==='text'?'Digite seu texto aqui':'',image:'',bg:'#ffffff',color:'#203047',size:type==='title'?28:16}}
+function content(obj){const box=document.createElement('div');box.style.background=obj.bg;box.style.color=obj.color;box.style.height='100%';if(obj.title){const h=document.createElement('div');h.className='widget-title';h.style.fontSize=obj.type==='title'?obj.size+'px':'16px';h.textContent=obj.title;box.append(h)}
+if(obj.type==='text'){const p=document.createElement('div');p.className='content';p.style.fontSize=obj.size+'px';p.textContent=obj.text;box.append(p)}
+if(obj.type==='image'){if(obj.image){const im=document.createElement('img');im.src=obj.image;im.alt=obj.title||'Imagem';im.style.cssText='max-width:100%;max-height:100%;object-fit:contain';box.append(im)}else box.append(document.createTextNode('Selecione uma imagem nas propriedades.'))}
+if(obj.type==='dashboard'){const p=document.createElement('p');p.className='muted';p.textContent='Espaço reservado para um dashboard do BI Factory (integração ainda não implementada).';box.append(p)}
+return box}
+function render(obj){const item=document.querySelector('[gs-id="'+CSS.escape(obj.id)+'"]');if(!item)return;const el=item.querySelector('.grid-stack-item-content');el.replaceChildren(content(obj));item.classList.toggle('selected',selected===obj.id)}
+function add(type){const obj=defaultObj(type);objects[obj.id]=obj;grid.addWidget({id:obj.id,w:type==='title'?8:6,h:type==='title'?2:4,content:''});selected=obj.id;render(obj);properties()}
+function properties(){const root=$('properties');root.replaceChildren();const o=objects[selected];if(!o){root.textContent='Selecione um objeto.';return}
+function field(name,key,kind='text'){const label=document.createElement('label');label.textContent=name;const input=document.createElement(kind==='textarea'?'textarea':'input');if(kind!=='textarea')input.type=kind;input.value=o[key]||'';input.addEventListener('input',()=>{o[key]=kind==='number'?Number(input.value):input.value;render(o)});root.append(label,input)}
+field('Título','title');if(o.type==='text')field('Texto','text','textarea');if(o.type==='image')field('Imagem (URL HTTPS)','image');if(o.type==='text'||o.type==='title')field('Tamanho da fonte','size','number');field('Fundo','bg','color');field('Cor do texto','color','color');
+const del=document.createElement('button');del.textContent='Excluir objeto';del.style.marginTop='20px';del.onclick=()=>{grid.removeWidget(document.querySelector('[gs-id="'+CSS.escape(o.id)+'"]'));delete objects[o.id];selected=null;properties()};root.append(del)}
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>add(b.dataset.add));
+grid.on('added',(_e,items)=>items.forEach(item=>{const id=item.id;if(objects[id])render(objects[id])}));
+document.querySelector('.grid-stack').addEventListener('click',e=>{const el=e.target.closest('.grid-stack-item');if(!el)return;selected=el.getAttribute('gs-id');Object.values(objects).forEach(render);properties()});
+function serialize(){return {schema:'bi-factory-editor-poc-v1',objects,layout:grid.save(false)}}
+function restore(data){if(data?.schema!=='bi-factory-editor-poc-v1'||!data.objects||!Array.isArray(data.layout))throw Error('Formato incompatível');grid.removeAll();objects={};for(const w of data.layout){const o=data.objects[w.id];if(!o||!['text','title','image','dashboard'].includes(o.type))continue;objects[w.id]={...defaultObj(o.type),...o,id:w.id};grid.addWidget({id:w.id,x:w.x,y:w.y,w:w.w,h:w.h,content:''});render(objects[w.id])}selected=null;properties()}
+$('save').onclick=()=>{localStorage.setItem(KEY,JSON.stringify(serialize()));$('status').textContent='Salvo neste navegador.'};
+$('export').onclick=()=>{const blob=new Blob([JSON.stringify(serialize(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bi-factory-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('import').onclick=()=>$('file').click();
+$('file').onchange=async e=>{try{const raw=await e.target.files[0].text();restore(JSON.parse(raw));$('status').textContent='Layout importado.'}catch(err){alert('Não foi possível importar: '+err.message)}e.target.value=''};
+$('preview').onclick=()=>{preview=!preview;document.body.classList.toggle('preview',preview);grid.setStatic(preview);$('preview').textContent=preview?'Voltar à edição':'Visualizar'};
+try{const saved=localStorage.getItem(KEY);if(saved)restore(JSON.parse(saved))}catch(err){$('status').textContent='Layout anterior não pôde ser recuperado.'}
+</script></body></html>
