@@ -172,4 +172,18 @@ def save_free_canvas(data):
     write_object(path, doc)
     return {"product_id": product_id, "count": len(canvas["objects"])}
 
-OPERATIONS = {"save-free-canvas": save_free_canvas, "update-component": update_component, "save-canvas": save_canvas, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
+def delete_product(data):
+    product_id = required(data, "product_id")
+    products = read(REGISTRY)
+    if not any(str(p.get("id")) == product_id for p in products):
+        raise ValueError("Produto não cadastrado ou protegido")
+    if data.get("confirm") != product_id:
+        raise ValueError("Confirmação de exclusão inválida")
+    path = PRODUCT_FILES / (product_id + ".json")
+    # Remove somente o produto identificado, nunca pastas ou publicações legadas.
+    if path.exists():
+        path.unlink()
+    write(REGISTRY, [p for p in products if str(p.get("id")) != product_id])
+    return {"product_id": product_id, "deleted": True}
+
+OPERATIONS = {"delete-product": delete_product, "save-free-canvas": save_free_canvas, "update-component": update_component, "save-canvas": save_canvas, "folder": create_folder, "product": create_product, "component": create_component, "attach": attach_component}
