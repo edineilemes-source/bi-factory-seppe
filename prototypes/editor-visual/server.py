@@ -5,6 +5,7 @@ Uses the existing information_product_registry, never exposes a public publishin
 """
 from __future__ import annotations
 import argparse
+import csv
 import json
 import sys
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
@@ -80,6 +81,31 @@ class Handler(SimpleHTTPRequestHandler):
         if not path.startswith("/api/"):
             return False
         try:
+            if path == "/api/fiscal" and method == "GET":
+                source = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
+                if not source.exists():
+                    self._send({"error": "Fonte fiscal oficial indisponível. Gere o relatório no BI Factory."}, 404)
+                    return True
+                with source.open(encoding="utf-8-sig", newline="") as f:
+                    reader = csv.DictReader(f)
+                    rows = []
+                    for row in reader:
+                        converted = {}
+                        for key, value in row.items():
+                            if value is None or value == "":
+                                converted[key] = None
+                            elif key in ("ano", "exercicio", "bimestre"):
+                                converted[key] = int(float(value))
+                            else:
+                                try:
+                                    converted[key] = float(value)
+                                except ValueError:
+                                    converted[key] = value
+                        rows.append(converted)
+                        if len(rows) > 10000:
+                            raise ValueError("Fonte fiscal excede o limite da prévia")
+                self._send(rows)
+                return True
             parts = path.strip("/").split("/")
             if parts == ["api", "products"]:
                 if method == "GET":
