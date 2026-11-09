@@ -11,9 +11,9 @@ import json
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import ThreadingHTTPServer
 import sys
+from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "prototypes" / "editor-visual"))
 import server as visual_editor_server
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "storage/information_products/registry.json"
