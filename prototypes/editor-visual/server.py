@@ -135,7 +135,7 @@ class Handler(SimpleHTTPRequestHandler):
                     elif method == "PATCH":
                         data = self._body()
                         permitted = {k: data[k] for k in ("name", "description", "refresh_policy",
-                                     "destination", "visibility", "status") if k in data}
+                                     "destination", "visibility", "status", "folder_id") if k in data}
                         if permitted:
                             product = registry.update_product(identifier, **permitted)
                         self._save_extra(identifier, data)
