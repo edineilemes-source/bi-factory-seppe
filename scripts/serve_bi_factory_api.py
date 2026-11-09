@@ -150,6 +150,8 @@ class Handler(visual_editor_server.Handler):
 
     def do_GET(self) -> None:
         route = self.path.split("?")[0]
+        if route == "/echarts-studio.html":
+            return super().do_GET()
         if route.startswith("/visual-editor/"):
             self.path = "/" + route.removeprefix("/visual-editor/")
             return super().do_GET()
