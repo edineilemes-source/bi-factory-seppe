@@ -155,7 +155,7 @@ class Handler(visual_editor_server.Handler):
         if route.startswith("/visual-editor/"):
             self.path = "/" + route.removeprefix("/visual-editor/")
             return super().do_GET()
-        if route == "/api/products" or route.startswith("/api/products/"):
+        if route == "/api/fiscal" or route == "/api/products" or route.startswith("/api/products/"):
             self._route("GET")
             return
         if route not in ("/api/overview", "/api/fiscal-preview", "/api/studio-fiscal"):
