@@ -9,7 +9,10 @@ import argparse
 import csv
 import json
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "prototypes" / "editor-visual"))
+import server as visual_editor_server
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,9 +118,12 @@ def overview() -> dict:
     }
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(visual_editor_server.Handler):
     def do_POST(self) -> None:
         route = self.path.split("?")[0]
+        if route == "/api/products":
+            self._route("POST")
+            return
         operation = route.removeprefix("/api/create/")
         if not route.startswith("/api/create/") or operation not in OPERATIONS:
             self.send_error(404, "Operação não encontrada")
@@ -144,6 +150,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         route = self.path.split("?")[0]
+        if route.startswith("/visual-editor/"):
+            self.path = "/" + route.removeprefix("/visual-editor/")
+            return super().do_GET()
+        if route == "/api/products" or route.startswith("/api/products/"):
+            self._route("GET")
+            return
         if route not in ("/api/overview", "/api/fiscal-preview", "/api/studio-fiscal"):
             self.send_error(404, "Rota não encontrada")
             return
@@ -171,6 +183,18 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
         return
+
+    def do_PATCH(self) -> None:
+        if self.path.startswith("/api/products/"):
+            self._route("PATCH")
+        else:
+            self.send_error(404, "Rota não encontrada")
+
+    def do_PUT(self) -> None:
+        if self.path.startswith("/api/products/"):
+            self._route("PUT")
+        else:
+            self.send_error(404, "Rota não encontrada")
 
 
 def main() -> None:
