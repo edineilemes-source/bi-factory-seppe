@@ -12,3 +12,13 @@
 
 /* Ficha unificada de produtos e editor visual incorporado */
 .productMetadata{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.productMetadata label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600}.productMetadata input,.productMetadata select,.productMetadata textarea{width:100%;padding:10px;border:1px solid #dce6f0;border-radius:8px;font:inherit}.productMetadata textarea{min-height:90px}.catalogForm iframe{display:block;background:white;margin-top:12px}@media(max-width:850px){.productMetadata{grid-template-columns:1fr}}
+
+/* Ficha, prévia persistida e editor visual em tela cheia */
+.productContext{padding:12px 14px;background:#f0f5fa;border-radius:8px;color:#29425c!important}
+.productPreviewFrame{display:block;width:100%;height:580px;min-height:400px;border:1px solid #dce6f0;border-radius:10px;background:white}
+.emptyProductPreview{min-height:180px;display:grid;place-items:center;padding:20px;background:#f5f8fb;border:1px dashed #bdcfe0;border-radius:10px;color:#637e9a;text-align:center}
+.visualOverlay{position:fixed;inset:0;z-index:10000;background:#f3f6fa;display:flex;flex-direction:column}
+.visualOverlayBar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:#10233d;color:#fff}
+.visualOverlayBar>div{display:flex;gap:8px;flex-wrap:wrap}.visualOverlayBar button{background:#fff;color:#10233d;border:0;border-radius:7px;padding:10px 13px;cursor:pointer}
+.visualOverlay>iframe{flex:1;width:100%;border:0;background:white;min-height:0}
+@media(max-width:850px){.visualOverlayBar{align-items:flex-start;flex-direction:column}.productPreviewFrame{height:420px}}
