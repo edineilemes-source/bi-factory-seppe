@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "execution_enabled": false,
+  "remote_enabled": false,
+  "schedule_enabled": false,
+  "retention": {"daily": 14, "weekly": 8, "monthly": 12},
+  "classes": {
+    "A": "Git: código, arquitetura, documentação e configuração pública",
+    "B": "Produtos, layouts, esquemas e configuração sem segredos",
+    "C": "SQLite, originais, relatórios, prepared e linhagem; desconhecidos preservados",
+    "D": "Caches e builds comprovadamente reconstruíveis; nenhuma exclusão automática"
+  },
+  "rules": [
+    {"prefix": "storage/information_products", "class": "B"},
+    {"prefix": "storage/dashboard_projects", "class": "B"},
+    {"prefix": "storage", "class": "C"},
+    {"prefix": "artifacts/staged", "class": "C"},
+    {"prefix": "web/bi_factory/node_modules", "class": "D"},
+    {"prefix": "web/bi_factory/dist", "class": "D"},
+    {"prefix": ".vite", "class": "D"}
+  ]
+}

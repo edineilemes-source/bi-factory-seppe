@@ -116,3 +116,47 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
   Nenhum módulo do BI alterado, backup real, parada, commit ou push.
 - Pendentes: ensaio operacional, custódia, retenção/RPO/RTO, origens externas,
   revisão abrangente de advisories e confirmação do remoto privado.
+
+## 2026-11-10 — Missão 3: pré-validação operacional do backup
+
+- Branch confirmada `feat/unificar-8504-8510`; HEAD/upstream armazenado
+  `df31b6adb699cdbd7e56efeac579517540ae5290`, 0/0; sem fetch/consulta viva remota.
+- Decisão **BLOQUEADO para ensaio integral real**. Storage tem 2.646.921.208 bytes
+  (2.524,30 MiB), 37 arquivos/18 diretórios; excede 256 MiB em 9,86 vezes.
+  Dois SQLite identificados por assinatura, sem abrir conexão operacional.
+- Gravadores identificados no código: API/editor, Streamlit/repositório SQLite,
+  prepared/transformação, MVP e ETL fiscal. Nenhum entrypoint BI ou escuta nas
+  portas esperadas observado no namespace local; não prova estado externo.
+- `artifacts/staged` é origem fora de storage configurada e ausente localmente;
+  substituições de caminhos e referências persistidas externas seguem pendentes.
+- Captura exige suspensão global de escritas; não há barreira validada que
+  preserve disponibilidade. Procedimento com captura, verificação, restauração
+  isolada e rollback proposto em `docs/missoes/RELATORIO_PREVALIDACAO_BACKUP.md`.
+- PASS: 20 testes sintéticos (0,97 s), pip check e diff --check. Sem teste real.
+- Somente documentação alterada; dados e não rastreados preservados. Sem backup
+  real, chaves operacionais, envio, alteração/parada de serviços, commit ou push.
+- Próximo passo: resolver capacidade/formato, barreira de escritas, inventário
+  externo e custódia/destino/RPO/RTO antes de autorizar captura operacional.
+
+## 2026-11-10 — Missão 4: arquitetura de backup e recuperação
+
+- Branch `feat/unificar-8504-8510`, HEAD/upstream armazenado
+  `b61f7fde3b63bb58e43c9eb3c3914cf117f76e1a`, 0/0; sem fetch/consulta viva remota.
+- Preparação offline: política A/B/C/D em `config/backup/policy.json`, planejador
+  `scripts/backup_architecture.py`, template comentado de agendamento em
+  `ops/backup/schedule.cron.disabled`, testes e relatório obrigatório
+  `docs/missoes/RELATORIO_ARQUITETURA_BACKUP.md`.
+- Git mirror/bundle para código e Restic BSD-2-Clause candidato para B+C;
+  execução, remoto e agenda desativados. Restic não instalado nem executado.
+  Produtor de staging/barreira/runner continuam pendentes, não entregues como
+  executor operacional. Ferramenta anterior e seu limite preservados.
+- Propostos: 14 diários/8 semanais/12 mensais; RPO 24 h, RTO código 2 h e
+  completo 8 h, sujeitos a aceite e medição. Retenção só dry-run; sem limpeza.
+- PASS: 47 testes sintéticos (20 anteriores + 27 novos), 4,35 s; pip check,
+  CLI offline e diff --check. Simulação streaming >4 GiB não é ensaio Restic.
+- Decisão **BLOQUEADO para produção**: consistência global, origens externas,
+  revisão de segredos/histórico, custódia/destinos e recuperação real pendentes.
+- Alterações anteriores destes documentos e não rastreados preservados. Nenhum
+  backup real, conexão a banco operacional, transferência, serviço persistente,
+  interrupção, exclusão, staging Git, commit ou push. Próxima ação: homologar
+  executor/barreira em fixtures antes de qualquer ativação operacional.

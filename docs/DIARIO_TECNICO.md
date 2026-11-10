@@ -63,3 +63,49 @@
 - Pendências: ensaio real, custódia/retenção/RPO/RTO, origens externas, scanner
   abrangente de advisories e verificação de privacidade remota.
 - Sem backup real, interrupção de serviços, staging, commit, push ou migração.
+
+## 2026-11-10 — Missão 3: pré-validação operacional (UTC)
+
+- Objetivo: preparar ensaio sem interromper BI; inspeção local somente de leitura.
+- Branch `feat/unificar-8504-8510`; SHA local/upstream armazenado
+  `df31b6adb699cdbd7e56efeac579517540ae5290`; 0/0, GitHub vivo não consultado.
+- Arquivos alterados: relatório novo RELATORIO_PREVALIDACAO_BACKUP.md e os dois
+  documentos de continuidade. Nenhum dado/banco/módulo operacional alterado.
+- Confirmados: 2.646.921.208 bytes/55 entradas em storage; dois SQLite por cabeçalho;
+  ausência local de artifacts/staged; gravadores pelo código; sem serviços BI
+  ou portas esperadas observados. Limitações de processos/externos no relatório.
+- Decisão BLOQUEADO: 9,86 vezes o limite, sem barreira global validada de escrita,
+  referências externas e requisitos de destino/custódia/RPO/RTO pendentes.
+- Testes PASS: 20 sintéticos em 0,97 s; pip check; diff --check final. Nenhuma
+  execução de testes com dados reais, conexão SQLite operacional ou backup real.
+- Procedimento proposto: resolver capacidade, coordenar somente escritas com
+  disponibilidade comprovada, capturar conjunto íntegro, verificar offline,
+  restaurar em ambiente isolado sem acesso à origem e liberar barreira em falha.
+- Sem chaves operacionais, rede/envio, parada/início de serviço, staging, commit
+  ou push; todos os não rastreados preexistentes preservados.
+
+## 2026-11-10 UTC — Missão 4: arquitetura sustentável de recuperação
+
+- Objetivo: separar A/B/C/D e preparar recuperação de código completo e dados
+  escaláveis sem executar operação real. Instruções e três relatórios lidos.
+- Branch `feat/unificar-8504-8510`; SHA local/upstream armazenado
+  `b61f7fde3b63bb58e43c9eb3c3914cf117f76e1a`, 0/0. Sem consulta viva ao GitHub.
+- Arquivos novos: config/backup/policy.json, scripts/backup_architecture.py,
+  ops/backup/schedule.cron.disabled, tests/test_backup_architecture.py e
+  docs/missoes/RELATORIO_ARQUITETURA_BACKUP.md. Atualizados ESTADO_ATUAL e diário,
+  preservando modificações preexistentes. Nenhum dado ou módulo BI alterado.
+- Decisão: Git mirror independente com gerações/bundles; Restic BSD-2-Clause
+  avaliado na documentação oficial para incrementais/deduplicação e multigiB.
+  Planejador emite somente argumentos simbólicos; execução/rede/agenda bloqueadas.
+  Sem runner/barreira/staging operacional implementado; risco explicitado.
+- Política proposta: retenção 14/8/12, recuperação isolada com ID explícito,
+  RPO 24 h e RTO 2 h código/8 h completo, sem comprovação operacional.
+- Testes PASS: bateria consolidada 47 testes em 4,35 s (20 anteriores e 27 novos),
+  pip check, CLI offline e git diff --check. Streaming >4 GiB simulado com memória
+  limitada; não é benchmark ou teste Restic real. Restic ausente no ambiente.
+- BLOQUEADO para produção: barreira global, produtor/runner, inventário externo,
+  revisão privada de segredos/histórico, destinos/custódia, lock de ambiente e
+  ensaio completo com medição. Relatório detalha licenças e recuperação periódica.
+- Sem backup real, transferência, abertura de SQLite operacional, instalação ou
+  interrupção de serviço, exclusão, staging Git, commit ou push. Próxima ação:
+  homologar executor e coordenação somente em dados sintéticos antes de ativar.

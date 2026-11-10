@@ -1,0 +1,7 @@
+# TEMPLATE INATIVO. Não instalar no crontab nesta missão.
+# UTC; runner ainda NÃO implementado: deve validar barreira, staging, segredos,
+# mutex, custódia, espaço, falhas, alertas e liberação da barreira em finally.
+# 0 2 * * * <APPROVED_RUNNER> capture-and-check
+# 0 4 * * 0 <APPROVED_RUNNER> full-read-check-and-isolated-restore
+# 0 5 1 * * <APPROVED_RUNNER> disaster-recovery-drill-and-retention-preview
+# Sem forget efetivo, prune, envio ou rotação destrutiva automática.
