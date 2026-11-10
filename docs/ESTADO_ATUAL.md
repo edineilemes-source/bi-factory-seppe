@@ -168,3 +168,11 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Política de backup operacional continua desativada; nenhum dado de `storage/`, banco, produto ou Codespaces foi acessado, copiado ou alterado.
 - Testes GitHub Actions: **não verificados** no momento da criação; validar execução e resultado antes de integrar. A branch não contém o script de homologação da Missão 5, ainda não publicado.
 - Próximo passo: validar CI no PR; depois desenvolver runner/staging sintéticos e coordenação dos gravadores em mudanças separadas, sem ativação em produção.
+
+## 2026-11-10 — Protótipo de staging sintético, GitHub direto
+
+- Criados `scripts/backup_fixture_staging.py` e `tests/test_backup_fixture_staging.py` na branch isolada `feat/backup-ci-sem-codex`.
+- Captura coordenada de fixtures SQLite + JSON com `flock` cooperativo, backup API SQLite, validação de geração, manifesto SHA-256 e rejeição de inconsistências. Testes em `tmp_path` sem origens reais.
+- CI ampliado para os novos testes; **resultado da execução atualizado ainda pendente de verificação**.
+- Limites: sem adesão dos gravadores reais, sem protocolo de recuperação pós-crash, sem integração Restic, sem runner operacional e sem ativação de política.
+- A branch continua isolada e PR em rascunho; não houve merge ou alteração em dados do Codespaces.
