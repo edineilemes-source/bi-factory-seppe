@@ -118,3 +118,11 @@
 - Testes: **PENDENTES** de execução no GitHub Actions; não declarar PASS antes dos logs.
 - Segurança: somente `pull_request` e `workflow_dispatch`, permissões `contents: read`, fixtures sintéticas, sem credenciais, upload, backup real, agendamento ou limpeza.
 - Próxima ação: abrir PR de revisão e conferir execução CI antes de integração; o estado local do Codespaces não foi consultado.
+
+## 2026-11-10 — Staging sintético direto pelo GitHub
+
+- Objetivo: validar captura SQLite + JSON em fixtures privadas com geração consistente e hashes, sem Codex.
+- Branch `feat/backup-ci-sem-codex`; arquivos criados `scripts/backup_fixture_staging.py`, `tests/test_backup_fixture_staging.py`; workflow ampliado.
+- Testes adicionados: sucesso, divergência de gerações, alteração posterior, symlink, diretório inseguro e entradas extras. Resultado CI desta revisão ainda não verificado.
+- Dados: nenhum banco/produto real tocado; sem agendamento, backup operacional, envio, merge ou exclusão de dados preexistentes.
+- Limitações: `flock` exige cooperação de todos os escritores, não é barreira distribuída nem recuperação de transações incompletas.
