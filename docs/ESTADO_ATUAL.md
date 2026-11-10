@@ -160,3 +160,11 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
   backup real, conexão a banco operacional, transferência, serviço persistente,
   interrupção, exclusão, staging Git, commit ou push. Próxima ação: homologar
   executor/barreira em fixtures antes de qualquer ativação operacional.
+
+## 2026-11-10 — CI de backup sem Codex (proposta em branch isolada)
+
+- Branch de proposta: `feat/backup-ci-sem-codex`, derivada de `feat/unificar-8504-8510`; commit inicial do workflow `93d6e1589cd9fb63341e7de0fbf010b37cad67da`.
+- Criado `.github/workflows/backup-architecture-tests.yml` para executar em pull requests direcionados e sob disparo manual, usando apenas fixtures sintéticas e os testes existentes.
+- Política de backup operacional continua desativada; nenhum dado de `storage/`, banco, produto ou Codespaces foi acessado, copiado ou alterado.
+- Testes GitHub Actions: **não verificados** no momento da criação; validar execução e resultado antes de integrar. A branch não contém o script de homologação da Missão 5, ainda não publicado.
+- Próximo passo: validar CI no PR; depois desenvolver runner/staging sintéticos e coordenação dos gravadores em mudanças separadas, sem ativação em produção.
