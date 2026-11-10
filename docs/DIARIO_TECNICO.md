@@ -109,3 +109,28 @@
 - Sem backup real, transferência, abertura de SQLite operacional, instalação ou
   interrupção de serviço, exclusão, staging Git, commit ou push. Próxima ação:
   homologar executor e coordenação somente em dados sintéticos antes de ativar.
+
+## 2026-11-10 — Proposta de CI do backup sem Codex
+
+- Objetivo: reduzir consumo de Codex usando edição GitHub direta e GitHub Actions para testes sintéticos.
+- Branch: `feat/backup-ci-sem-codex`, baseada em `feat/unificar-8504-8510`; commit de workflow `93d6e1589cd9fb63341e7de0fbf010b37cad67da`.
+- Arquivos: workflow novo e registros de continuidade; nenhum módulo BI ou arquivo operacional alterado.
+- Testes: **PENDENTES** de execução no GitHub Actions; não declarar PASS antes dos logs.
+- Segurança: somente `pull_request` e `workflow_dispatch`, permissões `contents: read`, fixtures sintéticas, sem credenciais, upload, backup real, agendamento ou limpeza.
+- Próxima ação: abrir PR de revisão e conferir execução CI antes de integração; o estado local do Codespaces não foi consultado.
+
+## 2026-11-10 — Staging sintético direto pelo GitHub
+
+- Objetivo: validar captura SQLite + JSON em fixtures privadas com geração consistente e hashes, sem Codex.
+- Branch `feat/backup-ci-sem-codex`; arquivos criados `scripts/backup_fixture_staging.py`, `tests/test_backup_fixture_staging.py`; workflow ampliado.
+- Testes adicionados: sucesso, divergência de gerações, alteração posterior, symlink, diretório inseguro e entradas extras. Resultado CI desta revisão ainda não verificado.
+- Dados: nenhum banco/produto real tocado; sem agendamento, backup operacional, envio, merge ou exclusão de dados preexistentes.
+- Limitações: `flock` exige cooperação de todos os escritores, não é barreira distribuída nem recuperação de transações incompletas.
+
+## 2026-11-10 — Journal sintético de gerações
+
+- Objetivo: demonstrar rejeição segura de captura em interrupções entre escrita SQLite e JSON.
+- Arquivos novos: `scripts/backup_fixture_generation.py`, `tests/test_backup_fixture_generation.py`; workflow de CI atualizado.
+- Testes: confirmação de geração, falha após journal, falha após banco, sequência inválida, symlink, journal adulterado, inspeção sem mutação. CI pendente de conferência.
+- Limitações explícitas: POSIX local, writers cooperativos, sem recuperação automática nem integração real; journal confirmado bloqueia nova geração até desenho de reconhecimento seguro.
+- Nenhum dado real tocado, nenhum backup enviado, nenhum merge ou limpeza de arquivos operacionais.

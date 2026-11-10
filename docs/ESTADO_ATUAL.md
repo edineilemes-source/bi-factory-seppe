@@ -160,3 +160,27 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
   backup real, conexão a banco operacional, transferência, serviço persistente,
   interrupção, exclusão, staging Git, commit ou push. Próxima ação: homologar
   executor/barreira em fixtures antes de qualquer ativação operacional.
+
+## 2026-11-10 — CI de backup sem Codex (proposta em branch isolada)
+
+- Branch de proposta: `feat/backup-ci-sem-codex`, derivada de `feat/unificar-8504-8510`; commit inicial do workflow `93d6e1589cd9fb63341e7de0fbf010b37cad67da`.
+- Criado `.github/workflows/backup-architecture-tests.yml` para executar em pull requests direcionados e sob disparo manual, usando apenas fixtures sintéticas e os testes existentes.
+- Política de backup operacional continua desativada; nenhum dado de `storage/`, banco, produto ou Codespaces foi acessado, copiado ou alterado.
+- Testes GitHub Actions: **não verificados** no momento da criação; validar execução e resultado antes de integrar. A branch não contém o script de homologação da Missão 5, ainda não publicado.
+- Próximo passo: validar CI no PR; depois desenvolver runner/staging sintéticos e coordenação dos gravadores em mudanças separadas, sem ativação em produção.
+
+## 2026-11-10 — Protótipo de staging sintético, GitHub direto
+
+- Criados `scripts/backup_fixture_staging.py` e `tests/test_backup_fixture_staging.py` na branch isolada `feat/backup-ci-sem-codex`.
+- Captura coordenada de fixtures SQLite + JSON com `flock` cooperativo, backup API SQLite, validação de geração, manifesto SHA-256 e rejeição de inconsistências. Testes em `tmp_path` sem origens reais.
+- CI ampliado para os novos testes; **resultado da execução atualizado ainda pendente de verificação**.
+- Limites: sem adesão dos gravadores reais, sem protocolo de recuperação pós-crash, sem integração Restic, sem runner operacional e sem ativação de política.
+- A branch continua isolada e PR em rascunho; não houve merge ou alteração em dados do Codespaces.
+
+## 2026-11-10 — Protocolo de geração com journal sintético (somente fixtures)
+
+- Implementado `scripts/backup_fixture_generation.py` e testes `tests/test_backup_fixture_generation.py` na branch isolada, sem Codex.
+- Commit simulado de geração SQLite+JSON sob lock cooperativo, journal pendente/confirmado, escrita atômica JSON com fsync e inspeção fail-closed após interrupção.
+- O módulo **não recupera automaticamente** nem apaga journals: rejeita estados incompletos e exige intervenção posterior; o journal confirmado permanece para auditoria, impedindo novo commit até implementação de rotação/ack segura.
+- CI ampliado; verificar execução do workflow no commit de código `4c0809884b0d33dd6b3582bed2b16d778677cf33` antes de declarar PASS.
+- Sem integração com gravadores reais, sem runner Restic, sem backup operacional, sem acesso ao Codespaces e sem merge.
