@@ -164,3 +164,10 @@ Documentação primária: [AEAD cryptography](https://cryptography.io/en/stable/
    isolada; verificação deve preceder uso. Nenhum dado operacional é substituído.
 9. Não há evidência de sincronização atual com GitHub nem de envio; SHA registrado
    é a base, pois commit/push foram expressamente proibidos.
+
+## Nota da auditoria — 2026-11-10
+
+Este relatório registra a missão anterior. A Missão 2 atualizou o requisito
+para cryptography 46.0.7 e antecipou a recusa de nomes não restauráveis.
+Bateria atual: 20 testes PASS (17 originais e 3 regressões). Estado, riscos e
+lista exata de publicação: [relatório de auditoria](RELATORIO_AUDITORIA_BACKUP.md).

@@ -76,3 +76,43 @@
 
 ## Atualização obrigatória
 A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dados afetados, pendências e próxima ação. Registrar detalhes cronológicos em `docs/DIARIO_TECNICO.md`. Se não houver acesso ao Codespaces, registrar explicitamente **não verificado localmente**.
+
+## 2026-11-10 — Backup seguro e recuperação isolada (confirmado localmente)
+
+- Nesta missão houve acesso real ao terminal de `/workspaces/bi-factory-seppe`;
+  a nota anterior sobre ausência de terminal descreve a sessão anterior.
+- Branch confirmada `feat/unificar-8504-8510`, SHA
+  `60e34d8f7e23b58b5142eb59ad18ba1ab6df9e3c`; HEAD e upstream **localmente
+  armazenado** coincidem (0/0). Sem fetch/consulta remota; não prova sincronização
+  atual com o servidor GitHub. Alterações desta entrega não commitadas.
+- Entregue `scripts/secure_backup.py` com dependência opcional em
+  `requirements-backup.txt`, captura de toda `storage`, SQLite via backup API em
+  cópia privada, AES-256-GCM, manifesto SHA-256 e restauração em destino novo externo.
+- Consistência global exige pausa explícita de todos os gravadores; inventário
+  antes/depois detecta mudanças. Sem mudança nos módulos operacionais existentes.
+- Preparação local cifrada para `edineilemes-source/bi-factory-seppe-backup`,
+  com envio desabilitado e sem qualquer operação de rede/Git.
+- PASS: 17 testes sintéticos direcionados, ciclo CLI, integridade, corrupção,
+  chave errada, WAL, isolamento, preservação, limites e falha de I/O; pip check
+  e git diff --check. Nenhum backup/restauração de dados operacionais executado.
+- Arquivos não rastreados existentes foram preservados. Limite de 256 MiB e
+  10.000 entradas; chaves ficam fora do checkout, separadas dos backups.
+- Pendentes: ensaio operacional com pausa planejada, inventário de caminhos
+  externos, custódia de chaves, RPO/RTO, retenção e confirmação de privacidade do
+  repositório de backup. Sem commit/push nem migração de dados.
+- Relatório e procedimento: `docs/missoes/RELATORIO_BACKUP_SEGURO.md`.
+
+## 2026-11-10 — Missão 2: auditoria do backup (confirmado localmente)
+
+- Branch `feat/unificar-8504-8510`, HEAD `e2ddc98e1d189d2c10b930c04c8eb5d2668b1ca8`; upstream
+  armazenado igual, 0/0. Estado vivo do GitHub não consultado; sem fetch.
+- Auditoria APROVADA exclusivamente para os oito arquivos listados em
+  `docs/missoes/RELATORIO_AUDITORIA_BACKUP.md`, sem publicação nesta execução.
+- Corrigidos requisito com patch de segurança (cryptography 46.0.7) e captura
+  de nomes recusados pelo verificador; alias de raiz também rejeitado.
+- PASS: 17 testes originais antes, 20 após correções; pip check e diff --check.
+  Triagem dos candidatos sem indícios detectados de segredos/dados pessoais.
+- Arquivos operacionais não rastreados excluídos da seleção e preservados.
+  Nenhum módulo do BI alterado, backup real, parada, commit ou push.
+- Pendentes: ensaio operacional, custódia, retenção/RPO/RTO, origens externas,
+  revisão abrangente de advisories e confirmação do remoto privado.
