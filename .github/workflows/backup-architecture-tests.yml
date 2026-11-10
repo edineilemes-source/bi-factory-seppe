@@ -5,8 +5,10 @@ on:
     paths:
       - 'scripts/secure_backup.py'
       - 'scripts/backup_architecture.py'
+      - 'scripts/backup_fixture_staging.py'
       - 'tests/test_secure_backup.py'
       - 'tests/test_backup_architecture.py'
+      - 'tests/test_backup_fixture_staging.py'
       - 'config/backup/policy.json'
       - 'requirements-backup.txt'
       - '.github/workflows/backup-architecture-tests.yml'
@@ -46,4 +48,4 @@ jobs:
           print('Operational execution, remote transfer and scheduling are disabled.')
           PY
       - name: Run synthetic tests only
-        run: python -m pytest tests/test_secure_backup.py tests/test_backup_architecture.py -q
+        run: python -m pytest tests/test_secure_backup.py tests/test_backup_architecture.py tests/test_backup_fixture_staging.py -q
