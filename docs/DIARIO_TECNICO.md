@@ -109,3 +109,12 @@
 - Sem backup real, transferência, abertura de SQLite operacional, instalação ou
   interrupção de serviço, exclusão, staging Git, commit ou push. Próxima ação:
   homologar executor e coordenação somente em dados sintéticos antes de ativar.
+
+## 2026-11-10 — Proposta de CI do backup sem Codex
+
+- Objetivo: reduzir consumo de Codex usando edição GitHub direta e GitHub Actions para testes sintéticos.
+- Branch: `feat/backup-ci-sem-codex`, baseada em `feat/unificar-8504-8510`; commit de workflow `93d6e1589cd9fb63341e7de0fbf010b37cad67da`.
+- Arquivos: workflow novo e registros de continuidade; nenhum módulo BI ou arquivo operacional alterado.
+- Testes: **PENDENTES** de execução no GitHub Actions; não declarar PASS antes dos logs.
+- Segurança: somente `pull_request` e `workflow_dispatch`, permissões `contents: read`, fixtures sintéticas, sem credenciais, upload, backup real, agendamento ou limpeza.
+- Próxima ação: abrir PR de revisão e conferir execução CI antes de integração; o estado local do Codespaces não foi consultado.
