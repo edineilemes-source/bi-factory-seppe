@@ -1,0 +1,127 @@
+name: BI Factory - Editor Visual E2E
+on:
+  push:
+    branches: [test/editor-playwright-ci]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  editor-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: |
+          mkdir -p /tmp/bi-e2e
+          cd /tmp/bi-e2e
+          npm init -y >/dev/null
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated static server
+        run: |
+          python3 -m http.server 8506 --bind 127.0.0.1 > /tmp/bi-editor-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8506/prototypes/editor-visual/index.html >/dev/null && break; sleep 1; done
+      - name: Execute complete non-destructive editor suite
+        run: |
+          cat > /tmp/bi-e2e/run.cjs <<'JS'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
+            const failures=[],results=[],errors=[];
+            page.on('pageerror',e=>errors.push(e.message));
+            const test=async(name,fn)=>{
+              try{await fn();results.push({name,status:'PASS'});console.log('PASS '+name)}
+              catch(e){results.push({name,status:'FAIL',error:e.message});failures.push(name);console.log('FAIL '+name+': '+e.message)}
+            };
+            const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
+            const url='http://127.0.0.1:8506/prototypes/editor-visual/index.html';
+            await test('Inicialização e bibliotecas',async()=>{
+              const r=await page.goto(url,{waitUntil:'networkidle',timeout:60000});
+              assert(r.status()===200,'HTTP '+r.status());
+              assert(await page.evaluate(()=>typeof GridStack==='function'&&typeof echarts==='object'),'GridStack/ECharts indisponíveis');
+            });
+            const types=[['Texto','+ Texto','.grid-stack-item'],['Título','+ Título','.grid-stack-item'],['Retângulo','▭ Retângulo','[data-shape-id]'],['Quadrado','□ Quadrado','[data-shape-id]'],['Losango','◇ Losango','[data-shape-id]'],['Elipse','◯ Elipse','[data-shape-id]'],['Seta','➜ Seta','[data-shape-id]'],['Linha','━ Linha','[data-shape-id]']];
+            for(const [name,label,selector] of types)await test('Inserção: '+name,async()=>{
+              const before=await page.locator(selector).count();
+              await page.getByRole('button',{name:label,exact:true}).click();
+              assert((await page.locator(selector).count())===before+1,'Contagem não aumentou');
+            });
+            await test('Movimentação GridStack',async()=>{
+              const el=page.locator('.grid-stack-item').first(),a=await el.getAttribute('gs-x'),b=await el.getAttribute('gs-y'),r=await el.boundingBox();
+              await page.mouse.move(r.x+r.width/2,r.y+20);await page.mouse.down();
+              await page.mouse.move(r.x+r.width/2+160,r.y+100,{steps:20});await page.mouse.up();
+              assert(a!==await el.getAttribute('gs-x')||b!==await el.getAttribute('gs-y'),'Grid não moveu');
+            });
+            await test('Movimentação de figura',async()=>{
+              const el=page.locator('[data-shape-id]').first(),r=await el.boundingBox();
+              await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.mouse.down();
+              await page.mouse.move(r.x+r.width/2+130,r.y+r.height/2+80,{steps:20});await page.mouse.up();
+              const s=await el.boundingBox();assert(Math.abs(s.x-r.x)>20||Math.abs(s.y-r.y)>20,'Figura não moveu');
+            });
+            await test('Controle de redimensionamento de figura',async()=>{
+              const el=page.locator('[data-shape-id]').first();
+              assert(await el.locator('[class*="resize"],[class*="handle"]').count()>0,'Controle não encontrado');
+            });
+            await test('Camadas e sobreposição',async()=>{
+              const z=await page.evaluate(()=>{
+                const a=document.querySelector('[data-shape-id]'),b=document.querySelector('.grid-stack-item');
+                return {a:getComputedStyle(a).zIndex,b:getComputedStyle(b).zIndex};
+              });assert(Number.isFinite(Number(z.a)),'Z-index da figura inválido');
+            });
+            await test('Visualizar e voltar à edição',async()=>{
+              await page.getByRole('button',{name:'Visualizar',exact:true}).click();
+              assert(await page.locator('body.preview').count()===1,'Modo prévia não ativado');
+              await page.getByRole('button',{name:'Voltar à edição',exact:true}).click();
+              assert(await page.locator('body.preview').count()===0,'Não voltou à edição');
+            });
+            await test('Salvar e restaurar layout local',async()=>{
+              await page.getByRole('button',{name:'Salvar produto',exact:true}).click();
+              assert(await page.evaluate(()=>!!localStorage.getItem('bi-factory-gridstack-poc-v1')),'Layout não salvo');
+              const n=await page.locator('[data-shape-id]').count();
+              await page.reload({waitUntil:'networkidle'});
+              assert(await page.locator('[data-shape-id]').count()===n,'Figuras não restauradas');
+            });
+            await test('Filtro de dimensão',async()=>{
+              const n=await page.locator('.grid-stack-item').count();
+              await page.getByRole('button',{name:'+ Filtro de dimensão',exact:true}).click();
+              assert(await page.locator('.grid-stack-item').count()===n+1,'Filtro não inserido');
+            });
+            await test('Painel de filtros múltiplos',async()=>{
+              const n=await page.locator('.grid-stack-item').count();
+              await page.getByRole('button',{name:'+ Painel de filtros (várias dimensões)',exact:true}).click();
+              assert(await page.locator('.grid-stack-item').count()===n+1,'Painel não inserido');
+            });
+            await test('Seletor de medida',async()=>{
+              const n=await page.locator('.grid-stack-item').count();
+              await page.getByRole('button',{name:'+ Seletor de medida',exact:true}).click();
+              assert(await page.locator('.grid-stack-item').count()===n+1,'Seletor não inserido');
+            });
+            await test('Abertura do estúdio ECharts',async()=>{
+              await page.getByRole('button',{name:/Gráficos \/ dashboards/}).click();
+              assert(await page.locator('#echarts-modal').evaluate(el=>getComputedStyle(el).display)!=='none','Modal não abriu');
+            });
+            await test('Ausência de erros JS',async()=>assert(errors.length===0,errors.join('; ')));
+            await page.screenshot({path:'/tmp/bi-e2e/editor-final.png',fullPage:true});
+            fs.writeFileSync('/tmp/bi-e2e/results.json',JSON.stringify({results,errors},null,2));
+            await browser.close();
+            console.log('TOTAL '+results.length+' | PASS '+(results.length-failures.length)+' | FAIL '+failures.length);
+            if(failures.length)process.exitCode=1;
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+          node /tmp/bi-e2e/run.cjs
+      - name: Upload consolidated results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-e2e-report
+          path: |
+            /tmp/bi-e2e/results.json
+            /tmp/bi-e2e/editor-final.png
+            /tmp/bi-editor-server.log
+          if-no-files-found: ignore
