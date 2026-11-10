@@ -176,3 +176,11 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - CI ampliado para os novos testes; **resultado da execução atualizado ainda pendente de verificação**.
 - Limites: sem adesão dos gravadores reais, sem protocolo de recuperação pós-crash, sem integração Restic, sem runner operacional e sem ativação de política.
 - A branch continua isolada e PR em rascunho; não houve merge ou alteração em dados do Codespaces.
+
+## 2026-11-10 — Protocolo de geração com journal sintético (somente fixtures)
+
+- Implementado `scripts/backup_fixture_generation.py` e testes `tests/test_backup_fixture_generation.py` na branch isolada, sem Codex.
+- Commit simulado de geração SQLite+JSON sob lock cooperativo, journal pendente/confirmado, escrita atômica JSON com fsync e inspeção fail-closed após interrupção.
+- O módulo **não recupera automaticamente** nem apaga journals: rejeita estados incompletos e exige intervenção posterior; o journal confirmado permanece para auditoria, impedindo novo commit até implementação de rotação/ack segura.
+- CI ampliado; verificar execução do workflow no commit de código `4c0809884b0d33dd6b3582bed2b16d778677cf33` antes de declarar PASS.
+- Sem integração com gravadores reais, sem runner Restic, sem backup operacional, sem acesso ao Codespaces e sem merge.
