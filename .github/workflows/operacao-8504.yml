@@ -1,0 +1,24 @@
+name: Operacao 8504 - validação do script
+on:
+  push:
+    branches: [fix/operacao-estavel-8504-20261111]
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix web/bi_factory
+      - name: Sintaxe do script
+        run: bash -n scripts/diagnose_and_start_8504.sh
+      - name: Diagnóstico sem serviços
+        run: bash scripts/diagnose_and_start_8504.sh
+      - name: Subir e validar API, UI e proxy
+        run: |
+          bash scripts/diagnose_and_start_8504.sh --start
+          curl -fS --max-time 5 http://127.0.0.1:8504/api/overview >/dev/null
+          curl -fS --max-time 5 http://127.0.0.1:8504/visual-editor/index.html >/dev/null
+          curl -fS --max-time 5 http://127.0.0.1:8504/echarts-studio.html >/dev/null
