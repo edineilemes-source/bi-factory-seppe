@@ -121,3 +121,9 @@
 - Editor: controles de texto e bordas, histórico básico, limpeza confirmada, fechamento contextual, não recriar iframe ao salvar; React: caminhos hierárquicos das pastas.
 - Workflow `.github/workflows/editor-visual-ci.yml` valida sintaxe JS inline e build React. Execução CI e homologação visual ainda não confirmadas.
 - Sem acesso ao Codespaces; nenhum arquivo de dados alterado, nenhuma migração, nenhum merge. Próxima ação: checar CI, corrigir regressões e integrar para teste após validação.
+
+## 2026-11-11 — Retomada operacional 8504
+- Branch `fix/operacao-estavel-8504-20261111`; arquivos `scripts/diagnose_and_start_8504.sh`, `.github/workflows/operacao-8504.yml`.
+- Script somente verifica e inicia API 8505 e Vite 8504 quando portas livres; não mata processos, não altera storage nem faz reset/merge. Log `/tmp/bi-factory-seppe`.
+- Testes: `bash -n` e diagnóstico sem serviços PASS em CI; ver resultado final da run 43053475074 para inicialização e proxies. Ambiente Codespaces e túnel autenticado ainda não testados.
+- Próxima ação: executar o script no Codespaces quando o usuário puder acessar terminal; manter 8504 como UI principal. Sem sincronização automática.
