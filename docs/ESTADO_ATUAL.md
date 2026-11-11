@@ -178,3 +178,5 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Branch `fix/editor-completo-homologacao-20261111`. Corrigida remount do iframe ao salvar (evita perder estado não salvo), adicionado Refazer, remoção de outline azul na visualização, propriedades de contorno de figuras e snapshot de undo na inserção ECharts.
 - Arquivos: `web/bi_factory/src/main.jsx`, `prototypes/editor-visual/index.html`, `scripts/test_editor_full.cjs`, `.github/workflows/test-editor-full.yml`.
 - Testes: ver run 43054626669; sem alteração de dados operacionais. Ainda pendentes: validação de produtos reais, hierarquia de pastas existente, fluxo completo ECharts e sincronização com Codespaces 8506. Não houve merge/deploy.
+
+- CI 43054855951: PASS — Chromium abriu o estúdio, criou gráfico Colunas, enviou ao editor, objeto BAR presente no canvas, sem erros JS. Fonte fiscal não incluída no checkout CI: HTTP 404 esperado, portanto valores reais e persistência de produto não validados.
