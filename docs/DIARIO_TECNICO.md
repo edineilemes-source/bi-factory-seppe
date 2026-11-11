@@ -121,3 +121,8 @@
 - Editor: controles de texto e bordas, histórico básico, limpeza confirmada, fechamento contextual, não recriar iframe ao salvar; React: caminhos hierárquicos das pastas.
 - Workflow `.github/workflows/editor-visual-ci.yml` valida sintaxe JS inline e build React. Execução CI e homologação visual ainda não confirmadas.
 - Sem acesso ao Codespaces; nenhum arquivo de dados alterado, nenhuma migração, nenhum merge. Próxima ação: checar CI, corrigir regressões e integrar para teste após validação.
+
+## 2026-11-11 — Correções editor e ECharts (branch isolada)
+- Branch `fix/editor-completo-homologacao-20261111`. Corrigida remount do iframe ao salvar (evita perder estado não salvo), adicionado Refazer, remoção de outline azul na visualização, propriedades de contorno de figuras e snapshot de undo na inserção ECharts.
+- Arquivos: `web/bi_factory/src/main.jsx`, `prototypes/editor-visual/index.html`, `scripts/test_editor_full.cjs`, `.github/workflows/test-editor-full.yml`.
+- Testes: ver run 43054626669; sem alteração de dados operacionais. Ainda pendentes: validação de produtos reais, hierarquia de pastas existente, fluxo completo ECharts e sincronização com Codespaces 8506. Não houve merge/deploy.
