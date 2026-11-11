@@ -1,0 +1,43 @@
+name: BI Factory - pacote Hostinger (sem publicacao)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - architecture/plataforma-profissional-20261111
+    paths:
+      - 'web/bi_factory/**'
+      - '.github/workflows/hostinger-build-preview.yml'
+  pull_request:
+    paths:
+      - 'web/bi_factory/**'
+      - '.github/workflows/hostinger-build-preview.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/bi_factory/package-lock.json
+      - name: Instalar dependencias
+        working-directory: web/bi_factory
+        run: npm ci
+      - name: Compilar React
+        working-directory: web/bi_factory
+        run: npm run build
+      - name: Verificar arquivos gerados
+        run: |
+          test -s web/bi_factory/dist/index.html
+          test -d web/bi_factory/dist/assets
+      - name: Guardar pacote estatico para homologacao
+        uses: actions/upload-artifact@v4
+        with:
+          name: bi-factory-frontend-static
+          path: web/bi_factory/dist/
+          if-no-files-found: error
+          retention-days: 7
