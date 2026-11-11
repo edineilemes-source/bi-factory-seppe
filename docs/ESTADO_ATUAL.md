@@ -173,3 +173,9 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - React: fechamento contextual do editor e preservação do iframe ao salvar para evitar remontagem/perda de edição. Cadastro mostra caminho hierárquico das pastas.
 - CI de build React e sintaxe JavaScript adicionado; resultado ainda não confirmado. Nenhum dado persistido alterado no GitHub. **Não houve atualização do Codespaces nem validação da porta 8504.**
 - Pendente: homologar todos os fluxos, tela em branco de produtos fechados, desfazer para todas as mutações, estilos no modo de visualização, retorno de navegação e persistência real; não declarar produção pronta.
+
+## 2026-11-11 — Retomada operacional 8504
+- Branch `fix/operacao-estavel-8504-20261111`; arquivos `scripts/diagnose_and_start_8504.sh`, `.github/workflows/operacao-8504.yml`.
+- Script somente verifica e inicia API 8505 e Vite 8504 quando portas livres; não mata processos, não altera storage nem faz reset/merge. Log `/tmp/bi-factory-seppe`.
+- Testes: `bash -n` e diagnóstico sem serviços PASS em CI; ver resultado final da run 43053475074 para inicialização e proxies. Ambiente Codespaces e túnel autenticado ainda não testados.
+- Próxima ação: executar o script no Codespaces quando o usuário puder acessar terminal; manter 8504 como UI principal. Sem sincronização automática.
