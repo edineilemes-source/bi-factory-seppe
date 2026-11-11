@@ -18,7 +18,7 @@ jobs:
         run: |
           npm ci --prefix web/bi_factory
           npm install --no-save --prefix web/bi_factory playwright@1.58.2
-          cd web/bi_factory && npx playwright install --with-deps chromium
+          cd web/bi_factory && npx playwright install chromium
       - name: Sintaxe JavaScript embutido
         run: |
           python - <<'PY'
