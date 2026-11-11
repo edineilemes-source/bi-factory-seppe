@@ -173,3 +173,8 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - React: fechamento contextual do editor e preservação do iframe ao salvar para evitar remontagem/perda de edição. Cadastro mostra caminho hierárquico das pastas.
 - CI de build React e sintaxe JavaScript adicionado; resultado ainda não confirmado. Nenhum dado persistido alterado no GitHub. **Não houve atualização do Codespaces nem validação da porta 8504.**
 - Pendente: homologar todos os fluxos, tela em branco de produtos fechados, desfazer para todas as mutações, estilos no modo de visualização, retorno de navegação e persistência real; não declarar produção pronta.
+
+## 2026-11-11 — Correções editor e ECharts (branch isolada)
+- Branch `fix/editor-completo-homologacao-20261111`. Corrigida remount do iframe ao salvar (evita perder estado não salvo), adicionado Refazer, remoção de outline azul na visualização, propriedades de contorno de figuras e snapshot de undo na inserção ECharts.
+- Arquivos: `web/bi_factory/src/main.jsx`, `prototypes/editor-visual/index.html`, `scripts/test_editor_full.cjs`, `.github/workflows/test-editor-full.yml`.
+- Testes: ver run 43054626669; sem alteração de dados operacionais. Ainda pendentes: validação de produtos reais, hierarquia de pastas existente, fluxo completo ECharts e sincronização com Codespaces 8506. Não houve merge/deploy.
