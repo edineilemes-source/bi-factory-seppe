@@ -121,3 +121,8 @@
 - Editor: controles de texto e bordas, histórico básico, limpeza confirmada, fechamento contextual, não recriar iframe ao salvar; React: caminhos hierárquicos das pastas.
 - Workflow `.github/workflows/editor-visual-ci.yml` valida sintaxe JS inline e build React. Execução CI e homologação visual ainda não confirmadas.
 - Sem acesso ao Codespaces; nenhum arquivo de dados alterado, nenhuma migração, nenhum merge. Próxima ação: checar CI, corrigir regressões e integrar para teste após validação.
+
+## 2026-11-11 — Bateria automatizada de portas e Chromium
+- Branch `audit/portas-navegador-20261111`. Arquivos: `scripts/audit_ports_browser.cjs`, `.github/workflows/audit-ports-browser.yml`, `docs/AUDITORIA_PORTAS_NAVEGADOR_2026-11-11.md`.
+- Run 43051179108: PASS em 8504/8506/8505/8510, proxies `/api/overview`, `/visual-editor/index.html`, `/echarts-studio.html`, scripts JS e Chromium sem erros; nenhum dado operacional modificado.
+- Limitação: CI em runner GitHub isolado, não testa autenticação do túnel privado nem sessão do Chrome do usuário; sem merge ou publicação no Codespaces.
