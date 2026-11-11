@@ -48,7 +48,7 @@ start_if_free 8505 api-8505 python3 -u scripts/serve_bi_factory_api.py --port 85
 if [[ ! -x web/bi_factory/node_modules/.bin/vite ]]; then
  echo "BLOCKED Vite: dependências não instaladas; não alterei node_modules." >&2
 else
- start_if_free 8504 vite-8504 "$ROOT/web/bi_factory/node_modules/.bin/vite" --config "$ROOT/web/bi_factory/vite.config.js" --root "$ROOT/web/bi_factory" --host 0.0.0.0 --port 8504 --strictPort || true
+ start_if_free 8504 vite-8504 "$ROOT/web/bi_factory/node_modules/.bin/vite" "$ROOT/web/bi_factory" --config "$ROOT/web/bi_factory/vite.config.js" --host 0.0.0.0 --port 8504 --strictPort || true
 fi
 echo "=== VERIFICAÇÃO FINAL ==="
 probe "API" "http://127.0.0.1:8505/api/products"
