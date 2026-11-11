@@ -160,3 +160,9 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
   backup real, conexão a banco operacional, transferência, serviço persistente,
   interrupção, exclusão, staging Git, commit ou push. Próxima ação: homologar
   executor/barreira em fixtures antes de qualquer ativação operacional.
+
+## 2026-11-11 — Correção inicial de navegação no editor (GitHub, não homologada)
+- Branch isolada `fix/editor-visual-navegacao-pastas-20261111`, commit inicial `2a451da584e5b3b5e83f1512d637d1260fa9a39d`.
+- `web/bi_factory/src/main.jsx`: seletor de pasta de novo produto mostra caminho hierárquico (`Finanças Públicas / Receitas`); removidos controles externos de alternância Visualizar/Voltar e Fechar que recriavam iframe e podiam perder edição não salva.
+- Nenhum arquivo de dados, produto, layout ou banco alterado. Sem merge e sem sincronização automática com Codespaces.
+- Testes locais e E2E: NÃO EXECUTADOS; requer CI e homologação no ambiente Codespaces. Tela branca de produtos concluídos, bordas, undo e restante do editor ainda pendentes; não declarar resolvidos.
