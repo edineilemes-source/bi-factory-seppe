@@ -1,0 +1,46 @@
+name: Editor visual - build e verificacoes
+on:
+  pull_request:
+    paths:
+      - 'web/bi_factory/**'
+      - 'prototypes/editor-visual/index.html'
+      - '.github/workflows/editor-visual-ci.yml'
+  push:
+    branches:
+      - 'fix/editor-visual-navegacao-pastas-20261111'
+    paths:
+      - 'web/bi_factory/**'
+      - 'prototypes/editor-visual/index.html'
+      - '.github/workflows/editor-visual-ci.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/bi_factory/package-lock.json
+      - name: Instalar dependencias do lockfile
+        run: npm ci --prefix web/bi_factory
+      - name: Validar sintaxe do editor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          source = Path('prototypes/editor-visual/index.html').read_text()
+          scripts = re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>', source)
+          assert scripts, 'Editor sem script embutido'
+          for script in scripts:
+              subprocess.run(['node','--check','--input-type=commonjs'],input=script,text=True,check=True)
+          assert 'bi-factory:close-editor' in source
+          assert 'borderWidth' in source
+          PY
+      - name: Build React 8504
+        run: npm run build --prefix web/bi_factory
