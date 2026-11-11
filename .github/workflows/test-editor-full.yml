@@ -1,0 +1,38 @@
+name: Homologacao editor visual e ECharts
+on:
+  push:
+    branches: [fix/editor-completo-homologacao-20261111]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm ci --prefix web/bi_factory
+          npm install --no-save --prefix web/bi_factory playwright@1.58.2
+          cd web/bi_factory && npx playwright install chromium
+      - name: Sintaxe do editor e ECharts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re,subprocess
+          for p in ['index.html','echarts-studio.html']:
+            s=Path('prototypes/editor-visual',p).read_text()
+            for js in re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',s):
+              subprocess.run(['node','--check'],input=js,text=True,check=True)
+          PY
+      - name: Iniciar serviços
+        run: |
+          python -u scripts/serve_bi_factory_api.py --port 8505 >/tmp/api.log 2>&1 &
+          (cd web/bi_factory && ./node_modules/.bin/vite --host 127.0.0.1 --port 8504 --strictPort >/tmp/vite.log 2>&1) &
+          sleep 7
+      - name: Teste Chromium
+        run: NODE_PATH=web/bi_factory/node_modules node scripts/test_editor_full.cjs
+      - name: Logs
+        if: always()
+        run: tail -n 40 /tmp/api.log /tmp/vite.log || true
