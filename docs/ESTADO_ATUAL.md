@@ -173,3 +173,9 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - React: fechamento contextual do editor e preservação do iframe ao salvar para evitar remontagem/perda de edição. Cadastro mostra caminho hierárquico das pastas.
 - CI de build React e sintaxe JavaScript adicionado; resultado ainda não confirmado. Nenhum dado persistido alterado no GitHub. **Não houve atualização do Codespaces nem validação da porta 8504.**
 - Pendente: homologar todos os fluxos, tela em branco de produtos fechados, desfazer para todas as mutações, estilos no modo de visualização, retorno de navegação e persistência real; não declarar produção pronta.
+
+## 2026-11-11 — Auditoria de portas/navegador (branch isolada)
+- Branch `audit/portas-navegador-20261111`, relatório `docs/AUDITORIA_PORTAS_NAVEGADOR_2026-11-11.md`, GitHub Actions 43051179108 PASS.
+- Em runner isolado: HTTP 200 8504/8506, API 8505, editor 8510, proxy React/API/editor/ECharts; Chromium abriu UI/editor/ECharts sem erros JS. Não reproduz autenticação privada Codespaces.
+- Logs fornecidos pelo usuário: acesso externo redireciona `302` para `github.dev/pf-signin` enquanto interno retorna 200. Falhas históricas Vite travado e API 8505 parada são distintas.
+- Nenhuma alteração de dados; não foi feito merge, deploy ou acesso ao Codespaces real. Homologação de ECharts e produtos concluídos pendente.
