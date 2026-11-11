@@ -109,3 +109,9 @@
 - Sem backup real, transferência, abertura de SQLite operacional, instalação ou
   interrupção de serviço, exclusão, staging Git, commit ou push. Próxima ação:
   homologar executor e coordenação somente em dados sintéticos antes de ativar.
+
+## 2026-11-11 — Início da correção urgente do editor visual
+- Trabalho direto via GitHub em branch isolada `fix/editor-visual-navegacao-pastas-20261111` a partir de `feat/unificar-8504-8510`.
+- Commit de código `2a451da584e5b3b5e83f1512d637d1260fa9a39d`: caminho completo das pastas no cadastro e retirada dos botões externos que alternavam `iframe` edit/preview e causavam remount.
+- Sem acesso ao terminal do Codespaces; sem teste de execução real; nenhuma alteração em dados persistidos. CI ainda a verificar.
+- Próximo: inspecionar editor `/visual-editor`, resolver visualização em branco e controles de objetos; manter PR draft até testes.
