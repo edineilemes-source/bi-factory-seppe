@@ -1,9 +1,9 @@
 ---
-name: abrir-openai-factory
-description: Executar o fluxo de abertura e verificação do BI Factory SEPPE quando o usuário disser "Abra OpenAI Factory", "Abrir BI Factory" ou equivalente.
+name: abrir-bi-factory
+description: Executar o fluxo de abertura e verificação do BI Factory SEPPE quando o usuário disser "Abra BI Factory" ou equivalente.
 ---
 
-# Abrir OpenAI Factory — BI Factory SEPPE
+# Abrir BI Factory — BI Factory SEPPE
 
 ## Alvo
 - Repositório: edineilemes-source/bi-factory-seppe
