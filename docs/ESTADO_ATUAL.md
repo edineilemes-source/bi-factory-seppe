@@ -160,3 +160,16 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
   backup real, conexão a banco operacional, transferência, serviço persistente,
   interrupção, exclusão, staging Git, commit ou push. Próxima ação: homologar
   executor/barreira em fixtures antes de qualquer ativação operacional.
+
+## 2026-11-11 — Correção inicial de navegação no editor (GitHub, não homologada)
+- Branch isolada `fix/editor-visual-navegacao-pastas-20261111`, commit inicial `2a451da584e5b3b5e83f1512d637d1260fa9a39d`.
+- `web/bi_factory/src/main.jsx`: seletor de pasta de novo produto mostra caminho hierárquico (`Finanças Públicas / Receitas`); removidos controles externos de alternância Visualizar/Voltar e Fechar que recriavam iframe e podiam perder edição não salva.
+- Nenhum arquivo de dados, produto, layout ou banco alterado. Sem merge e sem sincronização automática com Codespaces.
+- Testes locais e E2E: NÃO EXECUTADOS; requer CI e homologação no ambiente Codespaces. Tela branca de produtos concluídos, bordas, undo e restante do editor ainda pendentes; não declarar resolvidos.
+
+## 2026-11-11 — Ampliação da correção do editor visual (GitHub, ainda não homologada)
+- Branch `fix/editor-visual-navegacao-pastas-20261111`; commits de código `9a165a60`, `4cb8ea59`, `ba77e864`, workflow `55b07a34`.
+- Editor GridStack: controles de fonte/negrito/itálico; sincronização do texto editado com painel; borda transparente/colorida/espessura; remover título do objeto texto; desfazer básico com histórico limitado; limpar página com confirmação; fechar editor com evento ao React.
+- React: fechamento contextual do editor e preservação do iframe ao salvar para evitar remontagem/perda de edição. Cadastro mostra caminho hierárquico das pastas.
+- CI de build React e sintaxe JavaScript adicionado; resultado ainda não confirmado. Nenhum dado persistido alterado no GitHub. **Não houve atualização do Codespaces nem validação da porta 8504.**
+- Pendente: homologar todos os fluxos, tela em branco de produtos fechados, desfazer para todas as mutações, estilos no modo de visualização, retorno de navegação e persistência real; não declarar produção pronta.
