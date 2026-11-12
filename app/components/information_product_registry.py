@@ -72,7 +72,7 @@ def update_product(identifier: str, **changes: str) -> dict:
                     raise ValueError("Visibilidade inválida")
                 product[field] = value
             product["updated_at"] = _now()
-            product["version"] += 1
+            product["version"] = int(product.get("version") or 0) + 1
             save_registry(products)
             return product
     raise KeyError(identifier)
@@ -86,7 +86,7 @@ def sync_product_components(identifier: str, component_ids: list[str], status: s
             if status is not None:
                 product["status"] = status
             product["updated_at"] = _now()
-            product["version"] += 1
+            product["version"] = int(product.get("version") or 0) + 1
             save_registry(products)
             return product
     raise KeyError(identifier)
