@@ -121,3 +121,56 @@
 - Editor: controles de texto e bordas, histórico básico, limpeza confirmada, fechamento contextual, não recriar iframe ao salvar; React: caminhos hierárquicos das pastas.
 - Workflow `.github/workflows/editor-visual-ci.yml` valida sintaxe JS inline e build React. Execução CI e homologação visual ainda não confirmadas.
 - Sem acesso ao Codespaces; nenhum arquivo de dados alterado, nenhuma migração, nenhum merge. Próxima ação: checar CI, corrigir regressões e integrar para teste após validação.
+
+## 2026-11-10, 22:51 UTC — Missão 5: homologação sintética Restic
+
+- Objetivo: executar incremental e recuperação escalável apenas em fixtures,
+  incluindo falhas, coordenação SQLite+JSON e reconstrução Git bundle.
+- Branch `feat/unificar-8504-8510`; SHA local/upstream armazenado
+  `b09fffaf2b341b71b3c2f10f7840f79448080312`, 0/0. Sem fetch/consulta viva do
+  remoto do projeto. Instruções, quatro relatórios e código anterior lidos.
+- Criados `scripts/homologate_backup_synthetic.py` e relatório obrigatório
+  `docs/missoes/RELATORIO_HOMOLOGACAO_BACKUP.md`; atualizados ESTADO_ATUAL e diário.
+  Política, ferramenta anterior e serviços mantidos; três flags false.
+- Restic 0.19.1 oficial (go1.26.4 linux/amd64), BSD-2-Clause confirmada na tag;
+  SHA-256 do bz2 comparado ao SHA256SUMS antes de executar. Sem assinatura GPG
+  independente, instalação global ou serviço. Download público somente de
+  ferramenta/metadados, sem envio de dados. Ensaios sem rede.
+- PASS final: 18 verificações / 36 subprocessos em 33,819 s. Arquivo esparso
+  2.164.260.864 bytes, incremental de 802.311 bytes lógicos novos/1.055 empacotados,
+  terceira captura zero novos blocos; versões v1/v2 restauradas e hashes iguais.
+  Senha errada código 12, init existente 1, backend ausente 10, parcial 3 com
+  snapshot criado e rejeitado, corrupção 1; repositório original íntegro.
+  Mudança concorrente retornou 0 no Restic e foi rejeitada pelo inventário.
+- Coordenação: escritor em processo separado, 40 gerações, 31 capturas coerentes;
+  intervalo SQLite/JSON incoerente sem lock demonstrado, lock comum eficaz,
+  liberação em exceção e restauração Restic conjunta da geração 40 confirmadas.
+  Bundle privado gerado do zero: duas branches/tags, refs iguais, fsck e versões
+  recuperadas. Commits somente nesse Git sintético, nunca no projeto.
+- Primeira tentativa (30,274 s) interrompida por pack copiado somente leitura;
+  corrigido chmod apenas na cópia sintética de corrupção. Laboratórios mantidos
+  em /tmp; evidência final em /tmp/seppe-m5-lab-xif380iz/evidence.json, sem senhas.
+- Regressão PASS: 47 testes direcionados em 5,47 s; pip check; diff --check final.
+  Nenhum teste operacional, startup de aplicação ou leitura de dados reais.
+- Decisão: APROVADO para escopo sintético; BLOQUEADO para produção. Pendentes:
+  barreira real global, timeout/crash recovery, staging/runner/catálogo, inventário
+  externo/revisão de segredos, custódia/destino e carga/RPO/RTO representativos.
+  Dados esparsos compressíveis não são benchmark de produção.
+- Dados e não rastreados preservados. Sem backup real, alteração de banco
+  existente, exclusão, parada de serviços, cron, staging, commit/push do projeto.
+
+## 2026-11-12 — Correção de persistência e consolidação
+
+- Identificada falha HTTP 400 no PUT de layout: KeyError 'version'.
+- Causa: produtos legados sem campo version no registro.
+- Corrigidas update_product e sync_product_components para iniciar
+  a versão em zero quando ausente e incrementá-la.
+- Commit da correção e inicializador: 105255d.
+- Merge das atualizações remotas: 73900fa.
+- Teste funcional: HTTP 200 e reabertura do produto com alterações preservadas.
+- Inicializador: sintaxe validada e quatro rotas HTTP aprovadas.
+- Servidores existentes não foram reiniciados durante o teste.
+- Teste de partida a frio permanece pendente.
+- Missão 5 Restic: documentação sintética restaurada.
+- Backup operacional/produção continua bloqueado.
+- Nenhum dado operacional alterado nesta consolidação.

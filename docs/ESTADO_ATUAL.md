@@ -173,3 +173,51 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - React: fechamento contextual do editor e preservação do iframe ao salvar para evitar remontagem/perda de edição. Cadastro mostra caminho hierárquico das pastas.
 - CI de build React e sintaxe JavaScript adicionado; resultado ainda não confirmado. Nenhum dado persistido alterado no GitHub. **Não houve atualização do Codespaces nem validação da porta 8504.**
 - Pendente: homologar todos os fluxos, tela em branco de produtos fechados, desfazer para todas as mutações, estilos no modo de visualização, retorno de navegação e persistência real; não declarar produção pronta.
+
+## 2026-11-10 — Missão 5: homologação sintética incremental
+
+- Branch confirmada `feat/unificar-8504-8510`; HEAD/upstream armazenado
+  `b09fffaf2b341b71b3c2f10f7840f79448080312`, 0/0. Sem fetch ou consulta viva
+  do remoto do projeto. Terminal local disponível; sem commit/push.
+- **APROVADO exclusivamente no laboratório sintético; produção BLOQUEADA.**
+  Restic **0.19.1**, BSD-2-Clause (LICENSE da tag), realmente executado após
+  SHA-256 do download conferido com SHA256SUMS oficial. Sem verificação GPG
+  independente ou instalação persistente; binário privado em /tmp.
+- Criado `scripts/homologate_backup_synthetic.py`, sem origens operacionais
+  configuráveis: mkdtemp privado, ambiente de subprocessos limitado, sem rede,
+  limpeza ou integração com serviços. Relatório:
+  `docs/missoes/RELATORIO_HOMOLOGACAO_BACKUP.md`.
+- PASS: 18 verificações em 33,819 s / 36 subprocessos: arquivo esparso real de
+  2.164.260.864 bytes, incremental, terceira captura sem novos blocos, duas versões
+  restauradas/hash conferido, check completo, senha incorreta, destino existente,
+  snapshot parcial, mudança concorrente, corrupção e backend local ausente.
+- Protótipo flock multiprocesso SQLite+JSON: 40 gerações, 31 capturas coerentes,
+  recuperação Restic conjunta e liberação após exceção. Sem barreira, intervalo
+  inconsistente observado; sem integração operacional. Git bundle sintético
+  recuperou duas branches, duas tags e versões com refs/OIDs iguais e fsck válido.
+- PASS: 47 testes anteriores em 5,47 s, pip check e diff --check. Primeira
+  tentativa parou na permissão somente leitura de pack copiado; corrigida apenas
+  a cópia sintética de corrupção e repetida a bateria inteira.
+- Nenhuma captura/leitura de conteúdo operacional, alteração em bancos existentes,
+  módulos BI, serviços ou não rastreados anteriores. Nenhum envio, exclusão,
+  agendamento, staging ou commit do projeto. Laboratórios preservados em /tmp,
+  não duráveis. Flags execution_enabled/remote_enabled/schedule_enabled: false.
+- Produção exige adesão de todos os gravadores, crash recovery/timeout, staging
+  selado/runner e catálogo de gerações aceitas, inventário externo/segredos,
+  custódia/destinos/capacidade, reconstrução completa e RPO/RTO representativos.
+  Restic retornar zero e inventário antes/depois não provam consistência global.
+
+## 2026-11-12 — Consolidação do Editor Visual e inicializador
+
+- Corrigido incremento do campo version para produtos legados sem versão.
+- Salvamento do layout retornou HTTP 200.
+- Persistência confirmada após fechar e reabrir o produto teste 5.
+- Inicializador scripts/start_bi_factory_codespaces.sh criado.
+- Portas 8505 e 8506 verificadas.
+- Rotas /, /api/overview, /visual-editor/index.html e
+  /echarts-studio.html responderam com sucesso.
+- Inicializador validado com serviços já ativos.
+- Inicialização com serviços desligados ainda não homologada.
+- Integração dos commits remotos concluída sem conflitos.
+- Dados operacionais preservados.
+- Implantação na Hostinger permanece adiada.
