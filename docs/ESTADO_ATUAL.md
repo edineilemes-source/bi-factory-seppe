@@ -221,3 +221,8 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Integração dos commits remotos concluída sem conflitos.
 - Dados operacionais preservados.
 - Implantação na Hostinger permanece adiada.
+
+## 2026-11-13 — Alterações aguardando homologação
+- PR draft #4, branch `homolog/cadastro-filtros-echarts-20261113`: cadastro, pastas inline, projeto/responsável técnico, prévia após layout salvo, aviso ECharts e isolamento de filtros por objeto.
+- Código enviado ao GitHub em branch isolada; **não** publicado no Codespaces, não integrado na branch principal e sem testes funcionais confirmados.
+- Antes de liberar: conferir divergências do Codespaces, build do frontend, sintaxe JS do editor, teste de persistência dos metadados, hierarquia de pastas e teste de Despesa/Receita.
