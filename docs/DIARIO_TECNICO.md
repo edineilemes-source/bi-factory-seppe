@@ -174,3 +174,9 @@
 - Missão 5 Restic: documentação sintética restaurada.
 - Backup operacional/produção continua bloqueado.
 - Nenhum dado operacional alterado nesta consolidação.
+
+## 2026-11-13 — Protótipo de agente de homologação
+- Criado agente experimental GitHub Issues ↔ Codespaces em branch isolada `feat/ponte-github-codespaces-20261113`.
+- Segurança: somente autor `edineilemes-source`, título exato, ação fixa; registra resultado na issue; não aceita shell remoto.
+- Limitações: GitHub CLI precisa estar autenticado, Codespaces ativo, agente iniciado; sem testes de execução. A branch de homologação é fixa nesta versão.
+- Nenhuma alteração de dados operacionais, nenhum merge para produção.
