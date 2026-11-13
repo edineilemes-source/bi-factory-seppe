@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(os.environ.get("BI_FACTORY_ROOT", pathlib.Path(__file__).resolve().parent.parent))
 REPO = "edineilemes-source/bi-factory-seppe"
 OWNER = "edineilemes-source"
 TITLE = "[BI-AGENT] HOMOLOGAR"
