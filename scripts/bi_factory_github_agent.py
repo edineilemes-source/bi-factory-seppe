@@ -57,7 +57,6 @@ def homologate():
     if status:
         raise RuntimeError("Há alterações rastreadas locais; homologação bloqueada para preservar trabalho.")
     run(["git", "fetch", "origin", REMOTE], timeout=120)
-    existing = run(["git", "show-ref", "--verify", "--quiet", "refs/heads/" + LOCAL], check=False)
     # show-ref não produz saída; verificar código de retorno diretamente.
     has_branch = subprocess.run(["git", "show-ref", "--verify", "--quiet", "refs/heads/" + LOCAL],
                                 cwd=ROOT).returncode == 0
