@@ -174,3 +174,11 @@
 - Missão 5 Restic: documentação sintética restaurada.
 - Backup operacional/produção continua bloqueado.
 - Nenhum dado operacional alterado nesta consolidação.
+
+## 2026-11-13 — Pacote de homologação cadastro e filtros ECharts
+- Branch isolada `homolog/cadastro-filtros-echarts-20261113`, PR #4 draft; sem merge na branch de desenvolvimento.
+- Alterados: `web/bi_factory/src/main.jsx`, `scripts/bi_factory_catalog.py`, `prototypes/editor-visual/index.html`.
+- Cadastro: pasta criada a partir do campo Pasta, projeto/responsável técnico no formulário inicial, abrir editor ao salvar, prévia apenas quando houver layout salvo.
+- ECharts: aviso de um objeto por vez; filtros de dimensões/medidas vinculados a objetos, sem substituir Despesa por Receita; opção de criar objeto para medida não utilizada.
+- Testes: BLOCKED — sem terminal Codespaces e sem validação visual/CI confirmada. Não afirmar homologação concluída.
+- Dados operacionais: nenhuma edição; mudanças apenas no código versionado. Próxima ação: validar build, teste de regressão e liberar branch de homologação em Codespaces sem tocar produção.
