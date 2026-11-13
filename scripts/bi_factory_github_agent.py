@@ -76,7 +76,17 @@ def homologate():
             if pid.isdecimal():
                 run(["kill", pid], check=False)
     time.sleep(2)
-    started = run(["bash", "scripts/start_bi_factory_codespaces.sh"], timeout=100)
+    # Servicos em background podem herdar stdout/stderr; evite capture_output.
+    startup_log = LOG / "agent-startup.log"
+    with startup_log.open("w") as output:
+        process = subprocess.run(
+            ["bash", "scripts/start_bi_factory_codespaces.sh"],
+            cwd=ROOT, stdout=output, stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL, timeout=180, check=False,
+        )
+    started = startup_log.read_text(errors="replace")[-2500:]
+    if process.returncode:
+        raise RuntimeError("Inicialização falhou. Log: " + started[-1800:])
     commit = run(["git", "rev-parse", "--short", "HEAD"])
     return f"Homologação iniciada. Commit: `{commit}`.\n\n```\n{started[-1500:]}\n```\nBuild: {build[-180:]}"
 
