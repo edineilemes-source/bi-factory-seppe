@@ -221,3 +221,9 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Integração dos commits remotos concluída sem conflitos.
 - Dados operacionais preservados.
 - Implantação na Hostinger permanece adiada.
+
+## 2026-11-13 — Ponte GitHub ↔ Codespaces (experimental)
+- Branch isolada `feat/ponte-github-codespaces-20261113`: agente em `scripts/bi_factory_github_agent.py`.
+- Ainda NÃO instalado nem testado no Codespaces. Necessita `gh auth status` e processo ativo.
+- Tarefa única permitida: issue do proprietário com título exato `[BI-AGENT] HOMOLOGAR`; atualiza branch de homologação fixa, executa build, reinicia 8505/8506 e publica resultado na issue.
+- Sem execução de comandos arbitrários enviados por issue. Sem exclusão de dados ou produção. Não controla Codespaces suspenso.
