@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Non-destructive Codespaces startup. No git checkout, merge or data deletion.
 set -uo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="${BI_FACTORY_ROOT:-/workspaces/bi-factory-seppe}"
+if [[ ! -f "$ROOT/scripts/start_bi_factory_codespaces.sh" ]]; then
+  echo "BI Factory root not found: $ROOT" >&2
+  exit 1
+fi
 LOG=/tmp/bi-factory-seppe-logs
 mkdir -p "$LOG"
 exec 9>/tmp/bi-factory-seppe-autostart.lock
