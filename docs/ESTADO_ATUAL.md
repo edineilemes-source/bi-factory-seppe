@@ -246,3 +246,13 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Testes integrados adicionados em `tests/e2e/test_product_flow.py`, com todas as constantes de storage redirecionadas a fixture temporária; workflow `.github/workflows/product-flow.yml`.
 - PASS local: build React, sintaxe Python/Bash, diff --check. BLOCKED local: Chromium impedido por socket Operation not permitted; execução E2E será feita no Actions. Não declarar testes E2E aprovados até resultado do workflow.
 - Nenhum dado operacional alterado. Reinício/rebuild, encaminhamento autenticado e implantação operacional ainda não verificados.
+
+
+### Resultado confirmado da execução de 2026-11-16
+- Código publicado: `bc033a0c0241ce38835b93031b780429d770bfd3`; ajuste de runner `34409549c2f00f122420bdca6e41964a8ea1383b`; PR #16, base fix/novo-produto-ficha-isolada-20261116.
+- PASS: 5 testes E2E reais no Chromium/React/API em fixture isolada, Actions run 43906062599, job 133435093946. Abrange criação consecutiva, estados limpos, IDs/códigos distintos, edição/reabertura, layout, repetição, erro API e falha de refresh pós-POST. Verificação do editor e build também PASS, run 43906062601.
+- PASS adicional local: quatro verificações da API HTTP real em fixture: dois cadastros; edição/reabertura; layout com preservação do primeiro produto; persistência em disco.
+- A primeira execução CI falhou na instalação porque ubuntu-latest passou a Ubuntu 26.04, incompatível com Playwright 1.58; corrigido fixando ubuntu-24.04, segunda execução aprovada.
+- BLOCKED operacional (3 grupos): acesso externo autenticado; implantação no Codespaces; persistência após restart/rebuild. Sem alegação de resolução do 404 histórico. Automação CI comprovada; monitor/agentes apenas alterados no código, sem prova de instalação remota.
+- Tentativa de autenticação no navegador escolheu Google; inspeção seguinte bloqueada por revisão automática por risco de acesso a conteúdo privado Google fora do escopo. Nenhuma verificação posterior nem contorno executado.
+- Próxima ação indispensável: autorização para concluir autenticação Google exclusivamente destinada ao GitHub/Codespaces; então inspecionar estado remoto e aplicar/testar sem sobrescrever trabalho local. Nenhum dado operacional modificado.
