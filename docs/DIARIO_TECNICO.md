@@ -190,3 +190,7 @@
 - Código em branch isolada fix/novo-produto-ficha-isolada-20261116, commit 4ccbce8. Novo produto limpa estado visual anterior; formulário anterior não é renderizado durante criação; save bloqueia repetição, valida nome e abre editor do novo item.
 - Testes: PASS inspeção estática de trechos; BLOCKED build/E2E/Chrome por ausência de terminal Codespaces no conector. Sem alterações em dados, API, storage, branch local ou processos.
 - Pendência: reconciliação segura com branch local teste/cadastro-filtros-20261113 antes de integração; homologar criação de dois produtos consecutivos e persistência de ambos.
+
+## 2026-11-16 — Ponte de aplicação controlada (não homologada)
+- Criado scripts/bi_factory_patch_agent.py em branch isolada, commit c16cbe9: escuta issue [BI-AGENT] APLICAR com SHA completo e branch permitida; exige branch local esperada, commit alcançável, arquivo permitido, working tree do alvo limpo e git apply --check. Sem checkout/reset/merge, sem sobrescrever alterações, sem commit/push automático.
+- A instalação/execução do novo agente no Codespaces ainda requer bootstrap único e teste ponta a ponta. O agente anterior [BI-AGENT] ABRIR não é capaz de instalar outro agente.
