@@ -37,6 +37,10 @@ while true; do
       setsid -f python3 -u scripts/bi_factory_patch_agent.py 9>&- >> "$LOG/patch-agent.log" 2>&1 < /dev/null
       echo "[$(date -Is)] Guarded patch agent started" >> "$LOG/autostart.log"
     fi
+    if [[ -f scripts/bi_factory_workflow_agent.py ]] && ! pgrep -f '[p]ython3.*scripts/bi_factory_workflow_agent.py' >/dev/null; then
+      setsid -f python3 -u scripts/bi_factory_workflow_agent.py 9>&- >> "$LOG/workflow-agent.log" 2>&1 < /dev/null
+      echo "[$(date -Is)] Workflow deployment agent started" >> "$LOG/autostart.log"
+    fi
   else
     echo "[$(date -Is)] GitHub CLI unauthenticated; agent unavailable" >> "$LOG/autostart.log"
   fi
