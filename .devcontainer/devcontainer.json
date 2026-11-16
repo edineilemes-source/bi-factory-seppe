@@ -26,5 +26,6 @@
     }
   },
   "postCreateCommand": "python -m pip install -r requirements.txt",
-  "postStartCommand": "bash scripts/autostart_bi_factory_codespaces.sh"
+  "postStartCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
+  "postAttachCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh"
 }
