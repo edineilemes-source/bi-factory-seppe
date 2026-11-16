@@ -20,6 +20,7 @@ TRACKED=[
     "scripts/autostart_bi_factory_codespaces.sh",
     "scripts/start_bi_factory_codespaces.sh",
     "web/bi_factory/src/main.jsx",
+    "prototypes/editor-visual/index.html",
 ]
 NEW=[
     "docs/missoes/AGENTE_PERMANENTE_20261116.md",
