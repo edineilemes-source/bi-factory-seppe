@@ -27,5 +27,10 @@
   },
   "postCreateCommand": "python -m pip install -r requirements.txt",
   "postStartCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
-  "postAttachCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh"
+  "postAttachCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  }
 }
