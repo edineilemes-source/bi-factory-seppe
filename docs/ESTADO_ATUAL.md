@@ -221,3 +221,11 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Integração dos commits remotos concluída sem conflitos.
 - Dados operacionais preservados.
 - Implantação na Hostinger permanece adiada.
+
+
+## Atualização de continuidade — 2026-11-16
+- **Regra reiterada:** ler AGENTS.md, este documento e DIARIO_TECNICO.md antes de agir. GitHub é a fonte versionada de decisões, código e histórico; não confundir isso com dados locais e alterações ainda não publicadas.
+- **Ponte comprovada somente para abertura/verificação:** issue #13 [BI-AGENT] ABRIR recebeu respostas do agente e foi fechada, confirmando API 8505 e rotas HTTP internas do frontend 8506. Não há comprovação de que o agente aplique mudanças de código arbitrárias.
+- **Codespaces informado:** branch local teste/cadastro-filtros-20261113; esta referência não foi encontrada no remoto. Proibido supor que commits locais, storage e arquivos não rastreados estejam sincronizados.
+- **Inicialização:** Node.js 22 instalado, Vite 8506 reportado funcional após monitor de inicialização; GH CLI instalado manualmente e GITHUB_TOKEN detectado. Feature de instalação permanente do gh preparada na branch feat/autostart-codespaces-bi-factory-20261113, ainda não comprovadamente incorporada à branch local.
+- **Próxima ação técnica:** antes de qualquer mudança, reconciliar status local/remoto sem sobrescrever dados; ampliar o agente apenas com operações explicitamente autorizadas e registrar toda entrega com testes, pendências e SHA.
