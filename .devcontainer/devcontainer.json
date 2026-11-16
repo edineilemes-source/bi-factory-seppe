@@ -22,10 +22,10 @@
     },
     "8506": {
       "label": "BI Factory Aplicação",
-      "onAutoForward": "notify"
+      "onAutoForward": "openBrowserOnce"
     }
   },
-  "postCreateCommand": "python -m pip install -r requirements.txt",
+  "postCreateCommand": "python -m pip install -r requirements.txt && cd web/bi_factory && npm ci",
   "postStartCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
   "postAttachCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
   "features": {
