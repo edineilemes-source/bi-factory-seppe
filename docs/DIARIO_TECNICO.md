@@ -224,3 +224,10 @@ Usuário autorizou especificamente instalar o agente de patches restrito e inici
 
 ## 2026-11-16 — Instalação permanente e reinício comprovados
 Instalados agente/monitor e984357 no Codespaces após autorização específica. Estado migrado para .git e singleton ativo. Nove testes de guardas passaram localmente, no Codespaces e em Actions 43911070572; cinco E2E em 43911070390 também aprovados. Parada completa observada, reinício pelo botão oficial e inicialização automática de monitor/agentes/API/Vite comprovados, sem comandos manuais para iniciar serviços. Hashes de 11 JSONs e main.jsx preservados. Issue #17 rejeitada conforme esperado após reinício, encerrada como teste aprovado. Aplicação externa/Produtos voltou em porta privada. Rebuild do devcontainer permanece NÃO ENSAIADO. Detalhes: docs/missoes/AGENTE_PERMANENTE_20261116.md.
+
+
+## 2026-11-16 — Exclusão com confirmação interpretada incorretamente
+- Base GitHub 7ae0426, branch fix/recuperacao-homologacao-20261116 / PR #16. Inspeção: delete_product retorna item.product_id e deleted, mas apiPost exige item.id; exclusão pode ser efetivada e a interface acusar falha antes do refresh.
+- Correção: validar contrato específico de exclusão; retirar linha/ficha após confirmação; falha posterior de refresh não oferece repetição de exclusão já concluída. Três testes E2E sintéticos adicionados para sucesso, refresh pós-exclusão falho e erro de API.
+- Testes novos ainda aguardam CI. Sem executor/navegador disponíveis nesta sessão; não houve implantação nem exclusão operacional. Relato de Visualizar ainda sem causa confirmada; verificar proxy /visual-editor e carregamento do iframe no Codespaces antes de declarar resolvido.
+- Atualização do ensaio anterior: Full Rebuild executado; novo hostname e API automática confirmados, aplicação externa abriu. Conferência de 41 arquivos interrompida após progresso 20/41 por perda do ambiente. registry.json divergiu (751 -> 1151 bytes), mantido intacto; catálogo mostra produto adicional teste 6. Origem da alteração não comprovada. Não declarar validação completa nem perda de dados.

@@ -155,3 +155,38 @@ class ProductFlow(unittest.TestCase):
         self.page.get_by_role('button', name='Salvar produto e abrir editor').click()
         self.page.get_by_text('Informe o nome do produto.', exact=True).wait_for()
         self.assertEqual(self.products(), [])
+
+    def test_delete_product_updates_list_and_clears_open_record(self):
+        self.new('Excluir sintético')
+        self.save()
+        self.close_editor()
+        self.page.once('dialog', lambda dialog: dialog.accept())
+        self.page.locator('.productPanel').filter(has_text='Excluir sintético').get_by_role('button', name='Apagar', exact=True).click()
+        self.page.get_by_text('Produto "Excluir sintético" apagado.', exact=True).wait_for()
+        self.assertEqual(self.products(), [])
+        self.assertEqual(self.page.locator('.productPanel').count(), 0)
+        self.assertEqual(self.page.locator('#product-details').count(), 0)
+        self.assertEqual(self.errors, [])
+
+    def test_delete_committed_then_refresh_failure_does_not_leave_stale_row(self):
+        self.new('Excluir com falha de atualização')
+        self.save()
+        self.close_editor()
+        self.page.route('**/api/overview', lambda route: route.fulfill(status=503, json={'error':'Falha sintética'}))
+        self.page.once('dialog', lambda dialog: dialog.accept())
+        self.page.locator('.productPanel').filter(has_text='Excluir com falha de atualização').get_by_role('button', name='Apagar', exact=True).click()
+        self.page.get_by_text('O catálogo não pôde ser atualizado; a exclusão já foi concluída.', exact=False).wait_for()
+        self.assertEqual(self.products(), [])
+        self.assertEqual(self.page.locator('.productPanel').count(), 0)
+        self.assertEqual(self.page.locator('#product-details').count(), 0)
+
+    def test_failed_delete_preserves_product_and_reports_api_error(self):
+        self.new('Preservar em falha')
+        self.save()
+        self.close_editor()
+        self.page.route('**/api/create/delete-product', lambda route: route.fulfill(status=503, json={'error':'Exclusão recusada sintética'}))
+        self.page.once('dialog', lambda dialog: dialog.accept())
+        self.page.locator('.productPanel').filter(has_text='Preservar em falha').get_by_role('button', name='Apagar', exact=True).click()
+        self.page.get_by_text('Erro ao apagar produto: Exclusão recusada sintética', exact=True).wait_for()
+        self.assertEqual(len(self.products()), 1)
+        self.assertEqual(self.page.locator('.productPanel').count(), 1)
