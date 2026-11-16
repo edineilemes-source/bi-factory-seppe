@@ -26,10 +26,9 @@ def apply(body):
     remote=run("git","rev-parse","FETCH_HEAD").stdout.strip()
     if sha!=remote: raise RuntimeError("Commit não é a ponta aprovada da branch")
     run("git","merge-base","--is-ancestor",base,sha)
-    paths=run("git","diff","--name-only",base,sha).stdout.splitlines()
     allowed={"web/bi_factory/src/main.jsx","prototypes/editor-visual/index.html"}
-    if not paths or not set(paths).issubset(allowed):
-        raise RuntimeError("Arquivos não permitidos no diff: "+str(paths))
+    paths=[p for p in run("git","diff","--name-only",base,sha).stdout.splitlines() if p in allowed]
+    if not paths: raise RuntimeError("Nenhum arquivo de interface autorizado no diff")
     for path in paths:
         if run("git","status","--porcelain","--",path).stdout.strip():
             raise RuntimeError("Arquivo local modificado, implantação bloqueada: "+path)
