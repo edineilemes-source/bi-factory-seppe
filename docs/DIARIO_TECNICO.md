@@ -174,3 +174,12 @@
 - Missão 5 Restic: documentação sintética restaurada.
 - Backup operacional/produção continua bloqueado.
 - Nenhum dado operacional alterado nesta consolidação.
+
+## 2026-11-16 — Auditoria de continuidade e ponte ChatGPT/GitHub/Codespaces
+- Retomada obrigatória: ler AGENTS.md, docs/ESTADO_ATUAL.md e este diário antes de qualquer alteração; o usuário reiterou que o fluxo previamente acordado não pode ser substituído por procedimentos manuais repetitivos.
+- Método: ChatGPT modifica arquivos versionados via GitHub; automações/agent executam somente operações autorizadas; registrar evidências e SHA; usuário homologa no Chrome. Não pressupor execução remota de alterações arbitrárias: o agente atual implementa apenas a ação [BI-AGENT] ABRIR.
+- Evidência remota: issue #13 foi criada via conector GitHub, recebeu comentários automáticos do agente sobre as quatro rotas HTTP 8506 e foi encerrada. Isso confirma a ponte para a operação ABRIR, não a aplicação automática de patches.
+- Ambiente reportado pelo usuário: branch local teste/cadastro-filtros-20261113; commits locais 051f1c1 e correção de autostart posterior; Node.js v22.23.5. Essa branch não foi encontrada no GitHub remoto nesta consulta. Não presumir sincronização ou publicar sem verificar status/diferenças/dados não rastreados.
+- Preparação GitHub em branch feat/autostart-codespaces-bi-factory-20261113: monitor de serviços, configuração Node.js e feature GitHub CLI (commit fd99259). A incorporação da feature GitHub CLI à branch local e sua persistência após rebuild não estão confirmadas.
+- Incidente: GitHub CLI ausente após rebuild; instalação local apt-get install gh realizada pelo usuário, após falha apt-get update por chave Yarn NO_PUBKEY 62D54FD4003F6525. GITHUB_TOKEN já estava disponível no ambiente, sem necessidade de expor token.
+- PENDENTE: sincronização segura da branch local; validar retomada a frio; implementar e homologar operação autorizada de aplicação de código, se necessária, com proteção contra perda de dados e conflito; registrar SHA remoto/local. Nenhum teste de navegador remoto realizado nesta auditoria.
