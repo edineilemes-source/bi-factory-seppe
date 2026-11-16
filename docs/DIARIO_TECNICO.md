@@ -216,3 +216,7 @@
 
 ## 2026-11-16 — Implantação e acesso externo confirmados
 Aplicação e Produtos acessíveis com porta privada; main.jsx implantado (blob da298ea), recuperação automática do frontend comprovada e 11 JSONs preservados. Cinco E2E aprovados no CI. Reinício completo/rebuild e instalação persistente do agente ainda pendentes. Detalhes: docs/missoes/RECUPERACAO_OPERACIONAL_20261116.md.
+
+
+## 2026-11-16 — Agente permanente autorizado
+Usuário autorizou especificamente instalar o agente de patches restrito e iniciar automaticamente no Codespaces. Preparados monitor com fechamento do descritor de lock nos filhos e lock próprio em .git, agente singleton com estado em .git e manutenção de todas as restrições de aplicação anteriores. Nove testes isolados passaram; Bash/Python/diff aprovados. Instalação e teste de recuperação operacional em andamento; não declarar rebuild aprovado sem ensaio. Arquivos: scripts/autostart_bi_factory_codespaces.sh, scripts/bi_factory_patch_agent.py, tests/test_patch_agent_guards.py, .github/workflows/agent-guards.yml. Base 0eab87f; sem dados operacionais alterados.
