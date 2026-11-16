@@ -17,7 +17,7 @@ def gh(*args): return run("gh",*args,timeout=45).stdout.strip()
 def report(n,message): gh("issue","comment",str(n),"--repo",REPO,"--body",message[:3500])
 def apply(body):
     """Apply a reviewed multi-file PR diff, never switch branches or overwrite dirty files."""
-    m=re.fullmatch(r"base=([a-f0-9]{40})\\s*\\ncommit=([a-f0-9]{40})\\s*\\nbranch=(feat/fluxo-salvamento-unico-produto-20261116)\\s*",body.strip())
+    m=re.fullmatch(r"base=([a-f0-9]{40})\s*\ncommit=([a-f0-9]{40})\s*\nbranch=(feat/fluxo-salvamento-unico-produto-20261116)\s*",body.strip())
     if not m: raise RuntimeError("Formato não autorizado: base, commit e branch aprovada obrigatórios")
     base,sha,branch=m.groups()
     current=run("git","branch","--show-current").stdout.strip()
