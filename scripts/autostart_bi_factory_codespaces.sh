@@ -33,6 +33,10 @@ while true; do
       setsid -f python3 -u scripts/bi_factory_github_agent.py >> "$LOG/github-agent.log" 2>&1 < /dev/null
       echo "[$(date -Is)] GitHub agent started" >> "$LOG/autostart.log"
     fi
+    if [[ -f scripts/bi_factory_patch_agent.py ]] && ! pgrep -f '[p]ython3.*scripts/bi_factory_patch_agent.py' >/dev/null; then
+      setsid -f python3 -u scripts/bi_factory_patch_agent.py >> "$LOG/patch-agent.log" 2>&1 < /dev/null
+      echo "[$(date -Is)] Guarded patch agent started" >> "$LOG/autostart.log"
+    fi
   else
     echo "[$(date -Is)] GitHub CLI unauthenticated; agent unavailable" >> "$LOG/autostart.log"
   fi

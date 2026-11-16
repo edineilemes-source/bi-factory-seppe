@@ -20,3 +20,7 @@ storage/*.sqlite3-wal
 # Encrypted backup artifacts and conventional key suffix; keys belong outside repo.
 *.sepbackup
 *.seppekey
+
+# Frontend dependencies and build outputs
+node_modules/
+web/bi_factory/dist/

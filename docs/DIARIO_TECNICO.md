@@ -194,3 +194,11 @@
 ## 2026-11-16 — Ponte de aplicação controlada (não homologada)
 - Criado scripts/bi_factory_patch_agent.py em branch isolada, commit c16cbe9: escuta issue [BI-AGENT] APLICAR com SHA completo e branch permitida; exige branch local esperada, commit alcançável, arquivo permitido, working tree do alvo limpo e git apply --check. Sem checkout/reset/merge, sem sobrescrever alterações, sem commit/push automático.
 - A instalação/execução do novo agente no Codespaces ainda requer bootstrap único e teste ponta a ponta. O agente anterior [BI-AGENT] ABRIR não é capaz de instalar outro agente.
+
+## 2026-11-16 — Recuperação com fixture e CI
+- Base confirmada `d094880`, branch `fix/recuperacao-homologacao-20261116`. Código e documentação obrigatória lidos no clone.
+- Causa adicional identificada por inspeção: POST bem-sucedido seguido de refresh malsucedido mantinha draft salvável. Corrigido encerrando criação após POST, mostrando aviso de catálogo e preservando produto criado no estado local; ref impede chamadas simultâneas.
+- Alterados main.jsx, configuração Vite/npm (8506), monitor (retomada do agente patch), devcontainer (não abrir API), gitignore; adicionados suíte E2E isolada e workflow.
+- PASS build/sintaxe/diff. E2E local BLOCKED por restrição do Chromium. Nenhuma conexão com dados de produção; fixture isolada para API real.
+- Túnel externo respondeu 401/tunnel em consulta não autenticada; navegador Codespaces exigiu login, gh sem credencial. Falta sessão remota para verificar encaminhamento privado, processos, implantação e reinício/rebuild.
+- Publicação autorizada em branch isolada para execução CI, sem merge, reset ou alteração do Codespaces.

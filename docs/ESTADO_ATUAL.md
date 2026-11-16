@@ -234,3 +234,15 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Dados e API não alterados. Inspeção estática do diff realizada; build, teste de interface e implantação no Codespaces ainda NÃO confirmados. Branch local teste/cadastro-filtros-20261113 não existe no remoto; preservar alterações locais e reconciliar antes de aplicar.
 
 - Ponte de aplicação segura proposta em scripts/bi_factory_patch_agent.py (commit c16cbe9), restrita a um patch de web/bi_factory/src/main.jsx; instalação local e homologação pendentes. Não confundir código versionado com agente em execução.
+
+## 2026-11-16 — Recuperação e testes integrados
+- Branch `fix/recuperacao-homologacao-20261116`, base `d094880` (inclui correção `4ccbce8` e ponte `c16cbe9`).
+- Clone real do GitHub neste ambiente; não é o terminal do Codespaces operacional.
+- Endereço externo informado respondeu HTTP 401 com `www-authenticate: tunnel`, em vez de 404, na consulta sem autenticação. Isso confirma barreira de autenticação do túnel, não a disponibilidade da UI autenticada nem a causa histórica do 404.
+- GitHub CLI local sem login; navegador em github.com/codespaces redirecionou ao login. Conector permite código, mas não expõe API/SSH de Codespaces. Implantação e inspeção remota dependem dessa autenticação.
+- Cadastro: trava síncrona de envio e encerramento do draft após confirmação do POST, mesmo quando refresh do catálogo falha; evita novo envio de um produto já persistido.
+- Porta padrão Vite/npm unificada em 8506. Monitor passa a iniciar também o agente de patch existente, mantendo as restrições de branch/arquivo. Não amplia permissões de patch.
+- API não abre mais aba automaticamente pelo devcontainer; frontend continua encaminhado, sem alteração de visibilidade.
+- Testes integrados adicionados em `tests/e2e/test_product_flow.py`, com todas as constantes de storage redirecionadas a fixture temporária; workflow `.github/workflows/product-flow.yml`.
+- PASS local: build React, sintaxe Python/Bash, diff --check. BLOCKED local: Chromium impedido por socket Operation not permitted; execução E2E será feita no Actions. Não declarar testes E2E aprovados até resultado do workflow.
+- Nenhum dado operacional alterado. Reinício/rebuild, encaminhamento autenticado e implantação operacional ainda não verificados.

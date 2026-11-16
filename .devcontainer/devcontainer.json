@@ -18,7 +18,7 @@
     },
     "8505": {
       "label": "BI Factory API",
-      "onAutoForward": "openBrowserOnce"
+      "onAutoForward": "silent"
     },
     "8506": {
       "label": "BI Factory Aplicação",

@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from "react";
+import React,{useEffect,useState,useRef} from "react";
 import{createRoot}from"react-dom/client";
 import{FolderKanban,Database,BookOpen,Network,PanelsTopLeft,Send,Folder,FileBarChart,ExternalLink,RefreshCw}from"lucide-react";
 import "./style.css";
@@ -9,6 +9,7 @@ function App(){
 const [section,setSection]=useState("Projetos"),[data,setData]=useState(null),[error,setError]=useState("");
 const [creation,setCreation]=useState(""),[draft,setDraft]=useState({}),[notice,setNotice]=useState("");
 const [creatingProduct,setCreatingProduct]=useState(false);
+const creationPending=useRef(false);
 const [newFolderOpen,setNewFolderOpen]=useState(false),[newFolderName,setNewFolderName]=useState(""),[newFolderParent,setNewFolderParent]=useState("");
 const [selectedProduct,setSelectedProduct]=useState(null),[productDraft,setProductDraft]=useState({}),[productSaving,setProductSaving]=useState(false);
 const [visualMode,setVisualMode]=useState(null),[visualRevision,setVisualRevision]=useState(0),[visualHasLayout,setVisualHasLayout]=useState(false);
@@ -104,26 +105,29 @@ async function attachToProduct(productId,componentId){
  }catch(error){setNotice("Erro ao vincular componente: "+error.message)}
 }
 async function save(){
- if(creatingProduct)return;
+ if(creationPending.current)return;
  const operation=creation;
  if(!operation)return;
  if(operation==="product"&&!String(draft.name||"").trim()){setNotice("Informe o nome do produto.");return}
+ creationPending.current=true;
  setCreatingProduct(true);
  try{
   const payload={...draft};
   delete payload.component_id;
   delete payload.component_type;
   const created=await apiPost(operation,payload);
-  if(false&&creation==="product"&&draft.component_id){
-   try{await apiPost("attach",{product_id:created.id,component_id:draft.component_id})}
-   catch(error){setNotice("Produto criado, mas o vínculo falhou: "+error.message);await refreshCatalog();setCreation("");return}
+  // POST has committed. A failed catalog refresh must not leave a retryable draft.
+  setCreation("");setDraft({});
+  let refreshWarning="";
+  try{await refreshCatalog()}catch(error){
+   setData(old=>({...old,products:[...(old?.products||[]).filter(p=>p.id!==created.id),created]}));
+   refreshWarning=" O catálogo não pôde ser atualizado; o cadastro já está salvo.";
   }
-  await refreshCatalog();
   if(operation==="component"&&created.type==="Gráfico")setEditing(created);
   if(operation==="product"){setOpenProducts([created.id]);setProductReadOnly(false);openProduct(created);setVisualMode("edit")}
   setCreation("");setDraft({});
-  setNotice(operation==="product"?"Produto salvo. Editor aberto.":"Cadastro salvo com sucesso.");
- }catch(error){setNotice("Erro: "+error.message)}finally{setCreatingProduct(false)}
+  setNotice((operation==="product"?"Produto salvo. Editor aberto.":"Cadastro salvo com sucesso.")+refreshWarning);
+ }catch(error){setNotice("Erro: "+error.message)}finally{creationPending.current=false;setCreatingProduct(false)}
 }
 const [openProducts,setOpenProducts]=useState([]),[expanded,setExpanded]=useState([]),[folderId,setFolderId]=useState("__all__"),[search,setSearch]=useState(""),[fiscal,setFiscal]=useState(null);
 useEffect(()=>{fetch("/api/overview").then(async r=>{if(!r.ok)throw Error("API HTTP "+r.status);return r.json()}).then(setData).catch(e=>setError(e.message))},[]);
