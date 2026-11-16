@@ -182,3 +182,21 @@
 - ECharts: aviso de um objeto por vez; filtros de dimensões/medidas vinculados a objetos, sem substituir Despesa por Receita; opção de criar objeto para medida não utilizada.
 - Testes: BLOCKED — sem terminal Codespaces e sem validação visual/CI confirmada. Não afirmar homologação concluída.
 - Dados operacionais: nenhuma edição; mudanças apenas no código versionado. Próxima ação: validar build, teste de regressão e liberar branch de homologação em Codespaces sem tocar produção.
+
+
+## 2026-11-16 — Aplicacao recuperada no Codespaces
+Acesso privado, implantacao do cadastro e recuperacao do frontend confirmados. Fonte ba06f86, main blob da298ea; detalhes e bloqueio de automacao em docs/missoes/RECUPERACAO_OPERACIONAL_20261116.md. Nenhum dado operacional alterado.
+
+
+## 2026-11-16 — Agente permanente instalado e reinicio aprovado
+Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove testes de guardas e cinco E2E PASS. Reinicio completo com hooks automaticos, estado persistido e 11 JSONs preservados PASS. Issue #17 rejeitada conforme esperado. Rebuild nao ensaiado. Detalhes: docs/missoes/AGENTE_PERMANENTE_20261116.md.
+
+
+## MARCO CONGELADO — Editor Visual e ficha de produtos — 2026-11-16
+- Por decisão de homologação do usuário, a versão de referência é o código efetivamente em execução no Codespaces, branch local teste/cadastro-filtros-20261113.
+- O módulo Editor Visual/ficha de produtos está suficientemente maduro para avançar aos módulos de dados; congelado funcionalmente salvo correções de defeitos.
+- Próxima etapa: entrada, modelagem, transformação e conexão de dados aos gráficos e produtos.
+- A branch remota marco/editor-visual-homologado-20261116 reproduz o commit do Codespaces; branches experimentais anteriores não são consideradas homologadas automaticamente.
+- Dados operacionais, layouts persistidos, bancos, builds e node_modules ficam fora do Git. Nenhum merge/reset/rebase ou limpeza de dados.
+- Validação do marco: build React e verificações HTTP 8506, /api/overview, /visual-editor; testes funcionais adicionais podem ser necessários.
+- Registro gerado em UTC: 2026-11-16T23:02:02.127347+00:00.

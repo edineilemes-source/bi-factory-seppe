@@ -13,24 +13,25 @@
       "onAutoForward": "notify"
     },
     "8503": {
-      "label": "Sala de Situação SEPPE",
+      "label": "Sala de Situa\u00e7\u00e3o SEPPE",
       "onAutoForward": "notify"
     },
     "8505": {
       "label": "BI Factory API",
-      "onAutoForward": "openBrowserOnce"
+      "onAutoForward": "silent"
     },
     "8506": {
-      "label": "BI Factory Aplicação",
-      "onAutoForward": "notify"
+      "label": "BI Factory Aplica\u00e7\u00e3o",
+      "onAutoForward": "openBrowserOnce"
     }
   },
-  "postCreateCommand": "python -m pip install -r requirements.txt",
+  "postCreateCommand": "python -m pip install -r requirements.txt && cd web/bi_factory && npm ci",
   "postStartCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
   "postAttachCommand": "bash /workspaces/bi-factory-seppe/scripts/autostart_bi_factory_codespaces.sh",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
-    }
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   }
 }
