@@ -226,3 +226,9 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - PR draft #4, branch `homolog/cadastro-filtros-echarts-20261113`: cadastro, pastas inline, projeto/responsável técnico, prévia após layout salvo, aviso ECharts e isolamento de filtros por objeto.
 - Código enviado ao GitHub em branch isolada; **não** publicado no Codespaces, não integrado na branch principal e sem testes funcionais confirmados.
 - Antes de liberar: conferir divergências do Codespaces, build do frontend, sintaxe JS do editor, teste de persistência dos metadados, hierarquia de pastas e teste de Despesa/Receita.
+
+
+## 2026-11-16 — Correção isolada de Novo produto (pendente homologação)
+- Branch de correção: fix/novo-produto-ficha-isolada-20261116; código commit 4ccbce8.
+- Corrigido web/bi_factory/src/main.jsx: Novo produto descarta a seleção visual da ficha anterior, fecha overlays e abre somente o formulário novo; ficha selecionada só aparece fora do modo criação; botão de salvar fica bloqueado durante requisição e exige nome.
+- Dados e API não alterados. Inspeção estática do diff realizada; build, teste de interface e implantação no Codespaces ainda NÃO confirmados. Branch local teste/cadastro-filtros-20261113 não existe no remoto; preservar alterações locais e reconciliar antes de aplicar.
