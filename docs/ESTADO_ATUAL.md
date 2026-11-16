@@ -232,3 +232,5 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Branch de correção: fix/novo-produto-ficha-isolada-20261116; código commit 4ccbce8.
 - Corrigido web/bi_factory/src/main.jsx: Novo produto descarta a seleção visual da ficha anterior, fecha overlays e abre somente o formulário novo; ficha selecionada só aparece fora do modo criação; botão de salvar fica bloqueado durante requisição e exige nome.
 - Dados e API não alterados. Inspeção estática do diff realizada; build, teste de interface e implantação no Codespaces ainda NÃO confirmados. Branch local teste/cadastro-filtros-20261113 não existe no remoto; preservar alterações locais e reconciliar antes de aplicar.
+
+- Ponte de aplicação segura proposta em scripts/bi_factory_patch_agent.py (commit c16cbe9), restrita a um patch de web/bi_factory/src/main.jsx; instalação local e homologação pendentes. Não confundir código versionado com agente em execução.
