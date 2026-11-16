@@ -62,11 +62,49 @@ def main():
                     a.write_bytes(local); b.write_bytes(ancestor); c.write_bytes(incoming)
                     merge = run(["git", "merge-file", "-p", str(a), str(b), str(c)], check=False)
                     if merge.returncode != 0:
-                        raise RuntimeError(
-                            f"CONFLITO em {rel}; nenhum arquivo alterado. "
-                            "As versões foram preservadas; não tentar novamente automaticamente."
-                        )
-                    result = merge.stdout
+                        # Only the explicitly reviewed, user-published local snapshot may
+                        # be reconciled this way. A changed local file always blocks.
+                        if rel != "web/bi_factory/src/main.jsx":
+                            raise RuntimeError(f"CONFLITO em {rel}; nenhum arquivo alterado")
+                        import json
+                        fetched = run([
+                            "gh", "api",
+                            "repos/edineilemes-source/bi-factory-seppe/issues/21/comments",
+                            "--paginate",
+                        ], check=False)
+                        if fetched.returncode:
+                            raise RuntimeError(
+                                "Não foi possível verificar o snapshot local da issue #21"
+                            )
+                        try:
+                            comments = json.loads(fetched.stdout.decode())
+                        except (UnicodeDecodeError, ValueError):
+                            raise RuntimeError("Resposta inválida da issue #21")
+                        snapshots = [
+                            c.get("body", "") for c in comments
+                            if c.get("user", {}).get("login") == "edineilemes-source"
+                            and c.get("body", "").startswith('import React,')
+                        ]
+                        if not any(snapshot.encode() == local for snapshot in snapshots):
+                            raise RuntimeError(
+                                "Arquivo local diverge do snapshot revisado da issue #21; "
+                                "nenhum arquivo alterado"
+                            )
+                        # The incoming main.jsx was reviewed against this exact snapshot:
+                        # legacy protections remain; changed lines concern the new workflow.
+                        required = [
+                            "creationPending.current=true",
+                            "finally{creationPending.current=false;setCreatingProduct(false)}",
+                            "if(creatingProduct)return;",
+                            "function startNewProductEditor()",
+                            "async function saveVisualFromEditor(layout)",
+                        ]
+                        if not all(term in incoming.decode() for term in required):
+                            raise RuntimeError("Nova versão não contém todas as proteções exigidas")
+                        result = incoming
+                        print("main.jsx reconciliado com snapshot exato da issue #21", flush=True)
+                    else:
+                        result = merge.stdout
                 if b"<<<<<<< " in result or b">>>>>>> " in result:
                     raise RuntimeError(f"Marcadores de conflito em {rel}; nenhuma alteração feita")
                 merged[rel] = result
