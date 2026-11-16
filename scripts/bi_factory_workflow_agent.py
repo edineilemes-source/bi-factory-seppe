@@ -5,7 +5,7 @@ ROOT=pathlib.Path("/workspaces/bi-factory-seppe")
 REPO="edineilemes-source/bi-factory-seppe"
 OWNER="edineilemes-source"
 TITLE="[BI-AGENT] IMPLANTAR-FLUXO"
-STATE=ROOT/".git/bi-factory-agent-apply-processed.json"
+STATE=ROOT/".git/bi-factory-agent-workflow-processed.json"
 LOG=pathlib.Path("/tmp/bi-factory-seppe-logs")
 LOG.mkdir(parents=True,exist_ok=True)
 ALLOWED={"web/bi_factory/src/main.jsx"}
@@ -55,7 +55,7 @@ def cycle():
             report(n,"❌ Aplicação bloqueada: "+str(exc)[-1500:])
 def main():
     # Persistent singleton; subprocess.run closes inherited descriptors by default.
-    with (ROOT/".git/bi-factory-patch-agent.lock").open("w") as lock:
+    with (ROOT/".git/bi-factory-workflow-agent.lock").open("w") as lock:
         try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError: return
         serve()
