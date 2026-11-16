@@ -275,3 +275,11 @@ Instalados agente/monitor e984357 no Codespaces após autorização específica.
 - Correção: validar contrato específico de exclusão; retirar linha/ficha após confirmação; falha posterior de refresh não oferece repetição de exclusão já concluída. Três testes E2E sintéticos adicionados para sucesso, refresh pós-exclusão falho e erro de API.
 - Testes novos ainda aguardam CI. Sem executor/navegador disponíveis nesta sessão; não houve implantação nem exclusão operacional. Relato de Visualizar ainda sem causa confirmada; verificar proxy /visual-editor e carregamento do iframe no Codespaces antes de declarar resolvido.
 - Atualização do ensaio anterior: Full Rebuild executado; novo hostname e API automática confirmados, aplicação externa abriu. Conferência de 41 arquivos interrompida após progresso 20/41 por perda do ambiente. registry.json divergiu (751 -> 1151 bytes), mantido intacto; catálogo mostra produto adicional teste 6. Origem da alteração não comprovada. Não declarar validação completa nem perda de dados.
+
+
+## 2026-11-16 — Novo fluxo de produto em branch isolada (aguarda CI/homologação)
+- Branch feat/fluxo-salvamento-unico-produto-20261116 baseada em fix/recuperacao-homologacao-20261116 (PR #16). Não integrada à branch local Codespaces.
+- Solicitação: preencher metadados de Novo produto sem gravar, abrir editor visual e gravar metadados+layout ao clicar Salvar produto no editor. Após salvar, retornar à ficha com Editar metadados, Editar visual e Visualizar produto; prévia abaixo quando existir layout.
+- Implementação: modo draft no iframe sem criar produto ao abrir; evento postMessage save-request; pai cria cadastro somente no salvamento, grava layout, atualiza catálogo e fecha editor. Em erro de layout, conserva ID pendente para não duplicar POST na tentativa seguinte. Em edição existente, salvar layout retorna à ficha. Ações de metadados separadas; fechar preview em tela cheia por botão.
+- Limite técnico: gravação de cadastro e layout utiliza duas requisições, não uma transação atômica no backend. Se o layout falhar após POST, registro parcial pode existir até retry; manter ID evita duplicação na mesma sessão. Validar e considerar transação backend antes de produção.
+- Código publicado para testes no GitHub; implantação Codespaces, CI e homologação ainda pendentes. Não houve operação em dados operacionais.
