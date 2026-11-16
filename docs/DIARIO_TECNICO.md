@@ -238,3 +238,8 @@ Instalados agente/monitor e984357 no Codespaces após autorização específica.
 - Implementado em web/bi_factory/src/main.jsx e prototypes/editor-visual/index.html na branch feat/fluxo-salvamento-unico-produto-20261116. Eventos entre iframe e React com origem validada; rascunho sem persistência até salvar; idempotência por ID pendente na sessão se POST tiver sucesso e PUT falhar.
 - Adaptados testes Playwright tests/e2e/test_product_flow.py para criação adiada, fechamento sem salvar, dois cadastros, edição de metadados, falha/retry e exclusão.
 - Riscos: POST+PUT não são atômicos; persistência parcial pode ocorrer em falha de layout. Testes CI e implantação no Codespaces não confirmados nesta etapa. Preservar os quatro commits locais e dados operacionais.
+
+## 2026-11-16 — Preparação de implantação multi-arquivo
+- Testes GitHub Actions #43963194045 e #43963194032 aprovados para o fluxo de produto.
+- Criado agente independente scripts/bi_factory_workflow_agent.py (issue [BI-AGENT] IMPLANTAR-FLUXO), restrito à branch remota feat/fluxo-salvamento-unico-produto-20261116, branch local teste/cadastro-filtros-20261113 e aos arquivos main.jsx e prototypes/editor-visual/index.html; aborta com alterações locais nos alvos ou conflito. Estado e lock separados do agente antigo. Hook de autostart adicionado.
+- Não há executor de terminal Codespaces exposto a esta sessão; agente novo ainda não foi instalado no ambiente local, portanto NÃO foi enviado pedido de implantação que pudesse induzir falsa confirmação. Próxima etapa exige execução autorizada no Codespaces para instalar o novo agente sem perder trabalho local. Não modificar dados.
