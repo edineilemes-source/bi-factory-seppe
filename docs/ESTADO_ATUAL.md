@@ -234,3 +234,44 @@ A cada entrega, atualizar: data, branch/SHA, resumo, caminhos, testes reais, dad
 - Dados e API não alterados. Inspeção estática do diff realizada; build, teste de interface e implantação no Codespaces ainda NÃO confirmados. Branch local teste/cadastro-filtros-20261113 não existe no remoto; preservar alterações locais e reconciliar antes de aplicar.
 
 - Ponte de aplicação segura proposta em scripts/bi_factory_patch_agent.py (commit c16cbe9), restrita a um patch de web/bi_factory/src/main.jsx; instalação local e homologação pendentes. Não confundir código versionado com agente em execução.
+
+## 2026-11-16 — Recuperação e testes integrados
+- Branch `fix/recuperacao-homologacao-20261116`, base `d094880` (inclui correção `4ccbce8` e ponte `c16cbe9`).
+- Clone real do GitHub neste ambiente; não é o terminal do Codespaces operacional.
+- Endereço externo informado respondeu HTTP 401 com `www-authenticate: tunnel`, em vez de 404, na consulta sem autenticação. Isso confirma barreira de autenticação do túnel, não a disponibilidade da UI autenticada nem a causa histórica do 404.
+- GitHub CLI local sem login; navegador em github.com/codespaces redirecionou ao login. Conector permite código, mas não expõe API/SSH de Codespaces. Implantação e inspeção remota dependem dessa autenticação.
+- Cadastro: trava síncrona de envio e encerramento do draft após confirmação do POST, mesmo quando refresh do catálogo falha; evita novo envio de um produto já persistido.
+- Porta padrão Vite/npm unificada em 8506. Monitor passa a iniciar também o agente de patch existente, mantendo as restrições de branch/arquivo. Não amplia permissões de patch.
+- API não abre mais aba automaticamente pelo devcontainer; frontend continua encaminhado, sem alteração de visibilidade.
+- Testes integrados adicionados em `tests/e2e/test_product_flow.py`, com todas as constantes de storage redirecionadas a fixture temporária; workflow `.github/workflows/product-flow.yml`.
+- PASS local: build React, sintaxe Python/Bash, diff --check. BLOCKED local: Chromium impedido por socket Operation not permitted; execução E2E será feita no Actions. Não declarar testes E2E aprovados até resultado do workflow.
+- Nenhum dado operacional alterado. Reinício/rebuild, encaminhamento autenticado e implantação operacional ainda não verificados.
+
+
+### Resultado confirmado da execução de 2026-11-16
+- Código publicado: `bc033a0c0241ce38835b93031b780429d770bfd3`; ajuste de runner `34409549c2f00f122420bdca6e41964a8ea1383b`; PR #16, base fix/novo-produto-ficha-isolada-20261116.
+- PASS: 5 testes E2E reais no Chromium/React/API em fixture isolada, Actions run 43906062599, job 133435093946. Abrange criação consecutiva, estados limpos, IDs/códigos distintos, edição/reabertura, layout, repetição, erro API e falha de refresh pós-POST. Verificação do editor e build também PASS, run 43906062601.
+- PASS adicional local: quatro verificações da API HTTP real em fixture: dois cadastros; edição/reabertura; layout com preservação do primeiro produto; persistência em disco.
+- A primeira execução CI falhou na instalação porque ubuntu-latest passou a Ubuntu 26.04, incompatível com Playwright 1.58; corrigido fixando ubuntu-24.04, segunda execução aprovada.
+- BLOCKED operacional (3 grupos): acesso externo autenticado; implantação no Codespaces; persistência após restart/rebuild. Sem alegação de resolução do 404 histórico. Automação CI comprovada; monitor/agentes apenas alterados no código, sem prova de instalação remota.
+- Tentativa de autenticação no navegador escolheu Google; inspeção seguinte bloqueada por revisão automática por risco de acesso a conteúdo privado Google fora do escopo. Nenhuma verificação posterior nem contorno executado.
+- Próxima ação indispensável: autorização para concluir autenticação Google exclusivamente destinada ao GitHub/Codespaces; então inspecionar estado remoto e aplicar/testar sem sobrescrever trabalho local. Nenhum dado operacional modificado.
+
+
+## 2026-11-16 — Implantação e acesso externo confirmados
+Aplicação e Produtos acessíveis com porta privada; main.jsx implantado (blob da298ea), recuperação automática do frontend comprovada e 11 JSONs preservados. Cinco E2E aprovados no CI. Reinício completo/rebuild e instalação persistente do agente ainda pendentes. Detalhes: docs/missoes/RECUPERACAO_OPERACIONAL_20261116.md.
+
+
+## 2026-11-16 — Agente permanente autorizado
+Usuário autorizou especificamente instalar o agente de patches restrito e iniciar automaticamente no Codespaces. Preparados monitor com fechamento do descritor de lock nos filhos e lock próprio em .git, agente singleton com estado em .git e manutenção de todas as restrições de aplicação anteriores. Nove testes isolados passaram; Bash/Python/diff aprovados. Instalação e teste de recuperação operacional em andamento; não declarar rebuild aprovado sem ensaio. Arquivos: scripts/autostart_bi_factory_codespaces.sh, scripts/bi_factory_patch_agent.py, tests/test_patch_agent_guards.py, .github/workflows/agent-guards.yml. Base 0eab87f; sem dados operacionais alterados.
+
+
+## 2026-11-16 — Instalação permanente e reinício comprovados
+Instalados agente/monitor e984357 no Codespaces após autorização específica. Estado migrado para .git e singleton ativo. Nove testes de guardas passaram localmente, no Codespaces e em Actions 43911070572; cinco E2E em 43911070390 também aprovados. Parada completa observada, reinício pelo botão oficial e inicialização automática de monitor/agentes/API/Vite comprovados, sem comandos manuais para iniciar serviços. Hashes de 11 JSONs e main.jsx preservados. Issue #17 rejeitada conforme esperado após reinício, encerrada como teste aprovado. Aplicação externa/Produtos voltou em porta privada. Rebuild do devcontainer permanece NÃO ENSAIADO. Detalhes: docs/missoes/AGENTE_PERMANENTE_20261116.md.
+
+
+## 2026-11-16 — Exclusão com confirmação interpretada incorretamente
+- Base GitHub 7ae0426, branch fix/recuperacao-homologacao-20261116 / PR #16. Inspeção: delete_product retorna item.product_id e deleted, mas apiPost exige item.id; exclusão pode ser efetivada e a interface acusar falha antes do refresh.
+- Correção: validar contrato específico de exclusão; retirar linha/ficha após confirmação; falha posterior de refresh não oferece repetição de exclusão já concluída. Três testes E2E sintéticos adicionados para sucesso, refresh pós-exclusão falho e erro de API.
+- Testes novos ainda aguardam CI. Sem executor/navegador disponíveis nesta sessão; não houve implantação nem exclusão operacional. Relato de Visualizar ainda sem causa confirmada; verificar proxy /visual-editor e carregamento do iframe no Codespaces antes de declarar resolvido.
+- Atualização do ensaio anterior: Full Rebuild executado; novo hostname e API automática confirmados, aplicação externa abriu. Conferência de 41 arquivos interrompida após progresso 20/41 por perda do ambiente. registry.json divergiu (751 -> 1151 bytes), mantido intacto; catálogo mostra produto adicional teste 6. Origem da alteração não comprovada. Não declarar validação completa nem perda de dados.

@@ -1,0 +1,22 @@
+name: Guardas dos agentes e reinicio do monitor
+on:
+  pull_request:
+    paths:
+      - 'scripts/bi_factory_patch_agent.py'
+      - 'scripts/autostart_bi_factory_codespaces.sh'
+      - 'tests/test_patch_agent_guards.py'
+      - '.github/workflows/agent-guards.yml'
+permissions:
+  contents: read
+jobs:
+  guards:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: bash -n scripts/autostart_bi_factory_codespaces.sh
+      - run: python -m unittest discover -s tests -p test_patch_agent_guards.py -v

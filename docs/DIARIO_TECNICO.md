@@ -194,3 +194,40 @@
 ## 2026-11-16 — Ponte de aplicação controlada (não homologada)
 - Criado scripts/bi_factory_patch_agent.py em branch isolada, commit c16cbe9: escuta issue [BI-AGENT] APLICAR com SHA completo e branch permitida; exige branch local esperada, commit alcançável, arquivo permitido, working tree do alvo limpo e git apply --check. Sem checkout/reset/merge, sem sobrescrever alterações, sem commit/push automático.
 - A instalação/execução do novo agente no Codespaces ainda requer bootstrap único e teste ponta a ponta. O agente anterior [BI-AGENT] ABRIR não é capaz de instalar outro agente.
+
+## 2026-11-16 — Recuperação com fixture e CI
+- Base confirmada `d094880`, branch `fix/recuperacao-homologacao-20261116`. Código e documentação obrigatória lidos no clone.
+- Causa adicional identificada por inspeção: POST bem-sucedido seguido de refresh malsucedido mantinha draft salvável. Corrigido encerrando criação após POST, mostrando aviso de catálogo e preservando produto criado no estado local; ref impede chamadas simultâneas.
+- Alterados main.jsx, configuração Vite/npm (8506), monitor (retomada do agente patch), devcontainer (não abrir API), gitignore; adicionados suíte E2E isolada e workflow.
+- PASS build/sintaxe/diff. E2E local BLOCKED por restrição do Chromium. Nenhuma conexão com dados de produção; fixture isolada para API real.
+- Túnel externo respondeu 401/tunnel em consulta não autenticada; navegador Codespaces exigiu login, gh sem credencial. Falta sessão remota para verificar encaminhamento privado, processos, implantação e reinício/rebuild.
+- Publicação autorizada em branch isolada para execução CI, sem merge, reset ou alteração do Codespaces.
+
+
+### Resultado confirmado da execução de 2026-11-16
+- Código publicado: `bc033a0c0241ce38835b93031b780429d770bfd3`; ajuste de runner `34409549c2f00f122420bdca6e41964a8ea1383b`; PR #16, base fix/novo-produto-ficha-isolada-20261116.
+- PASS: 5 testes E2E reais no Chromium/React/API em fixture isolada, Actions run 43906062599, job 133435093946. Abrange criação consecutiva, estados limpos, IDs/códigos distintos, edição/reabertura, layout, repetição, erro API e falha de refresh pós-POST. Verificação do editor e build também PASS, run 43906062601.
+- PASS adicional local: quatro verificações da API HTTP real em fixture: dois cadastros; edição/reabertura; layout com preservação do primeiro produto; persistência em disco.
+- A primeira execução CI falhou na instalação porque ubuntu-latest passou a Ubuntu 26.04, incompatível com Playwright 1.58; corrigido fixando ubuntu-24.04, segunda execução aprovada.
+- BLOCKED operacional (3 grupos): acesso externo autenticado; implantação no Codespaces; persistência após restart/rebuild. Sem alegação de resolução do 404 histórico. Automação CI comprovada; monitor/agentes apenas alterados no código, sem prova de instalação remota.
+- Tentativa de autenticação no navegador escolheu Google; inspeção seguinte bloqueada por revisão automática por risco de acesso a conteúdo privado Google fora do escopo. Nenhuma verificação posterior nem contorno executado.
+- Próxima ação indispensável: autorização para concluir autenticação Google exclusivamente destinada ao GitHub/Codespaces; então inspecionar estado remoto e aplicar/testar sem sobrescrever trabalho local. Nenhum dado operacional modificado.
+
+
+## 2026-11-16 — Implantação e acesso externo confirmados
+Aplicação e Produtos acessíveis com porta privada; main.jsx implantado (blob da298ea), recuperação automática do frontend comprovada e 11 JSONs preservados. Cinco E2E aprovados no CI. Reinício completo/rebuild e instalação persistente do agente ainda pendentes. Detalhes: docs/missoes/RECUPERACAO_OPERACIONAL_20261116.md.
+
+
+## 2026-11-16 — Agente permanente autorizado
+Usuário autorizou especificamente instalar o agente de patches restrito e iniciar automaticamente no Codespaces. Preparados monitor com fechamento do descritor de lock nos filhos e lock próprio em .git, agente singleton com estado em .git e manutenção de todas as restrições de aplicação anteriores. Nove testes isolados passaram; Bash/Python/diff aprovados. Instalação e teste de recuperação operacional em andamento; não declarar rebuild aprovado sem ensaio. Arquivos: scripts/autostart_bi_factory_codespaces.sh, scripts/bi_factory_patch_agent.py, tests/test_patch_agent_guards.py, .github/workflows/agent-guards.yml. Base 0eab87f; sem dados operacionais alterados.
+
+
+## 2026-11-16 — Instalação permanente e reinício comprovados
+Instalados agente/monitor e984357 no Codespaces após autorização específica. Estado migrado para .git e singleton ativo. Nove testes de guardas passaram localmente, no Codespaces e em Actions 43911070572; cinco E2E em 43911070390 também aprovados. Parada completa observada, reinício pelo botão oficial e inicialização automática de monitor/agentes/API/Vite comprovados, sem comandos manuais para iniciar serviços. Hashes de 11 JSONs e main.jsx preservados. Issue #17 rejeitada conforme esperado após reinício, encerrada como teste aprovado. Aplicação externa/Produtos voltou em porta privada. Rebuild do devcontainer permanece NÃO ENSAIADO. Detalhes: docs/missoes/AGENTE_PERMANENTE_20261116.md.
+
+
+## 2026-11-16 — Exclusão com confirmação interpretada incorretamente
+- Base GitHub 7ae0426, branch fix/recuperacao-homologacao-20261116 / PR #16. Inspeção: delete_product retorna item.product_id e deleted, mas apiPost exige item.id; exclusão pode ser efetivada e a interface acusar falha antes do refresh.
+- Correção: validar contrato específico de exclusão; retirar linha/ficha após confirmação; falha posterior de refresh não oferece repetição de exclusão já concluída. Três testes E2E sintéticos adicionados para sucesso, refresh pós-exclusão falho e erro de API.
+- Testes novos ainda aguardam CI. Sem executor/navegador disponíveis nesta sessão; não houve implantação nem exclusão operacional. Relato de Visualizar ainda sem causa confirmada; verificar proxy /visual-editor e carregamento do iframe no Codespaces antes de declarar resolvido.
+- Atualização do ensaio anterior: Full Rebuild executado; novo hostname e API automática confirmados, aplicação externa abriu. Conferência de 41 arquivos interrompida após progresso 20/41 por perda do ambiente. registry.json divergiu (751 -> 1151 bytes), mantido intacto; catálogo mostra produto adicional teste 6. Origem da alteração não comprovada. Não declarar validação completa nem perda de dados.

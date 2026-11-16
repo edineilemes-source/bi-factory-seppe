@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Conservative Codespaces bridge: apply reviewed GitHub commit patches without switching branches."""
-import json, os, pathlib, re, subprocess, time
+import fcntl, json, os, pathlib, re, subprocess, time
 ROOT=pathlib.Path("/workspaces/bi-factory-seppe")
 REPO="edineilemes-source/bi-factory-seppe"
 OWNER="edineilemes-source"
 TITLE="[BI-AGENT] APLICAR"
-STATE=pathlib.Path("/tmp/bi-factory-agent-apply-processed.json")
+STATE=ROOT/".git/bi-factory-agent-apply-processed.json"
 LOG=pathlib.Path("/tmp/bi-factory-seppe-logs")
 LOG.mkdir(parents=True,exist_ok=True)
 ALLOWED={"web/bi_factory/src/main.jsx"}
@@ -49,10 +49,20 @@ def cycle():
             gh("issue","close",str(n),"--repo",REPO,"--comment","Aplicação concluída; aguardando homologação visual.")
         except Exception as exc:
             report(n,"❌ Aplicação bloqueada: "+str(exc)[-1500:])
-if __name__=="__main__":
+def main():
+    # Persistent singleton; subprocess.run closes inherited descriptors by default.
+    with (ROOT/".git/bi-factory-patch-agent.lock").open("w") as lock:
+        try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError: return
+        serve()
+
+def serve():
     gh("auth","status")
     print("BI Factory patch agent ready",flush=True)
     while True:
         try: cycle()
         except Exception as exc: print("Agent error:",exc,flush=True)
         time.sleep(20)
+
+if __name__=="__main__":
+    main()
