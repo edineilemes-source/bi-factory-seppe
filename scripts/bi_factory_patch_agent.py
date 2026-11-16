@@ -4,7 +4,7 @@ import fcntl, json, os, pathlib, re, subprocess, time
 ROOT=pathlib.Path("/workspaces/bi-factory-seppe")
 REPO="edineilemes-source/bi-factory-seppe"
 OWNER="edineilemes-source"
-TITLE="[BI-AGENT] APLICAR"
+TITLE="[BI-AGENT] IMPLANTAR-FLUXO"
 STATE=ROOT/".git/bi-factory-agent-apply-processed.json"
 LOG=pathlib.Path("/tmp/bi-factory-seppe-logs")
 LOG.mkdir(parents=True,exist_ok=True)
@@ -16,24 +16,28 @@ def run(*args, input=None, timeout=90, check=True):
 def gh(*args): return run("gh",*args,timeout=45).stdout.strip()
 def report(n,message): gh("issue","comment",str(n),"--repo",REPO,"--body",message[:3500])
 def apply(body):
-    m=re.fullmatch(r"commit=([a-f0-9]{40})\s*\nbranch=(fix/novo-produto-ficha-isolada-20261116)\s*",body.strip())
-    if not m: raise RuntimeError("Formato não autorizado: requer commit SHA completo e branch permitida")
-    sha,branch=m.groups()
+    """Apply a reviewed multi-file PR diff, never switch branches or overwrite dirty files."""
+    m=re.fullmatch(r"base=([a-f0-9]{40})\\s*\\ncommit=([a-f0-9]{40})\\s*\\nbranch=(feat/fluxo-salvamento-unico-produto-20261116)\\s*",body.strip())
+    if not m: raise RuntimeError("Formato não autorizado: base, commit e branch aprovada obrigatórios")
+    base,sha,branch=m.groups()
     current=run("git","branch","--show-current").stdout.strip()
     if current!="teste/cadastro-filtros-20261113": raise RuntimeError("Branch local inesperada: "+current)
     run("git","fetch","--no-tags","origin",branch,timeout=120)
     remote=run("git","rev-parse","FETCH_HEAD").stdout.strip()
-    run("git","merge-base","--is-ancestor",sha,remote)
-    parent=run("git","rev-parse",sha+"^").stdout.strip()
-    paths=run("git","diff","--name-only",parent,sha).stdout.splitlines()
-    if not paths or not set(paths).issubset(ALLOWED): raise RuntimeError("Commit altera caminhos fora da lista permitida: "+str(paths))
-    if run("git","status","--porcelain","--",*paths).stdout.strip(): raise RuntimeError("Arquivo local alterado; aplicação bloqueada para preservar trabalho")
-    patch=run("git","diff","--binary",parent,sha,"--",*paths).stdout
-    if not patch.strip(): raise RuntimeError("Patch vazio")
+    if sha!=remote: raise RuntimeError("Commit não é a ponta aprovada da branch")
+    run("git","merge-base","--is-ancestor",base,sha)
+    paths=run("git","diff","--name-only",base,sha).stdout.splitlines()
+    allowed={"web/bi_factory/src/main.jsx","prototypes/editor-visual/index.html"}
+    if not paths or not set(paths).issubset(allowed):
+        raise RuntimeError("Arquivos não permitidos no diff: "+str(paths))
+    for path in paths:
+        if run("git","status","--porcelain","--",path).stdout.strip():
+            raise RuntimeError("Arquivo local modificado, implantação bloqueada: "+path)
+    patch=run("git","diff","--binary",base,sha,"--",*paths).stdout
     check=run("git","apply","--check","-",input=patch,check=False)
-    if check.returncode: raise RuntimeError("Patch não aplicável sem conflitos: "+check.stderr[-900:])
+    if check.returncode: raise RuntimeError("Patch incompatível com código local: "+check.stderr[-900:])
     run("git","apply","-",input=patch)
-    return "Patch aplicado sem trocar branch ou sobrescrever alterações locais. Arquivos: "+", ".join(paths)+"; commit fonte: "+sha+". Alterações ficam no working tree para homologação, sem commit/push automático."
+    return "Arquivos atualizados sem trocar branch ou tocar dados: "+", ".join(paths)+". SHA: "+sha+". Validar no navegador; alterações não commitadas."
 def cycle():
     try: seen=set(json.loads(STATE.read_text()))
     except (FileNotFoundError,ValueError): seen=set()
