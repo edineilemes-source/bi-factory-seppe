@@ -220,3 +220,7 @@ Aplicação e Produtos acessíveis com porta privada; main.jsx implantado (blob 
 
 ## 2026-11-16 — Agente permanente autorizado
 Usuário autorizou especificamente instalar o agente de patches restrito e iniciar automaticamente no Codespaces. Preparados monitor com fechamento do descritor de lock nos filhos e lock próprio em .git, agente singleton com estado em .git e manutenção de todas as restrições de aplicação anteriores. Nove testes isolados passaram; Bash/Python/diff aprovados. Instalação e teste de recuperação operacional em andamento; não declarar rebuild aprovado sem ensaio. Arquivos: scripts/autostart_bi_factory_codespaces.sh, scripts/bi_factory_patch_agent.py, tests/test_patch_agent_guards.py, .github/workflows/agent-guards.yml. Base 0eab87f; sem dados operacionais alterados.
+
+
+## 2026-11-16 — Instalação permanente e reinício comprovados
+Instalados agente/monitor e984357 no Codespaces após autorização específica. Estado migrado para .git e singleton ativo. Nove testes de guardas passaram localmente, no Codespaces e em Actions 43911070572; cinco E2E em 43911070390 também aprovados. Parada completa observada, reinício pelo botão oficial e inicialização automática de monitor/agentes/API/Vite comprovados, sem comandos manuais para iniciar serviços. Hashes de 11 JSONs e main.jsx preservados. Issue #17 rejeitada conforme esperado após reinício, encerrada como teste aprovado. Aplicação externa/Produtos voltou em porta privada. Rebuild do devcontainer permanece NÃO ENSAIADO. Detalhes: docs/missoes/AGENTE_PERMANENTE_20261116.md.
