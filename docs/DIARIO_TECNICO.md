@@ -182,3 +182,11 @@
 - ECharts: aviso de um objeto por vez; filtros de dimensões/medidas vinculados a objetos, sem substituir Despesa por Receita; opção de criar objeto para medida não utilizada.
 - Testes: BLOCKED — sem terminal Codespaces e sem validação visual/CI confirmada. Não afirmar homologação concluída.
 - Dados operacionais: nenhuma edição; mudanças apenas no código versionado. Próxima ação: validar build, teste de regressão e liberar branch de homologação em Codespaces sem tocar produção.
+
+
+## 2026-11-16 — Correção de cadastro de produto anterior visível
+- Relato: ao clicar em Novo produto, formulário de criação e ficha anterior apareciam juntos; novo cadastro não era salvo corretamente.
+- Inspeção: web/bi_factory/src/main.jsx não limpava selectedProduct em Novo produto; a renderização de selectedProduct era independente de creation; save não tinha trava de múltiplos envios.
+- Código em branch isolada fix/novo-produto-ficha-isolada-20261116, commit 4ccbce8. Novo produto limpa estado visual anterior; formulário anterior não é renderizado durante criação; save bloqueia repetição, valida nome e abre editor do novo item.
+- Testes: PASS inspeção estática de trechos; BLOCKED build/E2E/Chrome por ausência de terminal Codespaces no conector. Sem alterações em dados, API, storage, branch local ou processos.
+- Pendência: reconciliação segura com branch local teste/cadastro-filtros-20261113 antes de integração; homologar criação de dois produtos consecutivos e persistência de ambos.
