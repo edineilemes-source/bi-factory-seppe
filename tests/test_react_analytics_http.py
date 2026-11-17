@@ -4,6 +4,7 @@ Runs only against a loopback ephemeral port and isolated synthetic SQLite/files.
 """
 import base64
 import json
+import subprocess
 import sys
 import tempfile
 import threading
@@ -21,6 +22,16 @@ import bi_factory_analytics_adapter as adapter
 
 
 class AnalyticsHttpSmoke(unittest.TestCase):
+    def test_direct_api_script_imports_core(self):
+        # The Codespaces startup script executes this Python file directly,
+        # which otherwise omits the repository root from Python's import path.
+        result = subprocess.run(
+            [sys.executable, "scripts/serve_bi_factory_api.py", "--help"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--port", result.stdout)
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
