@@ -19,7 +19,7 @@ jobs:
       - name: Install known legacy Python dependencies
         run: python -m pip install -r requirements.txt -r requirements-backup.txt
       - name: Validate Python code syntax
-        run: python -m py_compile scripts/serve_bi_factory_api.py scripts/bi_factory_analytics_adapter.py tests/test_react_analytics_bridge.py
+        run: python -m py_compile scripts/serve_bi_factory_api.py scripts/bi_factory_analytics_adapter.py tests/test_react_analytics_bridge.py scripts/implantar_react_motores_codespaces_20261117.py
       - name: Test real legacy adapter using synthetic CSV and isolated SQLite
         run: python -m unittest tests.test_react_analytics_bridge -v
       - name: Legacy test suite (no operational data or PostgreSQL)
