@@ -90,8 +90,11 @@ def stop_api():
     pid = pids[0]
     os.kill(pid, signal.SIGTERM)
     for _ in range(50):
-        try: os.kill(pid, 0)
-        except ProcessLookupError: break
+        try:
+            os.kill(pid, 0)
+            state = (Path("/proc") / str(pid) / "status").read_text(errors="replace")
+            if "\\nState:\\tZ" in state: break
+        except (ProcessLookupError, FileNotFoundError): break
         time.sleep(0.1)
     else:
         raise RuntimeError("Serviço API não encerrou após SIGTERM; nenhuma ação destrutiva")
@@ -185,7 +188,8 @@ def main():
         run(sys.executable,"-m","unittest","tests.test_react_analytics_bridge","tests.test_react_analytics_http","-q")
         run("npm","run","build","--prefix","web/bi_factory")
         print("TESTES SINTÉTICOS E BUILD APROVADOS NO CODESPACES",flush=True)
-        stop_api(); stopped=True
+        stopped=True
+        stop_api()
         start_api()
         for url in [
             "http://127.0.0.1:8506/",
