@@ -244,3 +244,9 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Dados operacionais, layouts persistidos, bancos, builds e node_modules ficam fora do Git. Nenhum merge/reset/rebase ou limpeza de dados.
 - Validação do marco: build React e verificações HTTP 8506, /api/overview, /visual-editor; testes funcionais adicionais podem ser necessários.
 - Registro gerado em UTC: 2026-11-16T23:02:02.127347+00:00.
+
+
+## 2026-11-17 — Inventário e recuperação dos módulos (somente leitura de GitHub)
+- Base: marco/editor-visual-homologado-20261116, SHA 751e292d4b06f41d79a3e7a1fc18b82e34c0ebcc; nova branch isolada docs/inventario-recuperacao-modulos-20261117.
+- Inventário detalhado criado em docs/INVENTARIO_RECUPERACAO_MODULOS_20261117.md: pipelines legados Streamlit/Python existentes para ingestão, semântica/perguntas, qualidade, preparação, grão, fatos/dimensões, estrela, ETL e dry run; trilha BI MVP por artefatos e scripts golden.
+- React 8506 não integra o pipeline legado; módulo normativo de pesquisa por IA e upload de legislação não identificado. Dados reais, ambiente Codespaces e execuções dos testes não foram inspecionados. Nenhum arquivo de aplicação/armazenamento alterado. Próximo: validação controlada dos testes e definição de API adaptadora.
