@@ -78,7 +78,7 @@ jobs:
         run: python -m pytest -q -m postgres_integration --ignore=tests/e2e tests
 
   browser-e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
