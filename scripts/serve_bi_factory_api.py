@@ -9,6 +9,7 @@ import argparse
 import csv
 import json
 import bi_factory_analytics_adapter as analytics
+import bi_factory_projects as projects
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import ThreadingHTTPServer
 import sys
@@ -120,6 +121,54 @@ def overview() -> dict:
 
 
 class Handler(visual_editor_server.Handler):
+    def _projects_dispatch(self, method):
+        path = self.path.split("?")[0]
+        if path != "/api/projects" and not path.startswith("/api/projects/"):
+            return False
+        try:
+            parts = path.strip("/").split("/")
+            if method == "GET":
+                if len(parts) == 2:
+                    result = {"projects": projects.projects()}
+                elif len(parts) == 3:
+                    result = projects.get(parts[2])
+                elif len(parts) == 4 and parts[3] == "knowledge":
+                    result = projects.summary(parts[2])
+                else:
+                    self._analytics_send({"error": "Rota não encontrada"}, 404)
+                    return True
+            elif method in ("POST", "PATCH"):
+                size = int(self.headers.get("Content-Length") or 0)
+                if size < 1 or size > 17 * 1024 * 1024:
+                    raise ValueError("Tamanho de requisição inválido")
+                data = json.loads(self.rfile.read(size))
+                if method == "POST" and len(parts) == 2:
+                    result = projects.create(data)
+                elif method == "PATCH" and len(parts) == 3:
+                    result = projects.update(parts[2], data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "research":
+                    if data.get("project_id") != parts[2]:
+                        raise ValueError("Projeto inconsistente")
+                    result = projects.research(data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "documents":
+                    if data.get("project_id") != parts[2]:
+                        raise ValueError("Projeto inconsistente")
+                    result = projects.upload(data)
+                else:
+                    self._analytics_send({"error": "Operação não encontrada"}, 404)
+                    return True
+            else:
+                self._analytics_send({"error": "Método não permitido"}, 405)
+                return True
+            self._analytics_send(result, 201 if method == "POST" else 200)
+        except (ValueError, KeyError, TypeError, OSError, json.JSONDecodeError) as error:
+            self._analytics_send({"error": str(error)}, 400)
+        except Exception:
+            import logging
+            logging.exception("Falha no módulo de projetos")
+            self._analytics_send({"error": "Erro interno no módulo de projetos"}, 500)
+        return True
+
     def _analytics_send(self, result, status=200):
         payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -167,6 +216,8 @@ class Handler(visual_editor_server.Handler):
             self._analytics_send({"error":"Falha interna na análise. Consulte os logs do servidor."},500)
         return True
     def do_POST(self) -> None:
+        if self._projects_dispatch("POST"):
+            return
         if self._analytics_dispatch("POST"):
             return
         route = self.path.split("?")[0]
@@ -198,6 +249,8 @@ class Handler(visual_editor_server.Handler):
         self.wfile.write(payload)
 
     def do_GET(self) -> None:
+        if self._projects_dispatch("GET"):
+            return
         if self._analytics_dispatch("GET"):
             return
         route = self.path.split("?")[0]
@@ -238,6 +291,8 @@ class Handler(visual_editor_server.Handler):
         return
 
     def do_PATCH(self) -> None:
+        if self._projects_dispatch("PATCH"):
+            return
         if self.path.startswith("/api/products/"):
             self._route("PATCH")
         else:
