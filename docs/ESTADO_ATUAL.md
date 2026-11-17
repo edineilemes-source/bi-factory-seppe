@@ -244,3 +244,9 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Dados operacionais, layouts persistidos, bancos, builds e node_modules ficam fora do Git. Nenhum merge/reset/rebase ou limpeza de dados.
 - Validação do marco: build React e verificações HTTP 8506, /api/overview, /visual-editor; testes funcionais adicionais podem ser necessários.
 - Registro gerado em UTC: 2026-11-16T23:02:02.127347+00:00.
+
+
+## 2026-11-17 — Recuperação do pipeline legado na interface React (branch isolada)
+- Branch feat/integracao-react-pipeline-legado-20261117 deriva do marco visual congelado 751e292d. Integrados via API Python: ingestão XLSX/XLSM/CSV, profiling, questões semânticas, respostas persistidas e qualidade preliminar. React exibe Entrada de Dados, Conhecimento e status da Modelagem; os motores avançados (Prepared/Grain/Star/ETL) ainda não estão operacionais na interface.
+- Job GitHub Actions #44186453294: 417 pytest aprovados, cinco ignorados; job de volume um aprovado; PostgreSQL descartável nove aprovados; build React e testes novos aprovados. Browser E2E em execução separada, não presumir resultado.
+- Relatório detalhado docs/RELATORIO_VALIDACAO_MOTORES_20261117.md. Nenhum arquivo do Codespaces foi alterado nesta etapa, aplicação 8506 ainda não recebeu esta branch. Marco anterior intacto; não realizar merge automático.
