@@ -200,3 +200,9 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Dados operacionais, layouts persistidos, bancos, builds e node_modules ficam fora do Git. Nenhum merge/reset/rebase ou limpeza de dados.
 - Validação do marco: build React e verificações HTTP 8506, /api/overview, /visual-editor; testes funcionais adicionais podem ser necessários.
 - Registro gerado em UTC: 2026-11-16T23:02:02.127347+00:00.
+
+
+## 2026-11-17 — Inventário estático de recuperação (sem alterações funcionais)
+- Inspecionada árvore Git recursiva do marco 751e292d4b06f41d79a3e7a1fc18b82e34c0ebcc (360 itens; sem truncamento), módulos core, app, scripts, documentação e organização de testes. Relatório: docs/INVENTARIO_RECUPERACAO_MODULOS_20261117.md.
+- Mapeados motores antigos e lacunas de integração com a interface React; risco de tomar a Sprint 4.4.8 como carga PMCG aprovada explicitamente recusado pela própria documentação.
+- Não foram executados pytest ou tarefas Codespaces; nenhuma mudança em dados, produtos, editor visual ou branch congelada.
