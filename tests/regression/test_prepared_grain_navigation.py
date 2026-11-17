@@ -110,6 +110,8 @@ def test_artifact_ownership_rejects_analysis_document_and_fingerprint_mismatch()
 
 
 def test_restart_rehydrates_same_grain_stage_and_source_is_immutable():
+    if not REAL_SOURCE.is_file():
+        pytest.skip("A planilha operacional da PMCG não está disponível no ambiente sintético")
     before = hashlib.sha256(REAL_SOURCE.read_bytes()).hexdigest()
     first, repository = _real_state()
     restarted = {}

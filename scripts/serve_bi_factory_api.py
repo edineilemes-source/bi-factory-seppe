@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import bi_factory_analytics_adapter as analytics
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import ThreadingHTTPServer
 import sys
@@ -119,7 +120,55 @@ def overview() -> dict:
 
 
 class Handler(visual_editor_server.Handler):
+    def _analytics_send(self, result, status=200):
+        payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _analytics_dispatch(self, method):
+        route = self.path.split("?")[0]
+        if not route.startswith("/api/analytics/"):
+            return False
+        try:
+            if method == "GET":
+                if route == "/api/analytics/capabilities":
+                    result = analytics.capabilities()
+                elif route.startswith("/api/analytics/analysis/"):
+                    result = analytics.get(route.removeprefix("/api/analytics/analysis/"))
+                else:
+                    self._analytics_send({"error":"Rota analítica inexistente"},404)
+                    return True
+            elif method == "POST":
+                length = int(self.headers.get("Content-Length", "0"))
+                # Encoded 8 MB payload + JSON overhead.
+                if length <= 0 or length > 12 * 1024 * 1024:
+                    raise ValueError("Requisição maior que o limite permitido")
+                body = json.loads(self.rfile.read(length))
+                if route == "/api/analytics/upload":
+                    result = analytics.upload(body)
+                elif route == "/api/analytics/answer":
+                    result = analytics.answer(body)
+                else:
+                    self._analytics_send({"error":"Rota analítica inexistente"},404)
+                    return True
+            else:
+                self._analytics_send({"error":"Método inválido"},405)
+                return True
+            self._analytics_send(result,201 if route == "/api/analytics/upload" else 200)
+        except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError) as error:
+            self._analytics_send({"error":str(error)},400)
+        except Exception:
+            import logging
+            logging.exception("Falha inesperada na API analítica")
+            self._analytics_send({"error":"Falha interna na análise. Consulte os logs do servidor."},500)
+        return True
     def do_POST(self) -> None:
+        if self._analytics_dispatch("POST"):
+            return
         route = self.path.split("?")[0]
         if route == "/api/products":
             self._route("POST")
@@ -149,6 +198,8 @@ class Handler(visual_editor_server.Handler):
         self.wfile.write(payload)
 
     def do_GET(self) -> None:
+        if self._analytics_dispatch("GET"):
+            return
         route = self.path.split("?")[0]
         if route == "/echarts-studio.html":
             return super().do_GET()

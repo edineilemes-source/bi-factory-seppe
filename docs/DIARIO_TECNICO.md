@@ -200,3 +200,15 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Dados operacionais, layouts persistidos, bancos, builds e node_modules ficam fora do Git. Nenhum merge/reset/rebase ou limpeza de dados.
 - Validação do marco: build React e verificações HTTP 8506, /api/overview, /visual-editor; testes funcionais adicionais podem ser necessários.
 - Registro gerado em UTC: 2026-11-16T23:02:02.127347+00:00.
+
+
+## 2026-11-17 — Testes amplos e primeira integração React dos motores recuperados
+- Criados scripts/bi_factory_analytics_adapter.py, API analytics, web/bi_factory/src/DataWorkspace.jsx e testes unitários/HTTP/Playwright. Mantidos catálogo/Editor Visual congelados.
+- Execução CI #44186453294 aprovou 417 testes principais, um slow e nove PostgreSQL; cinco skips devido a condições da suíte/ambiente. Corrigido skip de fixture PMCG ausente e configuração PGPASSWORD em testes sintéticos. E2E browser em validação na workflow posterior.
+- Arquivos originais dos uploads serão armazenados em storage/working/react_analytics por análise, não versionados no Git; uploads de terceiros e dados operacionais não foram processados.
+- Documentação: docs/RELATORIO_VALIDACAO_MOTORES_20261117.md; branch isolada, sem implantação Codespaces e sem alteração do marco homologado.
+
+## 2026-11-17 — Consolidação da bateria de verificação
+- Execução validada https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/44187616806: 418 testes principais aprovados, um slow aprovado, nove PostgreSQL aprovados, um E2E Chromium aprovado, cinco ignorados por condições; quatro jobs verdes. Novo teste de inicialização direta da API criado após o erro real encontrado no E2E.
+- Installer criado na branch feat/integracao-react-pipeline-legado-20261117, sem implantação Codespaces nem mutação de dados. O código dos quatro arquivos de aplicação alvo é o mesmo do SHA testado 10c68b71. O Editor Visual do marco 751e292d permanece congelado.
+- npm ci informa quatro alertas high de segurança nas dependências; relatório técnico registra risco, sem alteração automática das dependências.
