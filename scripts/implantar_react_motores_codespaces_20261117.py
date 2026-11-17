@@ -93,7 +93,7 @@ def stop_api():
         try:
             os.kill(pid, 0)
             state = (Path("/proc") / str(pid) / "status").read_text(errors="replace")
-            if "\\nState:\\tZ" in state: break
+            if "State:" in state and "Z (zombie)" in state: break
         except (ProcessLookupError, FileNotFoundError): break
         time.sleep(0.1)
     else:
