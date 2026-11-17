@@ -1,0 +1,30 @@
+name: React + Python recovered BI pipeline
+on:
+  push:
+    branches:
+      - feat/integracao-react-pipeline-legado-20261117
+  workflow_dispatch:
+jobs:
+  build-and-synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install known legacy Python dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Validate Python code syntax
+        run: python -m py_compile scripts/serve_bi_factory_api.py scripts/bi_factory_analytics_adapter.py tests/test_react_analytics_bridge.py
+      - name: Test real legacy adapter using synthetic CSV and isolated SQLite
+        run: python -m unittest tests.test_react_analytics_bridge -v
+      - name: Legacy test suite (no operational data or PostgreSQL)
+        run: python -m pytest -q -m "not slow and not postgres_integration" tests
+      - name: Install React dependencies
+        run: npm ci --prefix web/bi_factory
+      - name: Build existing React app with recovered modules
+        run: npm run build --prefix web/bi_factory
