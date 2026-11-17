@@ -17,6 +17,9 @@ class AnalyticsAdapterTests(unittest.TestCase):
         self.patcher = patch.object(adapter, "DATABASE", database)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
+        self.raw_patcher = patch.object(adapter, "RAW_DIRECTORY", Path(self.temp.name) / "uploads")
+        self.raw_patcher.start()
+        self.addCleanup(self.raw_patcher.stop)
 
     def test_end_to_end_upload_and_restore(self):
         content = b"Codigo,Valor,Unidade\n001,120,Saude\n002,250,Educacao\n003,80,Saude\n"
@@ -33,6 +36,8 @@ class AnalyticsAdapterTests(unittest.TestCase):
         self.assertEqual(restored["analysis_id"], result["analysis_id"])
         self.assertEqual(restored["profile"]["original_name"], "synthetic.csv")
         self.assertIn("prepared_dataset_status", result["pipeline"])
+        self.assertTrue(result["source_file_retained_locally"])
+        self.assertEqual((adapter.RAW_DIRECTORY / result["analysis_id"] / "synthetic.csv").read_bytes(), content)
 
     def test_bad_files_rejected_without_database_mutation(self):
         for filename, body in (
