@@ -23,7 +23,7 @@ jobs:
       - name: Test real legacy adapter using synthetic CSV and isolated SQLite
         run: python -m unittest tests.test_react_analytics_bridge -v
       - name: Legacy test suite (no operational data or PostgreSQL)
-        run: python -m pytest -q -m "not slow and not postgres_integration" tests
+        run: python -m pytest -q -m "not slow and not postgres_integration" --ignore=tests/e2e tests
       - name: Install React dependencies
         run: npm ci --prefix web/bi_factory
       - name: Build existing React app with recovered modules
@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt -r requirements-backup.txt
       - name: Exercise all slow tests, including 200K row/memory safety scenarios
-        run: python -m pytest -q -m "slow and not postgres_integration" tests
+        run: python -m pytest -q -m "slow and not postgres_integration" --ignore=tests/e2e tests
 
   postgres-integration:
     runs-on: ubuntu-latest
@@ -75,4 +75,46 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt -r requirements-backup.txt
       - name: Exercise real PostgreSQL DDL, relationships, transaction rollback and replay using synthetic fixtures
-        run: python -m pytest -q -m postgres_integration tests
+        run: python -m pytest -q -m postgres_integration --ignore=tests/e2e tests
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Python analysis engine and Playwright
+        run: python -m pip install -r requirements.txt playwright==1.58.0
+      - name: Install Chromium for headless browser verification
+        run: python -m playwright install --with-deps chromium
+      - name: Install React dependencies
+        run: npm ci --prefix web/bi_factory
+      - name: Start isolated React 8506 and Python API 8505
+        run: |
+          nohup python -u scripts/serve_bi_factory_api.py --port 8505 > /tmp/bi-api.log 2>&1 < /dev/null &
+          (cd web/bi_factory && nohup ./node_modules/.bin/vite --host 127.0.0.1 --port 8506 --strictPort > /tmp/bi-react.log 2>&1 < /dev/null &)
+          python - <<'PY'
+          import time, urllib.request
+          for path in ("http://127.0.0.1:8505/api/analytics/capabilities",
+                       "http://127.0.0.1:8506/", "http://127.0.0.1:8506/api/overview"):
+              for attempt in range(50):
+                  try:
+                      with urllib.request.urlopen(path, timeout=2) as response:
+                          if response.status == 200: break
+                  except Exception:
+                      time.sleep(1)
+              else:
+                  raise RuntimeError("Service did not start: " + path)
+          PY
+      - name: Verify real UI navigation and synthetic upload in Chromium
+        run: python -m pytest -q tests/e2e/test_unified_react_workspace.py
+      - name: Print service diagnostics on browser failure
+        if: failure()
+        run: |
+          tail -100 /tmp/bi-api.log || true
+          tail -100 /tmp/bi-react.log || true
