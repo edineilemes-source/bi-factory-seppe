@@ -10,6 +10,8 @@ import base64
 import binascii
 import json
 import re
+import os
+import tempfile
 from pathlib import Path
 
 from core.ingestion.file_loader import load_tabular_file, SUPPORTED_EXTENSIONS
@@ -22,6 +24,7 @@ MAX_FILE_BYTES = 8 * 1024 * 1024
 SAFE_ANALYSIS_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f-]{27,40}$")
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "storage" / "bi_factory.sqlite3"
+RAW_DIRECTORY = ROOT / "storage" / "working" / "react_analytics"
 
 
 def repository():
@@ -56,6 +59,7 @@ def _snapshot(repo, analysis_id):
         },
         "quality": repo.get_quality_report(analysis_id).model_dump(mode="json")
             if repo.get_quality_report(analysis_id) is not None else None,
+        "source_file_retained_locally": (RAW_DIRECTORY / analysis_id).is_dir(),
         "pipeline": {
             "current_stage": item.current_stage.value if item else "SEMANTIC_VALIDATION",
             "last_successful_stage": item.last_successful_stage.value if item else "PROFILING",
@@ -99,6 +103,28 @@ def upload(payload):
     repo = repository()
     document = repo.register_document(data, name)
     analysis = repo.create_analysis(document.source_document_id, profile)
+    # Preserve the original locally, outside Git, to make subsequent
+    # preparation/modeling reproducible rather than relying on a browser session.
+    target_dir = RAW_DIRECTORY / analysis.analysis_id
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / name
+    if target.is_symlink():
+        raise ValueError("Destino não permitido")
+    if not target.exists():
+        with tempfile.NamedTemporaryFile(dir=target_dir, prefix=".upload-", delete=False) as temporary:
+            try:
+                temporary.write(data)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+                pending_file = Path(temporary.name)
+            except Exception:
+                Path(temporary.name).unlink(missing_ok=True)
+                raise
+        try:
+            os.chmod(pending_file, 0o600)
+            os.replace(pending_file, target)
+        finally:
+            pending_file.unlink(missing_ok=True)
     # Quality is provisional and based on the sampled rows. It cannot replace
     # business validation and is not a certified dimensional model.
     quality = analyze_data_quality(workbook, analysis.report)
