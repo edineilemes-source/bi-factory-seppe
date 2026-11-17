@@ -174,11 +174,13 @@ async function refreshProjects(){
   const result=await response.json();
   if(!response.ok)throw Error(result.error||"Falha ao buscar projetos");
   setAllProjects(result.projects||[]);
+  const previous=window.localStorage.getItem("bi-factory-active-project");
+  if(previous)setActiveProject(old=>old||result.projects?.find(p=>p.id===previous)||null);
  }catch(e){setError(e.message)}
  finally{setLoadingProjects(false)}
 }
 useEffect(()=>{refreshProjects()},[]);
-function openBusinessProject(businessProject){setActiveProject(businessProject);setSection("Conhecimento");setError("")}
+function openBusinessProject(businessProject){setActiveProject(businessProject);window.localStorage.setItem("bi-factory-active-project",businessProject.id);setSection("Conhecimento");setError("")}
 function updateBusinessProject(businessProject){setActiveProject(businessProject);setAllProjects(old=>old.map(item=>item.id===businessProject.id?businessProject:item))}
 
 const folders=data?.folders||[];const products=data?.products||[];const components=data?.components_by_product||{};
