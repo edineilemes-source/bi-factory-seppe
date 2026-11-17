@@ -41,12 +41,13 @@ const statusLabel=value=>{
   return String(value).replaceAll("_"," ");
 };
 
-export default function DataWorkspace({area,projectName}){
+export default function DataWorkspace({area,projectName,projectId}){
   const [cap,setCap]=useState(null),[snapshot,setSnapshot]=useState(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
   const [file,setFile]=useState(null),[domain,setDomain]=useState("");
   const [purpose,setPurpose]=useState(""),[answers,setAnswers]=useState({});
-  const [analysisId,setAnalysisId]=useState(()=>localStorage.getItem(KEY)||"");
+  const key=KEY+"-"+(projectId||"legacy");
+  const [analysisId,setAnalysisId]=useState(()=>localStorage.getItem(key)||"");
 
   useEffect(()=>{
     api("capabilities").then(setCap).catch(e=>setError(e.message));
@@ -70,7 +71,7 @@ export default function DataWorkspace({area,projectName}){
         context:{project_name:projectName,business_domain:domain,purpose},
       });
       setSnapshot(result);setAnalysisId(result.analysis_id);
-      localStorage.setItem(KEY,result.analysis_id);
+      localStorage.setItem(key,result.analysis_id);
       setMessage("Análise persistida. O arquivo original não foi alterado.");
     }catch(e){setError(e.message)}
     finally{setBusy(false)}
@@ -92,7 +93,7 @@ export default function DataWorkspace({area,projectName}){
     setBusy(true);setError("");
     try{
       const result=await api("analysis/"+encodeURIComponent(analysisId.trim()));
-      setSnapshot(result);localStorage.setItem(KEY,result.analysis_id);
+      setSnapshot(result);localStorage.setItem(key,result.analysis_id);
       setMessage("Análise recuperada do SQLite.");
     }catch(e){setError(e.message)}finally{setBusy(false)}
   };
