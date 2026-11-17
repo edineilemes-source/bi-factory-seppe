@@ -27,7 +27,7 @@ def test_react_workspaces_share_a_persisted_analysis():
 
             page.get_by_role("button", name="Conhecimento").click()
             expect(page.get_by_role("heading", name="PMCG — Finanças Públicas")).to_be_visible()
-            expect(page.get_by_role("heading", name="PMCG — Finanças Públicas")).to_be_visible()
+            expect(page.get_by_role("heading", name="1. O que você deseja conhecer?")).to_be_visible()
 
             page.get_by_role("button", name="Modelagem").click()
             expect(page.get_by_role("heading", name="Pipeline de modelagem recuperado")).to_be_visible()
