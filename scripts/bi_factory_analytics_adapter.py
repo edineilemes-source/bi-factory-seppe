@@ -13,6 +13,13 @@ import re
 import os
 import tempfile
 from pathlib import Path
+import sys
+
+# Running `python scripts/serve_bi_factory_api.py` places scripts/ (not the
+# repository root) on sys.path. Recover the existing core/* package explicitly.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from core.ingestion.file_loader import load_tabular_file, SUPPORTED_EXTENSIONS
 from core.profiling.models import ProjectContext
@@ -22,7 +29,6 @@ from core.quality.engine import analyze_data_quality
 
 MAX_FILE_BYTES = 8 * 1024 * 1024
 SAFE_ANALYSIS_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f-]{27,40}$")
-ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "storage" / "bi_factory.sqlite3"
 RAW_DIRECTORY = ROOT / "storage" / "working" / "react_analytics"
 
