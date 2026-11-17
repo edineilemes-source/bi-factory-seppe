@@ -7,7 +7,7 @@ on:
 jobs:
   build-and-synthetic:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,3 +28,50 @@ jobs:
         run: npm ci --prefix web/bi_factory
       - name: Build existing React app with recovered modules
         run: npm run build --prefix web/bi_factory
+
+  slow-and-large-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-backup.txt
+      - name: Exercise all slow tests, including 200K row/memory safety scenarios
+        run: python -m pytest -q -m "slow and not postgres_integration" tests
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bi_test
+          POSTGRES_PASSWORD: synthetic_test_password_only
+          POSTGRES_DB: bi_factory_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U bi_test -d bi_factory_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_POSTGRES_HOST: 127.0.0.1
+      TEST_POSTGRES_PORT: "55432"
+      TEST_POSTGRES_DB: bi_factory_test
+      TEST_POSTGRES_USER: bi_test
+      TEST_POSTGRES_PASSWORD: synthetic_test_password_only
+      TEST_POSTGRES_DSN: postgresql://bi_test:synthetic_test_password_only@127.0.0.1:55432/bi_factory_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-backup.txt
+      - name: Exercise real PostgreSQL DDL, relationships, transaction rollback and replay using synthetic fixtures
+        run: python -m pytest -q -m postgres_integration tests
