@@ -65,6 +65,7 @@ jobs:
       TEST_POSTGRES_DB: bi_factory_test
       TEST_POSTGRES_USER: bi_test
       TEST_POSTGRES_PASSWORD: synthetic_test_password_only
+      PGPASSWORD: synthetic_test_password_only
       TEST_POSTGRES_DSN: postgresql://bi_test:synthetic_test_password_only@127.0.0.1:55432/bi_factory_test
     steps:
       - uses: actions/checkout@v4
