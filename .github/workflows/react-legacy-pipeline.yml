@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install known legacy Python dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt -r requirements-backup.txt
       - name: Validate Python code syntax
         run: python -m py_compile scripts/serve_bi_factory_api.py scripts/bi_factory_analytics_adapter.py tests/test_react_analytics_bridge.py
       - name: Test real legacy adapter using synthetic CSV and isolated SQLite
