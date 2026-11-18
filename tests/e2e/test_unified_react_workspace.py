@@ -13,6 +13,7 @@ def test_react_workspaces_share_a_persisted_analysis():
         try:
             page = browser.new_page()
             page.goto(base, wait_until="domcontentloaded")
+            page.get_by_role("button", name="Abrir projeto").first.click()
             page.get_by_role("button", name="Entrada de dados").click()
             expect(page.get_by_role("heading", name="Importar e analisar fonte tabular")).to_be_visible()
             page.locator('input[type="file"]').set_input_files({
@@ -25,8 +26,8 @@ def test_react_workspaces_share_a_persisted_analysis():
             expect(page.get_by_role("heading", name="Campos detectados")).to_be_visible()
 
             page.get_by_role("button", name="Conhecimento").click()
-            expect(page.get_by_role("heading", name="Questionário semântico")).to_be_visible()
-            expect(page.get_by_role("heading", name="fonte-sintetica.csv")).to_be_visible()
+            expect(page.get_by_role("heading", name="PMCG — Finanças Públicas")).to_be_visible()
+            expect(page.get_by_role("heading", name="1. O que você deseja conhecer?")).to_be_visible()
 
             page.get_by_role("button", name="Modelagem").click()
             expect(page.get_by_role("heading", name="Pipeline de modelagem recuperado")).to_be_visible()
