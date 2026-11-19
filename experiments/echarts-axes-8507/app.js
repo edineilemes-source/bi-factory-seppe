@@ -21,6 +21,7 @@ function addObject(type,details={},edit=false){
  const obj={id:newId(),type,title:"",width:type==="chart"?6:4,height:type==="chart"?4:2,...details};
  if(type==="chart"){
    obj.chart=obj.chart||E.createChart(obj.id,{title:obj.title||"Novo gráfico",type:"BAR"});
+   obj.chart.id=obj.id;
    obj.title=obj.title||obj.chart.title;
  }
  if(type==="filter")obj.dimension=obj.dimension||"ano";
@@ -221,7 +222,11 @@ function renderProperties(){
   root.append(propButton("Editar X, Y, Z e Cabeçalho no ECharts",()=>openChart(o.id),"primary"));
   root.append(node("p","Escopo atual: "+E.fixedBadge(o.chart,"ano")+"; "+E.fixedBadge(o.chart,"bimestre"),"small muted"));
  }else if(o.type==="filter"){
-  root.append(propertiesField("Dimensão do filtro",o.dimension,v=>{o.dimension=v;renderCanvas()},"select",
+  root.append(propertiesField("Dimensão do filtro",o.dimension,v=>{
+     const oldDimension=o.dimension;o.dimension=v;
+     if(oldDimension!==v)delete state.filters[oldDimension];
+     renderCanvas()
+   },"select",
    Object.entries(E.DIMENSIONS)));
   root.append(node("p","Aqui você posiciona e identifica o filtro. Os valores permitidos vêm dos gráficos.","small muted"));
  }else if(o.type==="text"){
@@ -416,11 +421,29 @@ function wire(){
   editing=null;showScreen("visual");
   status("Gráfico atualizado dentro do laboratório. Salve o rascunho para manter as alterações.");
  };
- for(const id of ["chart-type","axis-x","axis-y","axis-z","axis-header","chart-title",
+ for(const id of ["axis-x","axis-y","axis-z","axis-header","chart-title",
   "year-mode","year-fixed","period-mode","period-fixed","allow-measure-filter",
   "show-values","top-n"]){
   $(id).addEventListener("change",updateBinding);
  }
+ $("chart-type").addEventListener("change",()=>{
+   if(!editing)return;
+   const type=$("chart-type").value;
+   if(type==="RANKING"||type==="HORIZONTAL"){
+     $("axis-x").value="valor";$("axis-y").value="bimestre";
+   }else if(type==="HEATMAP"){
+     $("axis-x").value="ano";$("axis-y").value="bimestre";
+   }else if(type==="SCATTER"){
+     $("axis-x").value="valor";$("axis-y").value="valor";
+     if(editing.measures.length<2){
+       const additional=E.MEASURES.map(m=>m[0]).find(k=>!editing.measures.includes(k));
+       if(additional)editing.measures.push(additional);
+       for(const checkbox of $("measure-choices").querySelectorAll("input"))
+         checkbox.checked=editing.measures.includes(checkbox.value);
+     }
+   }
+   updateBinding();
+ });
  $("chart-title").addEventListener("input",updateBinding);
  window.addEventListener("resize",()=>{
   for(const chart of instances.values())try{chart.resize()}catch(_){}
