@@ -27,7 +27,7 @@ export default function KnowledgeStart({project,onProjectChanged}){
    <label>Tema ou assunto<input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Ex.: prestação de contas de convênios"/></label>
    <label>Abrangência<input value={scope} onChange={e=>setScope(e.target.value)} placeholder="Ex.: Brasil, TCE-MS, Campo Grande"/></label>
    <section className="knowledgeResearchTypes" aria-labelledby="knowledge-research-title">
-    <h3 id="knowledge-research-title">2. Fontes que deseja pesquisar</h3>
+    <h3 id="knowledge-research-title">Fontes que deseja pesquisar</h3>
     <p>Selecione os tipos de documentos e fontes que devem orientar a pesquisa sobre o tema e a abrangência informados acima.</p>
     <div className="knowledgeResearchOptions" role="group" aria-label="Tipos de fontes para pesquisa">
      {categories.map(([id,name])=><label key={id} className={"knowledgeResearchOption"+(categoriesSelected.includes(id)?" isSelected":"")}>
