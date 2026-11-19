@@ -82,13 +82,23 @@ class Handler(SimpleHTTPRequestHandler):
             return False
         try:
             if path == "/api/fiscal" and method == "GET":
-                source = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
-                if not source.exists():
-                    self._send({"error": "Fonte fiscal oficial indisponível. Gere o relatório no BI Factory."}, 404)
+                # Base histórica homologada prevalece, sem modificar o legado 2025.
+                # A base multi-ano só é aceita com ano/bimestre e colunas esperadas.
+                historical = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+                legacy = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
+                source = historical if historical.is_file() else legacy
+                if not source.is_file():
+                    self._send({"error": "Fonte fiscal indisponível. Não há CSV homologado."}, 404)
                     return True
+                rows = []
+                required = {"ano", "bimestre", "receita_realizada_acumulada",
+                            "despesa_empenhada_acumulada", "despesa_liquidada_acumulada",
+                            "despesa_paga_acumulada"}
                 with source.open(encoding="utf-8-sig", newline="") as f:
                     reader = csv.DictReader(f)
-                    rows = []
+                    if not required.issubset(set(reader.fieldnames or [])):
+                        self._send({"error": "Fonte fiscal não segue o contrato de medidas do painel 2025"}, 422)
+                        return True
                     for row in reader:
                         converted = {}
                         for key, value in row.items():
@@ -101,6 +111,8 @@ class Handler(SimpleHTTPRequestHandler):
                                     converted[key] = float(value)
                                 except ValueError:
                                     converted[key] = value
+                        if converted["ano"] not in (2022, 2023, 2024, 2025) or converted["bimestre"] not in (1,2,3,4,5,6):
+                            continue
                         rows.append(converted)
                         if len(rows) > 10000:
                             raise ValueError("Fonte fiscal excede o limite da prévia")
