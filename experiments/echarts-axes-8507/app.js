@@ -248,3 +248,183 @@ function renderProperties(){
     state.selected=state.objects.at(-1)?.id||null;renderCanvas();renderProperties()
  },"danger"));
 }
+
+function fillChartEditor(spec){
+ if(!spec)return;
+ configureOptions($("chart-type"),Object.entries(E.TYPES),spec.type);
+ const axisChoices=Object.entries(E.AXES);
+ configureOptions($("axis-x"),axisChoices,spec.axes.x);
+ configureOptions($("axis-y"),axisChoices,spec.axes.y);
+ configureOptions($("axis-z"),[["medida","Medida / legenda"],["valor","Valor / rótulo"],["nenhum","Nenhum"]],spec.axes.z);
+ configureOptions($("axis-header"),[["ano","Ano"],["bimestre","Bimestre"],["medida","Medida"],["nenhum","Sem cabeçalho"]],spec.axes.header);
+ $("chart-title").value=spec.title;
+ const years=[...new Set(rows.map(r=>r.ano))].sort();
+ configureOptions($("year-fixed"),(years.length?years:[2022,2023,2024,2025,2026]).map(y=>[y,String(y)]),spec.scope.ano.fixed);
+ configureOptions($("period-fixed"),[1,2,3,4,5,6].map(p=>[p,p+"º bimestre"]),spec.scope.bimestre.fixed);
+ $("year-mode").value=spec.scope.ano.mode;
+ $("period-mode").value=spec.scope.bimestre.mode;
+ $("allow-measure-filter").checked=Boolean(spec.measureFilterable);
+ $("show-values").checked=Boolean(spec.showLabels);
+ $("top-n").value=String([0,5,10,15].includes(spec.topN)?spec.topN:10);
+ const choices=$("measure-choices");choices.replaceChildren();
+ for(const [key,label] of E.MEASURES){
+  const row=node("label",undefined,"measure-row");
+  const input=node("input");input.type="checkbox";input.value=key;
+  input.checked=spec.measures.includes(key);
+  input.onchange=()=>{const selected=[...choices.querySelectorAll("input:checked")].map(x=>x.value);spec.measures=selected;
+    if(selected.length<2&&spec.measureFilterable){spec.measureFilterable=false;$("allow-measure-filter").checked=false}
+    renderPreview()};
+  row.append(input,node("span",label));choices.append(row)
+ }
+ updateScopeVisibility();
+}
+function updateScopeVisibility(){
+ $("year-fixed").hidden=$("year-mode").value!=="fixed";
+ $("period-fixed").hidden=$("period-mode").value!=="fixed";
+ $("top-n").hidden=$("chart-type").value!=="RANKING";
+}
+function renderContract(chart){
+ const root=$("chart-contract");root.replaceChildren();
+ const show=(text,style)=>root.append(node("div",text,style));
+ show("X: "+(E.AXES[chart.axes.x]||"?")+" · Y: "+(E.AXES[chart.axes.y]||"?"),"");
+ show("Z: "+({medida:"Identifica medidas",valor:"Mostra valor",nenhum:"Nenhum"}[chart.axes.z]||"?")+
+      " · Cabeçalho: "+({ano:"Ano",bimestre:"Bimestre",medida:"Medida",nenhum:"Nenhum"}[chart.axes.header]),"");
+ for(const d of ["ano","bimestre"]){
+  show(E.fixedBadge(chart,d),chart.scope[d].mode==="filterable"?"editable":"locked");
+ }
+ show("Medidas permitidas: "+(chart.measures.map(m=>E.byKey[m]).filter(Boolean).join(", ")||"Nenhuma"),"locked");
+ show("Seletor de medidas no produto: "+(chart.measureFilterable?"Permitido entre essas medidas":"Bloqueado"),chart.measureFilterable?"editable":"locked");
+}
+function renderPreview(){
+ if(!editing)return;
+ renderContract(editing);
+ previewChart(editing);
+ const issues=E.validate(editing);
+ if(issues.length)status("Configuração incompleta: "+issues.join("; "),true);
+ else status("Gráfico configurado. Escopos fixos não aceitam alterações pelos filtros do Editor Visual.");
+}
+function updateBinding(){
+ if(!editing)return;
+ editing.type=$("chart-type").value;
+ editing.axes.x=$("axis-x").value;
+ editing.axes.y=$("axis-y").value;
+ editing.axes.z=$("axis-z").value;
+ editing.axes.header=$("axis-header").value;
+ editing.title=$("chart-title").value.trim()||"Gráfico sem nome";
+ editing.scope.ano.mode=$("year-mode").value;
+ editing.scope.ano.fixed=Number($("year-fixed").value);
+ editing.scope.bimestre.mode=$("period-mode").value;
+ editing.scope.bimestre.fixed=Number($("period-fixed").value);
+ editing.measureFilterable=$("allow-measure-filter").checked&&editing.measures.length>1;
+ editing.showLabels=$("show-values").checked;
+ editing.topN=Number($("top-n").value);
+ const obj=object(state.selected);
+ if(obj&&obj.chart===editing)obj.title=editing.title;
+ updateScopeVisibility();renderPreview();
+}
+function exampleChart(title,type,measures,width,opts={}){
+ const chart=E.createChart(newId(),{title,type,measures,width,
+    axes:opts.axes||{x:"bimestre",y:"valor",z:"medida",header:"ano"},
+    scope:{
+      ano:{mode:opts.yearMode||"fixed",fixed:opts.year??2025},
+      bimestre:{mode:opts.periodMode||"all",fixed:opts.period??1}
+    },
+    measureFilterable:Boolean(opts.measureFilterable),showLabels:Boolean(opts.showLabels),
+    height:opts.height||4,topN:opts.topN||10
+ });
+ return {id:chart.id,type:"chart",title,width,height:chart.height,chart};
+}
+function buildExample(){
+ if(state.objects.length&&!confirm("Substituir o rascunho atual da 8507 pelo painel de exemplo? A versão 8506 não será modificada."))return;
+ const a=E.MEASURES;
+ const revenue=a[0][0],committed=a[1][0],liquidated=a[2][0],paid=a[3][0];
+ state.objects=[
+   exampleChart("Receita de 2025 · fixa","KPI",[revenue],4,{year:2025,periodMode:"all"}),
+   exampleChart("Empenhado · 2025","KPI",[committed],4,{year:2025,periodMode:"all"}),
+   exampleChart("Pago · 2025","KPI",[paid],4,{year:2025,periodMode:"all"}),
+   exampleChart("Execução por bimestre","BAR",[committed,liquidated,paid],6,
+     {yearMode:"filterable",periodMode:"all",measureFilterable:true,showLabels:false}),
+   exampleChart("Ranking de bimestres (liquidado)","RANKING",[liquidated],6,
+     {year:2025,periodMode:"all",showLabels:true,topN:6,height:5}),
+   exampleChart("Evolução das despesas","LINE",[committed,liquidated,paid],12,
+     {yearMode:"filterable",periodMode:"all",measureFilterable:true,showLabels:true})
+ ];
+ state.objects.unshift({id:newId(),type:"filter",dimension:"ano",title:"Ano (somente gráficos filtráveis)",width:4,height:1});
+ state.objects.unshift({id:newId(),type:"measure_filter",title:"Selecionar medida permitida",width:4,height:1});
+ state.filters={};
+ state.selected=state.objects.find(o=>o.type==="chart")?.id||null;
+ showScreen("visual");
+ status("Painel experimental criado. A Receita 2025 é fixa; os gráficos de execução e evolução permitem filtrar Ano.");
+}
+async function saveLab(){
+ try{
+  const response=await fetch("/api/state",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({version:1,objects:state.objects,filters:state.filters,selected:state.selected})
+  });
+  const info=await response.json();
+  if(!response.ok||!info.ok)throw Error(info.error||"HTTP "+response.status);
+  status("Rascunho salvo na 8507: "+info.objects+" objetos. Nenhum produto da porta 8506 foi modificado.");
+ }catch(error){status("Falha ao salvar laboratório: "+error.message,true)}
+}
+async function loadLab(){
+ try{
+  const [saved,fiscal]=await Promise.all([
+   fetch("/api/state").then(async r=>{if(!r.ok)throw Error("Estado HTTP "+r.status);return r.json()}),
+   fetch("/api/fiscal").then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error||"API HTTP "+r.status);return j})
+  ]);
+  if(!Array.isArray(fiscal))throw Error("A API 8505 retornou formato fiscal inesperado");
+  rows=E.normalizedRows(fiscal);
+  if(saved?.version===1&&Array.isArray(saved.objects)){
+   state={version:1,objects:saved.objects,filters:saved.filters||{},selected:saved.selected||null};
+  }
+  const valid=new Set(rows.map(r=>r.ano+"-"+r.bimestre));
+  $("data-status").textContent=valid.size+" períodos STN · 8505";
+  status("Laboratório 8507 pronto com "+valid.size+" períodos oficiais. A porta 8506 permanece separada.");
+  showScreen("visual");
+ }catch(error){
+  $("data-status").textContent="Fonte fiscal indisponível";
+  status("Não foi possível carregar os dados da porta 8505: "+error.message,true);
+  showScreen("visual");
+ }
+}
+function wire(){
+ $("go-visual").onclick=()=>showScreen("visual");
+ $("go-charts").onclick=()=>{
+  const sel=object(state.selected);
+  if(sel?.type==="chart")return openChart(sel.id);
+  const first=state.objects.find(o=>o.type==="chart");
+  if(first)return openChart(first.id);
+  addObject("chart",{title:"Novo gráfico"},true);
+ };
+ $("add-text").onclick=()=>addObject("text",{title:"Texto livre",width:6});
+ $("add-image").onclick=()=>addObject("image",{title:"Imagem",width:6});
+ $("add-chart").onclick=()=>addObject("chart",{title:"Novo gráfico",width:6},true);
+ $("add-kpi").onclick=()=>addObject("chart",{title:"Novo indicador",
+   width:4,height:2,chart:E.createChart(newId(),{type:"KPI",title:"Novo indicador",width:4})},true);
+ $("add-filter").onclick=()=>addObject("filter",{title:"Filtro de dimensão",dimension:"ano",height:1});
+ $("add-measure-filter").onclick=()=>addObject("measure_filter",{title:"Seletor de medidas",height:1});
+ $("add-example").onclick=buildExample;
+ $("save-lab").onclick=saveLab;
+ $("visual-preview").onclick=()=>{previewOnly=!previewOnly;
+    $("visual-preview").textContent=previewOnly?"Voltar à edição":"Visualizar painel";renderCanvas()};
+ $("back-to-visual").onclick=()=>{
+  if(editing){
+   const issues=E.validate(editing);
+   if(issues.length){status("A configuração ainda tem pendências: "+issues.join("; "),true);return}
+  }
+  editing=null;showScreen("visual");
+  status("Gráfico atualizado dentro do laboratório. Salve o rascunho para manter as alterações.");
+ };
+ for(const id of ["chart-type","axis-x","axis-y","axis-z","axis-header","chart-title",
+  "year-mode","year-fixed","period-mode","period-fixed","allow-measure-filter",
+  "show-values","top-n"]){
+  $(id).addEventListener("change",updateBinding);
+ }
+ $("chart-title").addEventListener("input",updateBinding);
+ window.addEventListener("resize",()=>{
+  for(const chart of instances.values())try{chart.resize()}catch(_){}
+ });
+}
+wire();loadLab();
+})();
