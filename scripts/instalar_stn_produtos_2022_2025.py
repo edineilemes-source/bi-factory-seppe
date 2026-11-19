@@ -14,6 +14,8 @@ PATHS=[
  "web/bi_factory/src/main.jsx",
  "web/bi_factory/src/style.css",
  "web/bi_factory/src/FiscalSourcePicker.jsx",
+ "scripts/importar_rreo_stn_2022_2025.py",
+ "scripts/consolidar_rreo_2022_2025.py",
 ]
 def git(ref,path):
     p=subprocess.run(["git","show",f"{ref}:{path}"],cwd=ROOT,capture_output=True)
@@ -100,8 +102,15 @@ def main():
     print("CÓDIGO ATUALIZADO E BUILD APROVADO")
     print("Arquivos:",", ".join(changed))
     print("Backup:",backup)
+    print("Iniciando importação oficial STN para períodos ainda não presentes.")
+    extraction=subprocess.run([sys.executable,"scripts/importar_rreo_stn_2022_2025.py"],cwd=ROOT)
+    if extraction.returncode:
+        print("ATENÇÃO: STN não forneceu todos os períodos. Veja artifacts/stn_rreo_raw_2022_2025/auditoria.json")
+    consolidation=subprocess.run([sys.executable,"scripts/consolidar_rreo_2022_2025.py"],cwd=ROOT)
+    if consolidation.returncode:
+        print("ATENÇÃO: consolidação não concluída; CSVs originais preservados.")
     restart_known_api()
-    print("Nenhum dado financeiro foi criado ou modificado.")
+    print("Fontes originais anteriores e produtos preservados; apenas dados validados são apresentados.")
 if __name__=="__main__":
     try:main()
     except Exception as exc:print("INSTALAÇÃO BLOQUEADA / REVERTIDA:",exc,file=sys.stderr);sys.exit(1)
