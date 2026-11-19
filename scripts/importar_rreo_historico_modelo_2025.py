@@ -248,9 +248,7 @@ def main() -> int:
         audit["periodos"].append(
             {"ano": 2025, "bimestre": period, "situacao": "csv_2025_preservado"})
 
-    cols = list(dict.fromkeys(base_cols + history_cols +
-                              list(dashboard_row.__code__.co_consts[i] for i in [])
-                              ))
+    cols = list(dict.fromkeys(base_cols + history_cols))
     for row in data.values():
         for col in row:
             if col not in cols:
