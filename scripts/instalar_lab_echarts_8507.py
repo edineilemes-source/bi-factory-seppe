@@ -30,6 +30,7 @@ FILES=(
  "experiments/echarts-axes-8507/app.js",
  "scripts/serve_echarts_axes_8507.py",
  "scripts/test_echarts_axes_8507.js",
+ "scripts/test_lab_ui_contract_8507.js",
 )
 PORT=8507
 BASE="http://127.0.0.1:8507"
@@ -196,6 +197,8 @@ def main():
             finally:
                 pending.unlink(missing_ok=True)
         subprocess.run(["node","scripts/test_echarts_axes_8507.js"],
+                       cwd=ROOT,check=True)
+        subprocess.run(["node","scripts/test_lab_ui_contract_8507.js"],
                        cwd=ROOT,check=True)
     except Exception:
         for name in saved:
