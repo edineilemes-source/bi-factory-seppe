@@ -352,6 +352,8 @@ function buildExample(){
    exampleChart("Ranking de bimestres (liquidado)","RANKING",[liquidated],6,
      {year:2025,periodMode:"all",showLabels:true,topN:6,height:5}),
    exampleChart("Evolução das despesas","LINE",[committed,liquidated,paid],12,
+     {yearMode:"filterable",periodMode:"all",measureFilterable:true,showLabels:true}),
+   exampleChart("Pontos por bimestre","POINTS",[committed,liquidated,paid],12,
      {yearMode:"filterable",periodMode:"all",measureFilterable:true,showLabels:true})
  ];
  state.objects.unshift({id:newId(),type:"filter",dimension:"ano",title:"Ano (somente gráficos filtráveis)",width:4,height:1});
