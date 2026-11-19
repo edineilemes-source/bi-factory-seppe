@@ -3,7 +3,7 @@
 Não altera storage, branch ou arquivos fora da allowlist; recusa divergências locais.
 """
 from pathlib import Path
-import os,subprocess,datetime,sys
+import os,subprocess,datetime,sys,signal,time,urllib.request
 ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/feat/onboarding-projetos-conhecimento-20261117"
 HEAD="origin/feat/stn-produtos-periodos-2022-2025"
@@ -18,6 +18,47 @@ PATHS=[
 def git(ref,path):
     p=subprocess.run(["git","show",f"{ref}:{path}"],cwd=ROOT,capture_output=True)
     return p.stdout if p.returncode==0 else None
+
+def api_ready():
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:8505/api/fiscal-catalog",timeout=3) as response:
+            return response.status==200
+    except Exception:
+        return False
+
+def restart_known_api():
+    matching=[]
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():continue
+        try:
+            arguments=(proc/"cmdline").read_bytes().split(b"\\0")
+            if not any(b"serve_bi_factory_api.py" in arg for arg in arguments):continue
+            if b"8505" not in arguments:continue
+            if (proc/"cwd").resolve()==ROOT:matching.append(int(proc.name))
+        except (PermissionError,OSError):continue
+    if len(matching)>1:
+        print("Mais de uma API identificada; reinício manual necessário.")
+        return
+    if matching:
+        os.kill(matching[0],signal.SIGTERM)
+        for _ in range(50):
+            try:os.kill(matching[0],0)
+            except ProcessLookupError:break
+            time.sleep(.2)
+    elif api_ready():
+        print("Porta 8505 responde mas o processo não foi identificado; preservada.")
+        return
+    logs=Path("/tmp/bi-factory-seppe-logs");logs.mkdir(exist_ok=True)
+    with (logs/"api-8505.log").open("ab") as output:
+        subprocess.Popen([sys.executable,"-u",str(ROOT/"scripts/serve_bi_factory_api.py"),"--port","8505"],
+                         cwd=ROOT,stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT,
+                         start_new_session=True)
+    for _ in range(40):
+        if api_ready():
+            print("API fiscal 8505 reiniciada e /api/fiscal-catalog validada.")
+            return
+        time.sleep(.5)
+    print("ATENÇÃO: API não respondeu ao novo endpoint. Verifique /tmp/bi-factory-seppe-logs/api-8505.log")
 
 def main():
     if not (ROOT/".git").is_dir():raise RuntimeError("Codespaces do BI Factory não encontrado")
@@ -59,7 +100,7 @@ def main():
     print("CÓDIGO ATUALIZADO E BUILD APROVADO")
     print("Arquivos:",", ".join(changed))
     print("Backup:",backup)
-    print("Reinicie somente a API Python 8505 para disponibilizar /api/fiscal-catalog.")
+    restart_known_api()
     print("Nenhum dado financeiro foi criado ou modificado.")
 if __name__=="__main__":
     try:main()
