@@ -240,6 +240,7 @@
     const row=prepared.find(r=>labelOf(r)===label);
     return row?row[field]:null;
   };
+  const horizontal=x==="valor";
   if(categorical==="medida"){
     series=[{name:"Valor",type:chart.type==="LINE"||chart.type==="AREA"?"line":"bar",
       data:categoryValues.map(label=>{
@@ -259,7 +260,7 @@
       position:horizontal?"right":"top",
       formatter:p=>{const v=Array.isArray(p.value)?p.value[0]:p.value;return v==null?"":compact(v)}}
   }));
-  const horizontal=x==="valor",categoryAxis={type:"category",data:categoryValues,
+  const categoryAxis={type:"category",data:categoryValues,
    axisLabel:{hideOverlap:true,width:120,overflow:"truncate",interval:"auto"}},
    valueAxis={type:"value",axisLabel:{formatter:compact}};
   return {kind:"chart",header,rows,fields,options:{
