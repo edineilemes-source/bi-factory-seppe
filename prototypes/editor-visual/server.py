@@ -84,7 +84,10 @@ class Handler(SimpleHTTPRequestHandler):
             if path == "/api/fiscal" and method == "GET":
                 # Base histórica homologada prevalece, sem modificar o legado 2025.
                 # A base multi-ano só é aceita com ano/bimestre e colunas esperadas.
-                historical = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+                historical = ROOT / "storage/reports/official_fiscal/rreo-2022-2026-dashboard.csv"
+                previous = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+                if not historical.is_file() and previous.is_file():
+                    historical = previous
                 legacy = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
                 source = historical if historical.is_file() else legacy
                 if not source.is_file():
@@ -111,7 +114,7 @@ class Handler(SimpleHTTPRequestHandler):
                                     converted[key] = float(value)
                                 except ValueError:
                                     converted[key] = value
-                        if converted["ano"] not in (2022, 2023, 2024, 2025) or converted["bimestre"] not in (1,2,3,4,5,6):
+                        if converted["ano"] not in (2022, 2023, 2024, 2025, 2026) or converted["bimestre"] not in (1,2,3,4,5,6):
                             continue
                         rows.append(converted)
                         if len(rows) > 10000:
