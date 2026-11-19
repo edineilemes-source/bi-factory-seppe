@@ -29,7 +29,10 @@ FISCAL_STUDIO_CSV = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.
 
 def fiscal_catalog() -> dict:
     """Metadados de seleção sem declarar períodos não importados como disponíveis."""
-    historic = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+    historic = ROOT / "storage/reports/official_fiscal/rreo-2022-2026-dashboard.csv"
+    previous = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+    if not historic.is_file() and previous.is_file():
+        historic = previous
     legacy = FISCAL_STUDIO_CSV
     file = historic if historic.is_file() else legacy
     periods = set()
@@ -41,7 +44,7 @@ def fiscal_catalog() -> dict:
                     period = int(float(row.get("bimestre") or 0))
                 except (ValueError, TypeError):
                     continue
-                if year in range(2022, 2026) and period in range(1, 7):
+                if year in range(2022, 2027) and period in range(1, 7):
                     periods.add((year, period))
     measures = [
         {"label": title, "field": field} for title, field in [
@@ -56,12 +59,12 @@ def fiscal_catalog() -> dict:
     ]
     return {
         "name": "RREO — Execução Orçamentária (STN/SICONFI)",
-        "years": [2022, 2023, 2024, 2025], "bimesters": [1,2,3,4,5,6],
+        "years": [2022, 2023, 2024, 2025, 2026], "bimesters": [1,2,3,4,5,6],
         "dimensions": ["ano", "bimestre"], "measures": measures,
         "available": [{"ano": y, "bimestre": b} for y,b in sorted(periods)],
-        "source": "rreo-2022-2025-dashboard.csv" if historic.is_file() else (
+        "source": historic.name if historic.is_file() else (
             "rreo-2025-dashboard.csv" if legacy.is_file() else None),
-        "status": "parcial" if len(periods)<24 else "completo",
+        "status": "parcial" if len(periods)<30 else "completo",
         "note": "RREO: bimestres acumulados. RGF: quadrimestres em base separada. Períodos não importados não possuem valores."
     }
 
