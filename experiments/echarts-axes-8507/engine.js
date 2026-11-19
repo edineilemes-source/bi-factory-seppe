@@ -170,9 +170,11 @@
   }
   const first=fields[0],categorical=x==="valor"?y:x;
   const chartRows=[];
+  const multipleYears=new Set(rows.map(r=>r.ano)).size>1;
   for(const row of rows){
-    for(const field of (categorical==="medida"?fields:fields)){
-      const label=dimensionLabel(row,categorical,field);
+    for(const field of fields){
+      const label=categorical==="bimestre"&&multipleYears?
+        row.ano+" / "+row.bimestre+"º bim.":dimensionLabel(row,categorical,field);
       const value=row[field];
       if(value!==null)chartRows.push({label,value,field,row});
     }
