@@ -69,7 +69,10 @@
   if(!TYPES[chart.type])problems.push("Tipo de gráfico inválido");
   const x=chart.axes?.x,y=chart.axes?.y;
   if(!AXES[x]||!AXES[y])problems.push("Defina X e Y com campos válidos");
-  if(x===y)problems.push("Eixos X e Y devem ter funções diferentes");
+  if(x===y&&!(chart.type==="SCATTER"&&x==="valor"))
+   problems.push("Eixos X e Y devem ter funções diferentes");
+  if(chart.type==="SCATTER"&&(x!=="valor"||y!=="valor"))
+   problems.push("Dispersão usa Valor nos dois eixos, com uma medida diferente em cada eixo");
   const keys=(chart.measures||[]).filter(k=>byKey[k]);
   if(!keys.length)problems.push("Escolha pelo menos uma medida");
   if(chart.type==="SCATTER"&&keys.length<2)problems.push("Dispersão exige duas medidas: X e Y");
