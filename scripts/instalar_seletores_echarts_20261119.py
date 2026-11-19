@@ -15,7 +15,7 @@ def git(ref,path):
 
 def check_scripts(path):
     text=path.read_text(encoding="utf-8")
-    chunks=re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>",text,flags=re.DOTALL|re.IGNORECASE)
+    chunks=re.findall(r"<script[^>]*>(.*?)</script>",text,flags=re.DOTALL|re.IGNORECASE)
     checked=0
     for chunk in chunks:
         if not chunk.strip():continue
