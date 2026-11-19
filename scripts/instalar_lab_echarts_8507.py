@@ -25,6 +25,7 @@ ROOT=Path("/workspaces/bi-factory-seppe")
 REV="origin/feat/lab-echarts-eixos-8507-20261119"
 FILES=(
  "experiments/echarts-axes-8507/index.html",
+ "experiments/echarts-axes-8507/README.md",
  "experiments/echarts-axes-8507/style.css",
  "experiments/echarts-axes-8507/engine.js",
  "experiments/echarts-axes-8507/app.js",
