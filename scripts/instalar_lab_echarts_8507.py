@@ -15,6 +15,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import tarfile
 import time
 import urllib.error
 import urllib.request
@@ -98,6 +99,54 @@ def endpoint(url,timeout=8):
     with urllib.request.urlopen(url,timeout=timeout) as resp:
         return json.load(resp)
 
+def preserve_8506():
+    """Arquivo versionado do estado local atual, inclusive mudanças não commitadas."""
+    stamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    folder=ROOT/".git"/"backups"/("apresentacao-estavel-8506-"+stamp)
+    folder.mkdir(parents=True,exist_ok=True)
+    entries=[
+      "web/bi_factory/src",
+      "web/bi_factory/vite.config.js",
+      "web/bi_factory/package.json",
+      "web/bi_factory/package-lock.json",
+      "prototypes/editor-visual",
+      "scripts/serve_bi_factory_api.py",
+      "storage/information_products/registry.json",
+      "storage/information_products/folders.json",
+      "storage/information_products/layouts",
+      "storage/dashboard_projects/products",
+      "storage/reports/official_fiscal/rreo-2022-2026-dashboard.csv",
+    ]
+    present=[];missing=[]
+    archive=folder/"codigo-e-produtos-8506.tar.gz"
+    with tarfile.open(archive,mode="w:gz",dereference=False) as out:
+      for name in entries:
+        item=ROOT/name
+        if not item.exists() or item.is_symlink():
+          missing.append(name);continue
+        # Ignorar links simbólicos contidos na árvore, sem seguir caminhos externos.
+        def safe(member):
+          return None if member.issym() or member.islnk() else member
+        out.add(item,arcname=name,recursive=True,filter=safe)
+        present.append(name)
+    branch=subprocess.run(["git","branch","--show-current"],cwd=ROOT,
+                          capture_output=True,text=True).stdout.strip()
+    sha=subprocess.run(["git","rev-parse","HEAD"],cwd=ROOT,
+                       capture_output=True,text=True).stdout.strip()
+    manifest={
+      "created_local":datetime.datetime.now().isoformat(timespec="seconds"),
+      "snapshot":"8506 antes de instalar laboratório 8507",
+      "branch":branch,"head":sha,
+      "included":present,"not_found":missing,
+      "archive":str(archive),
+      "bytes":archive.stat().st_size,
+      "sha256":hashlib.sha256(archive.read_bytes()).hexdigest(),
+    }
+    (folder/"manifest.json").write_text(
+        json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
+    print("SNAPSHOT DA 8506 (não altera a aplicação):",archive)
+    return folder
+
 def main():
     if not (ROOT/".git").is_dir():raise RuntimeError("Repositório Codespaces BI Factory não encontrado")
     updates={}
@@ -120,6 +169,7 @@ def main():
         updates[name]=(existing,desired)
         print("NOVO ARQUIVO 8507:",name)
     check_syntax(known)
+    preserve_8506()
     stamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     backup=ROOT/".git"/"backups"/("lab-8507-"+stamp)
     saved=[]
