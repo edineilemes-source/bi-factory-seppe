@@ -27,6 +27,45 @@ FISCAL_REPORT = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.json
 FISCAL_STUDIO_CSV = ROOT / "storage/reports/official_fiscal/rreo-2025-dashboard.csv"
 
 
+def fiscal_catalog() -> dict:
+    """Metadados de seleção sem declarar períodos não importados como disponíveis."""
+    historic = ROOT / "storage/reports/official_fiscal/rreo-2022-2025-dashboard.csv"
+    legacy = FISCAL_STUDIO_CSV
+    file = historic if historic.is_file() else legacy
+    periods = set()
+    if file.is_file():
+        with file.open(encoding="utf-8-sig", newline="") as stream:
+            for row in csv.DictReader(stream):
+                try:
+                    year = int(float(row.get("ano") or row.get("exercicio") or 0))
+                    period = int(float(row.get("bimestre") or 0))
+                except (ValueError, TypeError):
+                    continue
+                if year in range(2022, 2026) and period in range(1, 7):
+                    periods.add((year, period))
+    measures = [
+        {"label": title, "field": field} for title, field in [
+            ("Receita realizada", "receita_realizada_acumulada"),
+            ("Despesa empenhada", "despesa_empenhada_acumulada"),
+            ("Despesa liquidada", "despesa_liquidada_acumulada"),
+            ("Despesa paga", "despesa_paga_acumulada"),
+            ("Resultado orçamentário formal", "resultado_orcamentario_formal"),
+            ("Margem receita × liquidada", "margem_receita_menos_liquidada"),
+            ("Liquidada não paga", "liquidada_nao_paga"),
+        ]
+    ]
+    return {
+        "name": "RREO — Execução Orçamentária (STN/SICONFI)",
+        "years": [2022, 2023, 2024, 2025], "bimesters": [1,2,3,4,5,6],
+        "dimensions": ["ano", "bimestre"], "measures": measures,
+        "available": [{"ano": y, "bimestre": b} for y,b in sorted(periods)],
+        "source": "rreo-2022-2025-dashboard.csv" if historic.is_file() else (
+            "rreo-2025-dashboard.csv" if legacy.is_file() else None),
+        "status": "parcial" if len(periods)<24 else "completo",
+        "note": "RREO: bimestres acumulados. RGF: quadrimestres em base separada. Períodos não importados não possuem valores."
+    }
+
+
 def load_list(path: Path) -> list:
     if not path.is_file():
         return []
@@ -262,11 +301,13 @@ class Handler(visual_editor_server.Handler):
         if route == "/api/fiscal" or route == "/api/products" or route.startswith("/api/products/"):
             self._route("GET")
             return
-        if route not in ("/api/overview", "/api/fiscal-preview", "/api/studio-fiscal"):
+        if route not in ("/api/overview", "/api/fiscal-preview", "/api/studio-fiscal", "/api/fiscal-catalog"):
             self.send_error(404, "Rota não encontrada")
             return
         try:
-            if route == "/api/studio-fiscal":
+            if route == "/api/fiscal-catalog":
+                result = fiscal_catalog()
+            elif route == "/api/studio-fiscal":
                 if not FISCAL_STUDIO_CSV.is_file():
                     result = {"rows": [], "error": "Dataset fiscal CSV não encontrado"}
                 else:
