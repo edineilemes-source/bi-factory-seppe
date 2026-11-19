@@ -22,18 +22,26 @@ export default function KnowledgeStart({project,onProjectChanged}){
    {error&&<p role="alert" style={{color:"#b22"}}>{error}</p>}{notice&&<p role="status">{notice}</p>}
   </div>
   <div className="card catalogForm" style={{padding:20}}>
-   <h2>1. O que você deseja conhecer?</h2>
+   <h2>Definir assunto e referências da pesquisa</h2>
+   <p>Informe o assunto e a abrangência para preparar uma solicitação de pesquisa documental.</p>
    <label>Tema ou assunto<input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Ex.: prestação de contas de convênios"/></label>
    <label>Abrangência<input value={scope} onChange={e=>setScope(e.target.value)} placeholder="Ex.: Brasil, TCE-MS, Campo Grande"/></label>
-   <fieldset style={{border:"1px solid #dce5ef",padding:14,borderRadius:10}}><legend>Quais documentos pesquisar?</legend>
-    {categories.map(([id,name])=><label key={id} style={{display:"flex",alignItems:"center",gap:10,margin:"9px 0"}}>
-     <input type="checkbox" checked={categoriesSelected.includes(id)} onChange={e=>setCategoriesSelected(old=>e.target.checked?[...old,id]:old.filter(x=>x!==id))}/>{name}</label>)}
-   </fieldset>
+   <section className="knowledgeResearchTypes" aria-labelledby="knowledge-research-title">
+    <h3 id="knowledge-research-title">2. Fontes que deseja pesquisar</h3>
+    <p>Selecione os tipos de documentos e fontes que devem orientar a pesquisa sobre o tema e a abrangência informados acima.</p>
+    <div className="knowledgeResearchOptions" role="group" aria-label="Tipos de fontes para pesquisa">
+     {categories.map(([id,name])=><label key={id} className={"knowledgeResearchOption"+(categoriesSelected.includes(id)?" isSelected":"")}>
+      <input type="checkbox" checked={categoriesSelected.includes(id)} onChange={e=>setCategoriesSelected(old=>e.target.checked?[...old,id]:old.filter(x=>x!==id))}/>
+      <span>{name}</span>
+     </label>)}
+    </div>
+    <p className="knowledgeResearchSummary">{categoriesSelected.length} {categoriesSelected.length===1?"tipo selecionado":"tipos selecionados"}</p>
+   </section>
    <div className="actions">
-    <button disabled={busy||!topic.trim()||!categoriesSelected.length} onClick={()=>act(async()=>{await request(base+"/research",{project_id:project.id,topic,categories:categoriesSelected,scope});setNotice("Solicitação registrada. A pesquisa automática por IA ainda será conectada; nenhuma busca foi executada.")})}>Registrar solicitação de pesquisa</button>
+    <button disabled={busy||!topic.trim()||!categoriesSelected.length} onClick={()=>act(async()=>{await request(base+"/research",{project_id:project.id,topic,categories:categoriesSelected,scope});setNotice("Solicitação registrada. A pesquisa automática por IA ainda será conectada; nenhuma busca foi executada.")})}>Registrar pesquisa</button>
     <button disabled={busy||!topic.trim()} onClick={()=>act(async()=>{const updated=await request(base,{theme:topic,scope},"PATCH");onProjectChanged(updated);setNotice("Tema salvo no projeto.")})}>Salvar tema</button>
    </div>
-   <p className="hint">A pesquisa automática por IA ainda não está integrada. Não serão exibidos resultados fictícios nem documentos sem fonte.</p>
+   <p className="hint">Ao registrar, a solicitação fica salva no projeto. A pesquisa automática por IA ainda não está integrada e não será executada neste momento.</p>
   </div>
   <div className="card catalogForm" style={{padding:20}}>
    <h2>2. Incluir documentos formais</h2>
