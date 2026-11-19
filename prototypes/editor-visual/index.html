@@ -77,6 +77,30 @@ if(!option){element.textContent='Selecione duas medidas para o gráfico de dispe
 const chart=echarts.init(element);charts.set(o.id,chart);chart.setOption(option);new ResizeObserver(()=>{if(charts.get(o.id)===chart)chart.resize()}).observe(element)}
 function openECharts(id){$('status').textContent='O ECharts cria ou edita um objeto por vez.';selected=id;selectedSet=new Set([id]);const modal=$('echarts-modal');modal.style.display='flex';const frame=$('echarts-frame');frame.src='/echarts-studio.html?embed=1&product='+encodeURIComponent(PRODUCT||'')+'&object='+encodeURIComponent(id)+'&ano='+encodeURIComponent(selections.ano||'')+'&bimestre='+encodeURIComponent(selections.bimestre||'');frame.onload=()=>{const o=objects[id];if(o?.chart)frame.contentWindow.postMessage({type:'bi-factory:edit-chart',chart:o.chart},location.origin)}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==$('echarts-frame').contentWindow||e.data?.type!=='bi-factory:chart-selected')return;const o=objects[selected];if(!o||o.type!=='dashboard')return;remember();o.chart=e.data.chart;if(e.data.filters){for(const dim of ['ano','bimestre']){if(e.data.filters[dim])selections[dim]=String(e.data.filters[dim]);else delete selections[dim]}}if(Array.isArray(e.data.rows)&&e.data.rows.length){fiscalRows=e.data.rows;updateFiscalSource()}else loadFiscalRows();$('fiscal-year').value=selections.ano||'';$('fiscal-bimester').value=selections.bimestre||'';o.title=o.chart.title;refreshCharts();Object.values(objects).filter(item=>item.type==='filter'||item.type==='filter_panel').forEach(render);render(o);properties();closeECharts();$('status').textContent='Gráfico ECharts inserido. Clique em Salvar para persistir o layout.'});
+window.addEventListener('message',e=>{
+ if(e.origin!==location.origin||e.source!==$('echarts-frame').contentWindow||e.data?.type!=='bi-factory:charts-selected')return;
+ const holder=objects[selected];
+ if(!holder||holder.type!=='dashboard'||preview)return;
+ const specs=Array.isArray(e.data.charts)?e.data.charts.filter(s=>s&&typeof s.type==='string').slice(0,18):[];
+ if(!specs.length)return;
+ remember();
+ if(Array.isArray(e.data.rows)&&e.data.rows.length){fiscalRows=e.data.rows;updateFiscalSource()}
+ if(e.data.filters){for(const dim of ['ano','bimestre']){if(e.data.filters[dim])selections[dim]=String(e.data.filters[dim]);else delete selections[dim]}}
+ $('fiscal-year').value=selections.ano||'';$('fiscal-bimester').value=selections.bimestre||'';
+ for(let i=0;i<specs.length;i++){
+  const spec=specs[i];const obj=i===0?holder:defaultObj('dashboard');
+  const cols=[3,4,6,8,12].includes(Number(spec.width))?Number(spec.width):6;
+  const height=spec.type==='KPI'?2:spec.type==='RANKING'?6:spec.type==='POINTS'?5:5;
+  obj.chart={...spec,id:obj.id};obj.title=spec.title||'Gráfico';obj.bg=spec.bg||'#ffffff';
+  if(i>0){objects[obj.id]=obj;grid.addWidget({id:obj.id,w:cols,h:height,content:''})}
+  else{const gridElement=document.querySelector('[gs-id="'+CSS.escape(obj.id)+'"]');if(gridElement)grid.update(gridElement,{w:cols,h:height})}
+  render(obj);
+ }
+ selected=holder.id;selectedSet=new Set([holder.id]);properties();
+ Object.values(objects).filter(o=>o.type==='filter'||o.type==='filter_panel').forEach(render);
+ closeECharts();
+ $('status').textContent=specs.length+' componentes do painel inseridos. Clique em Salvar para persistir o produto.';
+});
 function closeECharts(){$('echarts-modal').style.display='none';$('echarts-frame').src='about:blank'}
 function properties(){const root=$('properties');root.replaceChildren();const o=objects[selected];if(!o){root.textContent='Selecione um objeto.';return}
 function field(name,key,kind='text'){const label=document.createElement('label');label.textContent=name;const input=document.createElement(kind==='textarea'?'textarea':'input');if(kind!=='textarea')input.type=kind;input.dataset.prop=key;input.value=o[key]??'';input.addEventListener('focus',()=>remember(),{once:true});input.addEventListener('change',()=>remember());input.addEventListener('input',()=>{o[key]=kind==='number'?Number(input.value):input.value;render(o)});root.append(label,input)}
