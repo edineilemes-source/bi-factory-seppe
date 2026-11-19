@@ -250,10 +250,14 @@
       chart.type==="POINTS"?"scatter":"bar",
     barMaxWidth:40,symbolSize:chart.type==="POINTS"?12:undefined,
     areaStyle:chart.type==="AREA"?{}:undefined,
-    data:categoryValues.map(label=>valueFor(field,label)),
+    data:categoryValues.map(label=>{
+      const v=valueFor(field,label);
+      if(v===null)return null;
+      return horizontal&&["LINE","AREA","POINTS"].includes(chart.type)?[v,label]:v;
+    }),
     label:{show:z==="valor"||chart.showLabels,
-      position:chart.type==="HORIZONTAL"||x==="valor"?"right":"top",
-      formatter:p=>p.value==null?"":compact(p.value)}
+      position:horizontal?"right":"top",
+      formatter:p=>{const v=Array.isArray(p.value)?p.value[0]:p.value;return v==null?"":compact(v)}}
   }));
   const horizontal=x==="valor",categoryAxis={type:"category",data:categoryValues,
    axisLabel:{hideOverlap:true,width:120,overflow:"truncate",interval:"auto"}},
@@ -261,7 +265,7 @@
   return {kind:"chart",header,rows,fields,options:{
     color:chart.palette,
     legend:{show:z==="medida"&&fields.length>1,top:0,type:"scroll"},
-    tooltip:{trigger:"axis",valueFormatter:money},
+    tooltip:{trigger:"axis",valueFormatter:v=>money(Array.isArray(v)?v[0]:v)},
     grid:{left:20,right:28,top:z==="medida"&&fields.length>1?55:28,bottom:48,containLabel:true},
     xAxis:horizontal?valueAxis:categoryAxis,
     yAxis:horizontal?categoryAxis:valueAxis,
