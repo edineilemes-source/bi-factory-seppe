@@ -24,6 +24,7 @@ FILES=(
  "prototypes/editor-visual/index.html",
  "prototypes/editor-visual/echarts-studio.html",
  "prototypes/editor-visual/echarts-bi-options.js",
+ "scripts/test_echarts_dashboard.js",
 )
 
 def git(ref,path):
@@ -103,6 +104,7 @@ def main():
                 finally:pending.unlink(missing_ok=True)
             for name in FILES:
                 check_js(name,(ROOT/name).read_bytes())
+            subprocess.run(["node","scripts/test_echarts_dashboard.js"],cwd=ROOT,check=True)
         except Exception:
             for name in applied:
                 old=changed[name][0]
