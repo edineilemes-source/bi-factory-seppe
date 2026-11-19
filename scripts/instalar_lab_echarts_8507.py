@@ -133,6 +133,12 @@ def preserve_8506():
                           capture_output=True,text=True).stdout.strip()
     sha=subprocess.run(["git","rev-parse","HEAD"],cwd=ROOT,
                        capture_output=True,text=True).stdout.strip()
+    digest=hashlib.sha256()
+    with archive.open("rb") as reader:
+        while True:
+            chunk=reader.read(1024*1024)
+            if not chunk:break
+            digest.update(chunk)
     manifest={
       "created_local":datetime.datetime.now().isoformat(timespec="seconds"),
       "snapshot":"8506 antes de instalar laboratório 8507",
@@ -140,7 +146,7 @@ def preserve_8506():
       "included":present,"not_found":missing,
       "archive":str(archive),
       "bytes":archive.stat().st_size,
-      "sha256":hashlib.sha256(archive.read_bytes()).hexdigest(),
+      "sha256":digest.hexdigest(),
     }
     (folder/"manifest.json").write_text(
         json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
