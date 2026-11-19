@@ -22,3 +22,16 @@
 .visualOverlayBar>div{display:flex;gap:8px;flex-wrap:wrap}.visualOverlayBar button{background:#fff;color:#10233d;border:0;border-radius:7px;padding:10px 13px;cursor:pointer}
 .visualOverlay>iframe{flex:1;width:100%;border:0;background:white;min-height:0}
 @media(max-width:850px){.visualOverlayBar{align-items:flex-start;flex-direction:column}.productPreviewFrame{height:420px}}
+
+/* Conhecimento: opções de pesquisa, isoladas dos campos do formulário geral */
+.knowledgeResearchTypes{border:1px solid #dce6f0;border-radius:12px;padding:18px;background:#fafcff;min-width:0}
+.knowledgeResearchTypes h3{font-size:16px;color:#203b56;margin:0 0 7px}
+.knowledgeResearchTypes>p{margin:0 0 14px;color:#52677d;font-size:13px;line-height:1.55}
+.knowledgeResearchOptions{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px}
+.catalogForm .knowledgeResearchOption{display:flex;align-items:center;gap:12px;margin:0;min-height:50px;padding:12px 14px;border:1px solid #dce6f0;border-radius:9px;background:#fff;font-size:13px;font-weight:500;color:#24394e;line-height:1.35;cursor:pointer;min-width:0}
+.catalogForm .knowledgeResearchOption.isSelected{border-color:#88b5d4;background:#f0f7fc}
+.catalogForm .knowledgeResearchOption input[type="checkbox"]{width:17px;height:17px;flex:0 0 17px;margin:0;padding:0;accent-color:#17496d;cursor:pointer}
+.catalogForm .knowledgeResearchOption span{flex:1;min-width:0;overflow-wrap:anywhere}
+.catalogForm .knowledgeResearchOption:focus-within{outline:2px solid #246b98;outline-offset:2px}
+.knowledgeResearchTypes .knowledgeResearchSummary{margin:13px 0 0;color:#47657d;font-size:12px;font-weight:600}
+@media(max-width:600px){.knowledgeResearchTypes{padding:13px}.knowledgeResearchOptions{grid-template-columns:1fr}}
