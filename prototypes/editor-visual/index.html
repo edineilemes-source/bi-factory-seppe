@@ -28,13 +28,14 @@ function setupFiscalSource(){
  period.onchange=changed;
  return update
 }
-const updateFiscalSource=setupFiscalSource();$('fiscal-year').value=selections.ano||'';$('fiscal-bimester').value=selections.bimestre||'';
+
 const DIMENSIONS={ano:{label:'Ano',key:'ano'},bimestre:{label:'Bimestre',key:'bimestre'}};
 function chartDimensions(chart){if(!chart)return [];const declared=[...(Array.isArray(chart.dimensions)?chart.dimensions:[]),chart.dimension,chart.xDimension].filter(Boolean);return [...new Set((declared.length?declared:['bimestre']).filter(d=>DIMENSIONS[d]))]}
 function usedDimensions(){return new Set(Object.values(objects).filter(o=>o.type==='dashboard'&&o.chart).flatMap(o=>chartDimensions(o.chart)))}
 function usedMeasures(){return new Set(Object.values(objects).filter(o=>o.type==='dashboard'&&o.chart).flatMap(o=>o.chart.metrics||[]))}
 function offerNewChart(kind,name){const yes=window.confirm('Nenhum objeto ECharts utiliza '+kind+' '+name+'. Deseja criar um novo objeto para essa '+kind+'? Os gráficos existentes não serão modificados.');if(yes){add('dashboard');$('status').textContent='Novo objeto criado. Selecione-o e configure '+name+' no ECharts.'}return yes}
 const $=id=>document.getElementById(id);
+const updateFiscalSource=setupFiscalSource();$('fiscal-year').value=selections.ano||'';$('fiscal-bimester').value=selections.bimestre||'';
 function makeId(){return crypto.randomUUID()}
 function defaultObj(type){return {id:makeId(),type,title:type==='title'?'Novo título':type==='dashboard'?'Dashboard':type==='filter'?'Ano':type==='filter_panel'?'Filtros do painel':type==='measure_filter'?'Medida':'',text:'',image:'',bg:'#ffffff',color:'#203047',borderColor:'transparent',borderWidth:0,fontFamily:'Arial',bold:false,italic:false,size:type==='title'?28:16,chart:null,opacity:100,rotation:0,z:1,group:null,offsetX:0,offsetY:0,dimension:'ano',dimensions:['ano','bimestre'],filterLayout:'vertical',target:'all',measure:Object.keys(fields)[0]}}
 function content(obj){const box=document.createElement('div');box.style.background=['rectangle','square','diamond','ellipse','arrow','line'].includes(obj.type)?'transparent':obj.bg;box.style.color=obj.color;box.style.height='100%';box.style.opacity=(obj.opacity??100)/100;box.style.transform='rotate('+(obj.rotation||0)+'deg)';box.style.position='relative';if(obj.type==='dashboard'&&obj.chart?.type==='KPI')box.className='kpi';if(obj.title&&obj.type!=='text'){const h=document.createElement('div');h.className='widget-title';h.style.fontSize=obj.type==='title'?obj.size+'px':'16px';h.textContent=obj.title;box.append(h)}
