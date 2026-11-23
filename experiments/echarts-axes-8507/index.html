@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BI Factory SEPPE — Laboratório ECharts 8507</title>
-<meta name="bi-lab-build" content="lab8507-alca-persistente-20261123-r6">
-<link rel="stylesheet" href="/style.css?v=lab8507-alca-persistente-20261123-r6">
+<meta name="bi-lab-build" content="lab8507-preview-fullscreen-20261123-r7">
+<link rel="stylesheet" href="/style.css?v=lab8507-preview-fullscreen-20261123-r7">
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js" defer></script>
-<script src="/engine.js?v=lab8507-alca-persistente-20261123-r6" defer></script>
-<script src="/app.js?v=lab8507-alca-persistente-20261123-r6" defer></script>
+<script src="/engine.js?v=lab8507-preview-fullscreen-20261123-r7" defer></script>
+<script src="/app.js?v=lab8507-preview-fullscreen-20261123-r7" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -52,6 +52,7 @@
  </aside>
  <section class="main-area">
   <div class="area-title"><div><span class="section-kicker">CANVAS</span><h2>Montagem do produto</h2></div><div class="inline-actions"><span class="muted small">Posicione livremente · use as alças do objeto selecionado · filtros com várias opções</span><button id="visual-undo" title="Desfazer última alteração">Desfazer</button><button id="visual-redo" title="Refazer alteração">Refazer</button><button id="visual-preview">Visualizar painel</button></div></div>
+  <button id="exit-panel-preview" type="button" hidden aria-label="Fechar visualização do painel e voltar ao Editor Visual">Sair da visualização <span aria-hidden="true">×</span></button>
   <div id="visual-canvas" class="canvas-grid" aria-label="Objetos do produto"></div>
   <div id="empty-visual" class="empty-state" hidden>Adicione um gráfico, texto, imagem ou filtro. Use o ECharts para definir os dados.</div>
  </section>
