@@ -3,6 +3,8 @@
  */
 (()=>{
 "use strict";
+const LAB_BUILD="lab8507-20261123-r2";
+document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
 const $=id=>document.getElementById(id);
