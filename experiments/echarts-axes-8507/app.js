@@ -413,7 +413,7 @@ function propertiesField(label,value,onchange,kind="input",options=[]){
  if(kind==="select"){
   field=node("select");for(const [v,t] of options)field.add(new Option(t,v));field.value=String(value);
  }else if(kind==="textarea"){field=node("textarea");field.value=value||"";field.rows=5}
- else{field=node("input");field.value=value??"";field.type=kind==="number"?"number":"text"}
+ else{field=node("input");field.type=["number","color"].includes(kind)?kind:"text";field.value=value??""}
  field.addEventListener("change",()=>onchange(field.value));
  container.append(field);return container;
 }
@@ -632,6 +632,7 @@ function exampleChart(title,type,measures,width,opts={}){
 }
 function buildExample(){
  if(state.objects.length&&!confirm("Substituir o rascunho atual da 8507 pelo painel de exemplo? A versão 8506 não será modificada."))return;
+ checkpoint();
  const a=E.MEASURES;
  const revenue=a[0][0],committed=a[1][0],liquidated=a[2][0],paid=a[3][0];
  state.objects=[
@@ -791,14 +792,23 @@ function wire(){
   if(first)return openChart(first.id);
   addObject("chart",{title:"Novo gráfico"},true);
  };
- $("add-text").onclick=()=>addObject("text",{title:"Texto livre",width:6});
+ $("add-text").onclick=()=>addObject("text",{title:"",text:"",width:6,height:2});
+ $("add-title").onclick=()=>addObject("title",{title:"",text:"",width:8,height:1,size:28,bold:true});
  $("add-image").onclick=()=>addObject("image",{title:"Imagem",width:6});
  $("add-chart").onclick=()=>addObject("chart",{title:"Novo gráfico",width:6},true);
- $("add-kpi").onclick=()=>addObject("chart",{title:"Novo indicador",
-   width:4,height:2,chart:E.createChart(newId(),{type:"KPI",title:"Novo indicador",width:4})},true);
+ for(const type of SHAPES){
+   const btn=$("add-"+type);
+   if(btn)btn.onclick=()=>addObject(type,{title:"",width:type==="line"?6:4,height:type==="line"?1:3,
+    color:"#259ea6",bg:"transparent",borderColor:"transparent"});
+ }
+ $("add-filter-panel").onclick=()=>addObject("filter_panel",{
+  title:"Filtros do painel",dimensions:["ano","bimestre"],width:6,height:2
+ });
  $("add-filter").onclick=()=>addObject("filter",{title:"Filtro de dimensão",dimension:"ano",height:1});
  $("add-measure-filter").onclick=()=>addObject("measure_filter",{title:"Seletor de medidas",height:1});
  $("add-example").onclick=buildExample;
+ $("visual-undo").onclick=undoVisual;
+ $("visual-redo").onclick=redoVisual;
  $("save-lab").onclick=saveLab;
  $("visual-preview").onclick=()=>{previewOnly=!previewOnly;
     $("visual-preview").textContent=previewOnly?"Voltar à edição":"Visualizar painel";renderCanvas()};
@@ -834,6 +844,18 @@ function wire(){
    updateBinding();
  });
  $("chart-title").addEventListener("input",updateBinding);
+ document.addEventListener("keydown",event=>{
+  if(currentScreen!=="visual"||previewOnly)return;
+  if(event.key==="Escape"){state.selected=null;renderCanvas();renderProperties();return}
+  const target=event.target;
+  if(target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  if((event.key==="Delete"||event.key==="Backspace")&&state.selected){
+   event.preventDefault();deleteObject(state.selected);
+  }
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="z"){
+   event.preventDefault();event.shiftKey?redoVisual():undoVisual();
+  }
+ });
  window.addEventListener("resize",()=>{
   for(const chart of instances.values())try{chart.resize()}catch(_){}
  });
