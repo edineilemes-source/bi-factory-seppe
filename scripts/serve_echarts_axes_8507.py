@@ -122,11 +122,11 @@ class Handler(SimpleHTTPRequestHandler):
                 try:return self.json(json.loads(STATE.read_text(encoding="utf-8")))
                 except (json.JSONDecodeError,OSError) as exc:
                     return self.json({"error":"Rascunho inválido: "+str(exc)},500)
-            return self.json({"version":1,"objects":[],"filters":{},"selected":null})
+            return self.json({"version":1,"objects":[],"filters":{},"selected":None})
         if route=="/api/health":
             return self.json({"status":"ok","lab":"echarts-axes","port":8507,
               "upstream":8505,"fallback_csv":True,"storage_isolated":True,
-              "build":"lab8507-20261123-r2"})
+              "build":"lab8507-20261123-r3"})
         if route=="/":
             self.path="/index.html"
         elif route.startswith("/api/"):
