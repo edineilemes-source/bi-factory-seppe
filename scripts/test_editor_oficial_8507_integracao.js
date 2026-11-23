@@ -51,7 +51,7 @@ assert.match(start,/\/visual-editor\/official-8507\/index\.html/);
 assert.doesNotMatch(start,/Vite 8506/);
 assert.match(autostart,/127\.0\.0\.1:8507\//);
 assert.match(vite,/port:8507/);
-assert.match(style,/\.chart-zoom-overlay/);
+assert.match(style,/#chart-zoom-overlay/);
 assert.match(engine,/const autoLegend=names=>/);
 const E=require(path.join(ui,"engine.js"));
 const sandbox={};
