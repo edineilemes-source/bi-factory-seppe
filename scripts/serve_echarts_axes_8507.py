@@ -110,7 +110,7 @@ class Handler(SimpleHTTPRequestHandler):
                                   "exercicios":sorted({int(r["ano"]) for r in rows})})
             except (ValueError,OSError,urllib.error.URLError,TimeoutError) as exc:
                 return self.json({"error":str(exc)},503)
-        if route=="/api/state":
+        if route in ("/api/state","/lab/draft"):
             if STATE.exists():
                 try:return self.json(json.loads(STATE.read_text(encoding="utf-8")))
                 except (json.JSONDecodeError,OSError) as exc:
@@ -126,7 +126,7 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
-        if urlsplit(self.path).path!="/api/state":
+        if urlsplit(self.path).path not in ("/api/state","/lab/draft"):
             return self.json({"error":"Rota inexistente"},404)
         try:
             size=int(self.headers.get("Content-Length","0"))
