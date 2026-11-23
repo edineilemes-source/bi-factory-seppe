@@ -17,9 +17,10 @@ spec.loader.exec_module(mod)
 
 class DraftRouteTests(unittest.TestCase):
     def test_dedicated_route_and_legacy_alias_store_same_draft(self):
-        old_state=mod.STATE
+        old_state,old_workspace=mod.STATE,mod.WORKSPACE
         with tempfile.TemporaryDirectory() as tmp:
-            mod.STATE=Path(tmp)/"lab8507"/"draft.json"
+            mod.WORKSPACE=Path(tmp)/"lab8507"
+            mod.STATE=mod.WORKSPACE/"draft.json"
             server=ThreadingHTTPServer(("127.0.0.1",0),mod.Handler)
             thread=threading.Thread(target=server.serve_forever,daemon=True)
             thread.start()
@@ -50,7 +51,7 @@ class DraftRouteTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=4)
-                mod.STATE=old_state
+                mod.STATE,mod.WORKSPACE=old_state,old_workspace
 
 if __name__=="__main__":
     unittest.main(verbosity=2)
