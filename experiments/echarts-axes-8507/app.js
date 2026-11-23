@@ -193,58 +193,178 @@ function previewChart(chart){
  $("binding-summary").textContent="X "+E.AXES[chart.axes.x]+" · Y "+E.AXES[chart.axes.y]+" · Z "+
   ({medida:"Medida",valor:"Valor",nenhum:"Sem rótulo"}[chart.axes.z])+" · "+chart.measures.length+" medida(s)";
 }
+function startObjectResize(event,obj,block,canvas){
+ if(previewOnly)return;
+ event.preventDefault();event.stopPropagation();
+ checkpoint();
+ const x=event.clientX,y=event.clientY;
+ const oldW=bounded(obj.width,1,12,4),oldH=bounded(obj.height,1,12,2);
+ const css=getComputedStyle(canvas);
+ const gap=parseFloat(css.columnGap)||12;
+ const width=canvas.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight);
+ const col=Math.max(18,(width-gap*11)/12+gap);
+ const row=(parseFloat(css.gridAutoRows)||70)+(parseFloat(css.rowGap)||gap);
+ const move=ev=>{
+  ev.preventDefault();
+  obj.width=bounded(Math.round(oldW+(ev.clientX-x)/col),1,12,oldW);
+  obj.height=bounded(Math.round(oldH+(ev.clientY-y)/row),1,12,oldH);
+  block.style.gridColumn="span "+obj.width;
+  block.style.gridRow="span "+obj.height;
+ };
+ const finish=()=>{
+  document.removeEventListener("pointermove",move);
+  document.removeEventListener("pointerup",finish);
+  document.removeEventListener("pointercancel",finish);
+  renderCanvas();renderProperties();
+ };
+ document.addEventListener("pointermove",move);
+ document.addEventListener("pointerup",finish);
+ document.addEventListener("pointercancel",finish);
+}
+function startFreeMove(event,obj,block){
+ if(previewOnly||!event.shiftKey)return;
+ event.preventDefault();event.stopPropagation();
+ checkpoint();
+ const x=event.clientX,y=event.clientY;
+ const left=bounded(obj.offsetX,-4000,4000,0);
+ const top=bounded(obj.offsetY,-4000,4000,0);
+ const move=e=>{
+  obj.offsetX=bounded(left+e.clientX-x,-4000,4000,left);
+  obj.offsetY=bounded(top+e.clientY-y,-4000,4000,top);
+  applyObjectStyle(block,obj);
+ };
+ const finish=()=>{
+  document.removeEventListener("pointermove",move);
+  document.removeEventListener("pointerup",finish);
+  renderCanvas();renderProperties();
+ };
+ document.addEventListener("pointermove",move);
+ document.addEventListener("pointerup",finish);
+}
 function renderCanvas(){
- // Salva alterações de estrutura e filtros no navegador sem depender da rota HTTP.
+ // Rascunho do laboratório mantido no navegador, sem acessar os dados da 8506.
  cacheDraft(snapshotDraft(),false);
  disposeAll();
  const canvas=$("visual-canvas");
  canvas.replaceChildren();
  if(!state.objects.length){
-  canvas.append(node("div","Produto vazio. Adicione objetos ou use “Montar painel fiscal de exemplo”.","canvas-empty"));
+  canvas.append(node("div","Produto vazio. Use os objetos à esquerda para começar.","canvas-empty"));
   return;
  }
  for(const obj of state.objects){
    const block=node("section",undefined,"canvas-object");
-   const w=Math.min(12,Math.max(3,Number(obj.width)||6));
-   block.style.gridColumn="span "+w;
-   if(obj.id===state.selected&&!previewOnly)block.classList.add("active");
-   block.draggable=!previewOnly;
    block.dataset.objectId=obj.id;
    block.dataset.kind=obj.type==="chart"&&obj.chart?.type==="KPI"?"kpi":obj.type;
-   block.addEventListener("click",event=>{if(previewOnly||event.target.closest("select,button,input,[contenteditable]"))return;selectObject(obj.id)});
-   block.addEventListener("dragstart",event=>{if(!previewOnly)event.dataTransfer.setData("text/plain",obj.id)});
+   applyObjectStyle(block,obj);
+   if(obj.id===state.selected&&!previewOnly)block.classList.add("active");
+   block.draggable=!previewOnly;
+   block.addEventListener("click",event=>{
+      if(previewOnly||event.target.closest("select,button,input,[contenteditable],textarea,.resize-handle"))return;
+      if(state.selected!==obj.id)selectObject(obj.id);
+   });
+   block.addEventListener("dragstart",event=>{
+    if(previewOnly||event.target.closest("input,textarea,select,[contenteditable],button,.resize-handle")){
+     event.preventDefault();return;
+    }
+    event.dataTransfer.setData("text/plain",obj.id);
+   });
    block.addEventListener("dragover",event=>event.preventDefault());
    block.addEventListener("drop",event=>{
-      event.preventDefault();
+      event.preventDefault();event.stopPropagation();
       if(previewOnly)return;
       const other=event.dataTransfer.getData("text/plain");
-      const from=state.objects.findIndex(o=>o.id===other),to=state.objects.findIndex(o=>o.id===obj.id);
+      const from=state.objects.findIndex(o=>o.id===other);
+      const to=state.objects.findIndex(o=>o.id===obj.id);
       if(from<0||to<0||from===to)return;
+      checkpoint();
       const moved=state.objects.splice(from,1)[0];
-      state.objects.splice(to,0,moved);renderCanvas();
+      state.objects.splice(to,0,moved);
+      renderCanvas();renderProperties();
    });
-   const header=node("div",undefined,"object-header");
-   header.append(node("strong",elementLabel(obj)));
-   header.append(node("span",obj.type==="chart"?"ECharts":"Estrutura","hint-id"));
-   block.append(header);
+   if(!previewOnly){
+    const header=node("div",undefined,"object-header");
+    const title=node("strong",elementLabel(obj));
+    title.title="Arraste para reorganizar; Shift+arraste para mover livremente";
+    header.append(title);
+    const actions=node("div",undefined,"object-actions");
+    const duplicate=node("button","⧉","object-action");
+    duplicate.type="button";duplicate.title="Duplicar objeto";
+    duplicate.setAttribute("aria-label","Duplicar "+elementLabel(obj));
+    duplicate.onclick=event=>{event.stopPropagation();duplicateObject(obj.id)};
+    actions.append(duplicate);
+    const remove=node("button","×","object-action delete-action");
+    remove.type="button";remove.title="Excluir objeto";
+    remove.setAttribute("aria-label","Excluir "+elementLabel(obj));
+    remove.onclick=event=>{event.stopPropagation();deleteObject(obj.id)};
+    actions.append(remove);
+    header.append(actions);
+    header.addEventListener("pointerdown",event=>startFreeMove(event,obj,block));
+    block.append(header);
+   }else if(obj.type==="chart"){
+    block.append(node("div",obj.title||obj.chart?.title||"","object-preview-title"));
+   }
    const inner=node("div",undefined,"object-inner");
    block.append(inner);
    if(obj.type==="chart"&&obj.chart){
       inner.classList.add("chart-item");
-      inner.dataset.chartHeight=String(Math.max(100,Number(obj.height||4)*65));
-      if(obj.chart.type==="KPI")inner.dataset.chartHeight="115";
-   }else if(obj.type==="text"){
-      const editable=node("div",obj.text||"","text-edit");
+      inner.dataset.chartHeight=String(Math.max(90,bounded(obj.height,1,12,4)*70-40));
+   }else if(TEXT_TYPES.has(obj.type)){
+      inner.classList.add("text-container");
+      const editable=node("div",obj.text??"","text-edit");
       editable.contentEditable=!previewOnly;editable.spellcheck=true;
-      editable.addEventListener("blur",()=>{obj.text=editable.innerText});
+      editable.style.fontFamily=obj.fontFamily||"Arial";
+      editable.style.fontSize=bounded(obj.size,8,120,obj.type==="title"?28:18)+"px";
+      editable.style.fontWeight=obj.bold?"700":"400";
+      editable.style.fontStyle=obj.italic?"italic":"normal";
+      editable.style.textAlign=obj.textAlign||"left";
+      editable.style.color=obj.color||"#203047";
+      editable.style.background="transparent";
+      editable.setAttribute("aria-label",obj.type==="title"?"Editar título":"Escrever texto");
+      editable.addEventListener("pointerdown",event=>event.stopPropagation());
       editable.addEventListener("mousedown",event=>event.stopPropagation());
+      editable.addEventListener("focus",()=>{
+       state.selected=obj.id;block.classList.add("active");
+       renderProperties();
+      });
+      editable.addEventListener("input",()=>{
+       obj.text=editable.innerText;
+       cacheDraft(snapshotDraft(),false);
+       const control=$("visual-props").querySelector('[data-object-text-input]');
+       if(control)control.value=obj.text;
+      });
       inner.append(editable);
    }else if(obj.type==="image"){
-      if(obj.src){const image=node("img");image.src=obj.src;image.alt=obj.title||"Imagem";inner.append(image)}
-      else inner.append(node("p","Selecione o objeto e informe a imagem nas propriedades.","small muted"));
+      if(obj.src){
+       const image=node("img");
+       image.src=obj.src;image.alt=obj.title||"Imagem";
+       inner.append(image);
+      }else if(!previewOnly)inner.append(node("span","Imagem ainda não selecionada","small muted"));
    }else if(obj.type==="filter"){renderFilterControl(obj,inner)}
-   else if(obj.type==="measure_filter"){renderMeasureControl(obj,inner)}
+   else if(obj.type==="filter_panel"){
+      const dims=Array.isArray(obj.dimensions)?obj.dimensions:["ano","bimestre"];
+      const panel=node("div",undefined,"filter-panel-content");
+      for(const dim of dims)if(E.DIMENSIONS[dim]){
+       const entry=node("div",undefined,"filter-panel-field");
+       renderFilterControl({dimension:dim},entry);
+       panel.append(entry);
+      }
+      inner.append(panel);
+   }else if(obj.type==="measure_filter"){renderMeasureControl(obj,inner)}
+   else if(SHAPES.has(obj.type)){
+      inner.classList.add("shape-content");
+      const drawing=node("div",undefined,"shape-drawing shape-"+obj.type);
+      drawing.style.background=obj.color||"#259ea6";
+      inner.append(drawing);
+   }
    canvas.append(block);
+   if(!previewOnly){
+      const handle=node("button","", "resize-handle");
+      handle.type="button";
+      handle.title="Arraste para alterar largura e altura";
+      handle.setAttribute("aria-label","Redimensionar "+elementLabel(obj));
+      handle.addEventListener("pointerdown",event=>startObjectResize(event,obj,block,canvas));
+      block.append(handle);
+   }
    if(obj.type==="chart"&&obj.chart)
       renderChartIn(inner,obj.chart,state.filters,state.filters.medida||"");
  }
