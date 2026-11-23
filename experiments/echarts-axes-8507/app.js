@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-legenda-automatica-z-20261123-r10";
+const LAB_BUILD="lab8507-preview-zoom-grafico-20261123-r11";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -123,6 +123,8 @@ function applyObjectStyle(block,obj){
  block.style.transform="rotate("+bounded(obj.rotation,-180,180,0)+"deg)";
 }
 const instances=new Map();
+let expandedChartId=null;
+let zoomFocusOrigin=null;
 const formatNumber=v=>v===null||v===undefined?"Valor indisponível":E.money(v);
 let statusTimer=null;
 function status(message,bad=false){
@@ -230,7 +232,53 @@ function toggleEditorNativeFullscreen(){
   if(action?.catch)action.catch(()=>status("Seu navegador bloqueou a tela cheia. O canvas continua na largura total.",true));
  }else status("O canvas já ocupa a página inteira; este navegador não oferece tela cheia nativa.",true);
 }
+function closeExpandedChart(){
+ const layer=$("chart-zoom-overlay");
+ if(layer.hidden)return;
+ const target=$("chart-zoom-host");
+ const inner=target.querySelector(".chart-host");
+ if(inner&&instances.has(inner)){
+  try{instances.get(inner).dispose()}catch(_){}
+  instances.delete(inner);
+ }
+ target.replaceChildren();
+ layer.hidden=true;
+ document.body.classList.remove("lab-chart-expanded");
+ expandedChartId=null;
+ if(zoomFocusOrigin?.isConnected)zoomFocusOrigin.focus({preventScroll:true});
+ zoomFocusOrigin=null;
+}
+function resizeExpandedChart(){
+ if($("chart-zoom-overlay").hidden)return;
+ const target=$("chart-zoom-host");
+ target.dataset.chartHeight=String(Math.max(240,target.clientHeight||window.innerHeight-90));
+ const inner=target.querySelector(".chart-host");
+ if(!inner)return;
+ inner.style.height="100%";
+ const instance=instances.get(inner);
+ if(instance)try{instance.resize()}catch(_){}
+}
+function openExpandedChart(id){
+ if(!previewOnly||currentScreen!=="visual")return;
+ const obj=object(id);
+ if(!obj||obj.type!=="chart"||!obj.chart)return;
+ // Exatamente o mesmo gráfico e os filtros do painel; nenhum objeto novo é criado.
+ if(expandedChartId)closeExpandedChart();
+ closeFilterMenus();
+ zoomFocusOrigin=document.activeElement;
+ const layer=$("chart-zoom-overlay");
+ $("chart-zoom-title").textContent=obj.chart.title||obj.title||"Gráfico ampliado";
+ layer.hidden=false;
+ document.body.classList.add("lab-chart-expanded");
+ expandedChartId=obj.id;
+ const host=$("chart-zoom-host");
+ host.dataset.chartHeight=String(Math.max(240,host.clientHeight||window.innerHeight-90));
+ renderChartIn(host,obj.chart,state.filters,state.filters.medida||[]);
+ $("close-chart-zoom").focus({preventScroll:true});
+ requestAnimationFrame(()=>requestAnimationFrame(resizeExpandedChart));
+}
 function setPanelPreview(enabled){
+ if(!enabled)closeExpandedChart();
  previewOnly=Boolean(enabled);
  document.body.classList.toggle("lab-panel-preview",previewOnly);
  syncVisualWorkspaceMode();
@@ -429,6 +477,23 @@ function renderCanvas(){
         if(event.key==="Enter"||event.key===" "){
          event.preventDefault();event.stopPropagation();
          openChart(obj.id);
+        }
+       });
+      }else{
+       // A visualização não é a edição: tocar no gráfico amplia para ler os valores.
+       inner.classList.add("chart-zoom-target");
+       inner.tabIndex=0;
+       inner.setAttribute("role","button");
+       inner.setAttribute("aria-label","Ampliar gráfico: "+(obj.chart.title||obj.title||"Gráfico"));
+       inner.title="Clique para ampliar o gráfico em tela inteira";
+       inner.addEventListener("click",event=>{
+        event.stopPropagation();
+        openExpandedChart(obj.id);
+       },true);
+       inner.addEventListener("keydown",event=>{
+        if(event.key==="Enter"||event.key===" "){
+         event.preventDefault();event.stopPropagation();
+         openExpandedChart(obj.id);
         }
        });
       }
@@ -1084,6 +1149,7 @@ function wire(){
  $("save-lab").onclick=saveLab;
  $("visual-preview").onclick=enterPanelPreview;
  $("exit-panel-preview").onclick=exitPanelPreview;
+ $("close-chart-zoom").onclick=closeExpandedChart;
  document.addEventListener("fullscreenchange",()=>{
   const active=document.fullscreenElement===$("visual-page");
   $("editor-fullscreen").setAttribute("aria-pressed",String(active));
@@ -1131,6 +1197,12 @@ function wire(){
  });
  $("chart-title").addEventListener("input",updateBinding);
  document.addEventListener("keydown",event=>{
+  // Primeiro fecha somente o gráfico ampliado; Esc seguinte sai da visualização.
+  if(event.key==="Escape"&&!$("chart-zoom-overlay").hidden){
+   event.preventDefault();
+   closeExpandedChart();
+   return;
+  }
   if(event.key==="Escape"&&document.querySelector(".multi-select[open]")){
    event.preventDefault();
    closeFilterMenus();
@@ -1177,6 +1249,7 @@ function wire(){
  window.addEventListener("resize",()=>{
   updateCanvasHeight($("visual-canvas"));
   for(const chart of instances.values())try{chart.resize()}catch(_){}
+  resizeExpandedChart();
  });
 }
 wire();loadLab();
