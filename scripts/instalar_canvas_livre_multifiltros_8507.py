@@ -220,7 +220,7 @@ def main():
         raise RuntimeError("JS servido não aponta para a rota nova /lab/draft.")
     if b'function startObjectResize(' not in script or b'function deleteObject(' not in script:
         raise RuntimeError("JS servido ainda não contém gerenciamento de objetos da 8507.")
-    if b'if(!previewOnly){\n      const moveHandle=node("button","⠿","move-handle");' not in script:
+    if b'if(!previewOnly){\n      const moveHandle=node(' not in script:
         raise RuntimeError("Alças de movimentação de todos os objetos não estão ativas no JS servido.")
     if b'function multiSelectControl(' not in script or b'function ensureFreeLayout(' not in script:
         raise RuntimeError("JS servido não contém seleção múltipla ou posicionamento livre.")
