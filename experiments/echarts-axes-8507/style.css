@@ -400,3 +400,20 @@ footer{padding:9px 18px;background:#fff;border-top:1px solid var(--line);font-si
  .canvas-object{grid-column:auto!important}
  .canvas-object .resize-handle{display:block}
 }
+
+/* A alça de deslocamento deve continuar visível em TODOS os objetos,
+   independentemente de qual texto, título, imagem ou gráfico esteja ativo. */
+.canvas-object .move-handle{
+ display:grid;
+ visibility:visible;
+ opacity:.82;
+}
+.canvas-object:hover .move-handle,
+.canvas-object.active .move-handle,
+.canvas-object .move-handle:focus-visible{
+ opacity:1;
+}
+.canvas-object .move-handle:focus-visible{
+ outline:2px solid #168aa5;
+ outline-offset:2px;
+}
