@@ -126,7 +126,7 @@ class Handler(SimpleHTTPRequestHandler):
         if route=="/api/health":
             return self.json({"status":"ok","lab":"echarts-axes","port":8507,
               "upstream":8505,"fallback_csv":True,"storage_isolated":True,
-              "build":"lab8507-click-editar-echarts-20261123-r9"})
+              "build":"lab8507-legenda-automatica-z-20261123-r10"})
         if route=="/":
             self.path="/index.html"
         elif route.startswith("/api/"):
