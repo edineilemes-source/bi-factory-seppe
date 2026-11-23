@@ -40,8 +40,8 @@ assert.match(app,/document\.addEventListener\("pointerdown",event=>\{/);
 assert.match(app,/event\.target\.closest\?\.\("\.multi-select"\)/);
 assert.match(css,/\.multi-select-actions/);
 assert.match(css,/\.multi-select-done/);
-assert.match(html,/lab8507-legenda-automatica-z-20261123-r10/);
-assert.match(app,/lab8507-legenda-automatica-z-20261123-r10/);
+assert.match(html,/lab8507-preview-zoom-grafico-20261123-r11/);
+assert.match(app,/lab8507-preview-zoom-grafico-20261123-r11/);
 const E=require(path.join(dir,"engine.js"));
 const rows=E.normalizedRows([2022,2023,2024,2025,2026].map(ano=>({
  ano,bimestre:1,receita_realizada_acumulada:ano*100
