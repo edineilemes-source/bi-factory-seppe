@@ -45,6 +45,6 @@ assert.ok(css.includes('.image-click-surface'));
 assert.ok(css.includes('.multi-select-options'));
 assert.ok(css.includes('.multi-select-line'));
 assert.ok(css.includes('.multi-select[open]'));
-assert.ok(html.includes('lab8507-livre-multifiltro-20261123-r5'));
+assert.ok(html.includes('lab8507-alca-persistente-20261123-r6'));
 assert.doesNotMatch(html,/id="add-kpi"/,"KPI continua exclusivo do ECharts");
 console.log("OK 8507: canvas livre sem cabeçalho, imagem no clique, excluir selecionado, filtros multisseleção e Todos.");
