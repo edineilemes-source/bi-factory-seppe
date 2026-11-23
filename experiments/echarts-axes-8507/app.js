@@ -626,7 +626,7 @@ function renderProperties(){
    checkpoint();o.z=bounded((Number(o.z)||1)-100,-1000,1000,-99);renderCanvas()
  },"secondary"));
  root.append(layer);
- root.append(node("p","Posicione pelo próprio objeto ou pela alça no canto superior esquerdo. Redimensione pelo canto inferior direito. A sobreposição é livre; use Frente/Trás para mudar a camada.","small muted"));
+ root.append(node("p","Arraste o objeto ou a alça no canto superior esquerdo. Para ajustes precisos, use as setas do teclado (Shift + seta = 10 px). Redimensione pelo canto inferior direito. A sobreposição é livre.","small muted"));
  root.append(propButton("Duplicar objeto",()=>duplicateObject(o.id),"secondary"));
  root.append(propButton("Excluir objeto",()=>deleteObject(o.id),"danger"));
 }
@@ -936,6 +936,19 @@ function wire(){
   if(target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
   if((event.key==="Delete"||event.key==="Backspace")&&state.selected){
    event.preventDefault();deleteObject(state.selected);
+  }
+  const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+  if(arrows[event.key]&&state.selected){
+   const item=object(state.selected);
+   if(item){
+    event.preventDefault();
+    checkpoint();
+    const speed=event.shiftKey?10:1;
+    item.x=bounded(item.x+arrows[event.key][0]*speed,-4000,15000,12);
+    item.y=bounded(item.y+arrows[event.key][1]*speed,-4000,15000,12);
+    renderCanvas();renderProperties();
+    return;
+   }
   }
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="z"){
    event.preventDefault();event.shiftKey?redoVisual():undoVisual();
