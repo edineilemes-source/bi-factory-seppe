@@ -32,6 +32,7 @@ MODIFIED=(
  "web/bi_factory/src/main.jsx",
  "web/bi_factory/vite.config.js",
  "prototypes/editor-visual/server.py",
+ "scripts/serve_bi_factory_api.py",
  "scripts/start_bi_factory_codespaces.sh",
  "scripts/autostart_bi_factory_codespaces.sh",
 )
@@ -258,6 +259,15 @@ def deploy():
         raise RuntimeError("JS servido ainda é o laboratório antigo, sem salvar por produto")
     if "migrateLegacy" not in legacy:
         raise RuntimeError("Conversor de produtos antigos não está disponível")
+    # A opção de trazer rascunho da antiga 8507 é opcional; um 404 é normal.
+    try:
+        experimental=json.loads(http("/api/visual-8507/lab-draft"))
+        if not isinstance(experimental.get("objects"),list):
+            raise RuntimeError("Rascunho experimental tem formato inesperado")
+        print("OK importação opcional: rascunho disponível, sem alterar sua origem.",flush=True)
+    except urllib.error.HTTPError as error:
+        if error.code!=404:raise
+        print("Sem rascunho experimental anterior; botão de importação informará isso.",flush=True)
     products=json.loads(wait_http("/api/products"))
     if not isinstance(products,list):
         raise RuntimeError("Catálogo oficial de produtos indisponível")
