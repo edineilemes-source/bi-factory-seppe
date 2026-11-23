@@ -374,25 +374,64 @@ async function saveLab(){
   status("Rascunho salvo na 8507: "+info.objects+" objetos. Nenhum produto da porta 8506 foi modificado.");
  }catch(error){status("Falha ao salvar laboratório: "+error.message,true)}
 }
-async function loadLab(){
- try{
-  const [saved,fiscal]=await Promise.all([
-   fetch("/api/state").then(async r=>{if(!r.ok)throw Error("Estado HTTP "+r.status);return r.json()}),
-   fetch("/api/fiscal").then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error||"API HTTP "+r.status);return j})
-  ]);
-  if(!Array.isArray(fiscal))throw Error("A API 8505 retornou formato fiscal inesperado");
-  rows=E.normalizedRows(fiscal);
-  if(saved?.version===1&&Array.isArray(saved.objects)){
-   state={version:1,objects:saved.objects,filters:saved.filters||{},selected:saved.selected||null};
+async function requestJSON(path,retries=2){
+ let lastError=null;
+ for(let attempt=0;attempt<=retries;attempt++){
+  try{
+   const response=await fetch(path,{cache:"no-store",headers:{"Accept":"application/json"}});
+   let payload;
+   try{payload=await response.json()}catch(_){throw Error(path+" retornou uma resposta não JSON (HTTP "+response.status+")")}
+   if(!response.ok){
+    const message=payload?.error||"HTTP "+response.status;
+    if([502,503,504].includes(response.status)&&attempt<retries){
+     await new Promise(resolve=>setTimeout(resolve,450*(attempt+1)));
+     continue;
+    }
+    throw Error(path+": "+message+" (HTTP "+response.status+")");
+   }
+   return payload;
+  }catch(error){
+   lastError=error;
+   if(attempt<retries&&/network|fetch|502|503|504/i.test(String(error?.message||error))){
+    await new Promise(resolve=>setTimeout(resolve,450*(attempt+1)));
+    continue;
+   }
+   throw error;
   }
-  const valid=new Set(rows.map(r=>r.ano+"-"+r.bimestre));
-  $("data-status").textContent=valid.size+" períodos STN · 8505";
-  status("Laboratório 8507 pronto com "+valid.size+" períodos oficiais. A porta 8506 permanece separada.");
-  showScreen("visual");
- }catch(error){
+ }
+ throw lastError||Error("Falha desconhecida na consulta "+path);
+}
+async function loadLab(){
+ const [stored,fiscal]=await Promise.allSettled([
+   requestJSON("/api/state"),
+   requestJSON("/api/fiscal")
+ ]);
+ let stateIssue="",fiscalIssue="";
+ if(stored.status==="fulfilled"){
+  const saved=stored.value;
+  if(saved?.version===1&&Array.isArray(saved.objects))
+   state={version:1,objects:saved.objects,filters:saved.filters||{},selected:saved.selected||null};
+  else stateIssue="Estado do laboratório sem versão compatível";
+ }else stateIssue=String(stored.reason?.message||stored.reason);
+ if(fiscal.status==="fulfilled"){
+  if(Array.isArray(fiscal.value)){
+   rows=E.normalizedRows(fiscal.value);
+   const valid=new Set(rows.map(r=>r.ano+"-"+r.bimestre));
+   $("data-status").textContent=valid.size+" períodos STN · laboratório 8507";
+  }else{
+   fiscalIssue="API fiscal não retornou uma lista";
+   $("data-status").textContent="Fonte fiscal indisponível";
+  }
+ }else{
+  fiscalIssue=String(fiscal.reason?.message||fiscal.reason);
   $("data-status").textContent="Fonte fiscal indisponível";
-  status("Não foi possível carregar os dados da porta 8505: "+error.message,true);
-  showScreen("visual");
+ }
+ showScreen("visual");
+ if(!stateIssue&&!fiscalIssue){
+  status("Laboratório 8507 com "+rows.length+" bimestres oficiais. A 8506 permanece separada.");
+ }else{
+  const issues=[stateIssue?"Rascunho: "+stateIssue:"",fiscalIssue?"Dados fiscais: "+fiscalIssue:""].filter(Boolean);
+  status("Laboratório parcialmente disponível. "+issues.join(" | "),true);
  }
 }
 function wire(){
