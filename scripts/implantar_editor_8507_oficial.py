@@ -109,7 +109,7 @@ def stop_known(pids,label,port=None):
         if port:
             if not safe_port(port):return True
         else:
-            if not Path("/proc"/str(pid)).exists():return True
+            if not (Path("/proc")/str(pid)).exists():return True
         time.sleep(0.2)
     if port and safe_port(port):
         raise RuntimeError(label+" não liberou a porta "+str(port))
@@ -220,6 +220,11 @@ def deploy():
         raise
     if backup.exists():print("BACKUP do código anterior:",backup,flush=True)
     print("Código instalado e testes concluídos. Ativando a porta 8507.",flush=True)
+    # O monitor anterior ainda verificava a porta 8506; parar apenas a
+    # instância identificada e iniciar o monitor oficial após a troca.
+    old_monitors=process_list("scripts/autostart_bi_factory_codespaces.sh",ROOT)
+    old_monitors=[item for item in old_monitors if "--monitor" in item[1]]
+    if old_monitors:stop_known(old_monitors,"monitor anterior de serviços")
     # Never terminate unrelated port owners.
     if safe_port(8507):
         lab=process_list(str(LAB),ROOT)
@@ -265,6 +270,10 @@ def deploy():
             print("OK: layout individual de produto existente consultado sem escrita",flush=True)
             break
     print("OFICIAL 8507: catálogo, ficha, novo editor e API por produto verificados.",flush=True)
+    # Iniciar o monitor persistente atualizado, com verificação 8507 em lugar de 8506.
+    subprocess.run(["bash","scripts/autostart_bi_factory_codespaces.sh"],
+                   cwd=ROOT,check=True);
+    print("OK monitor: vigia API 8505 e aplicativo oficial 8507.",flush=True)
     # The old 8506 may be left as emergency rollback; it is no longer monitored,
     # linked, or the official URL. Do not kill unknown processes.
     print("Porta oficial: 8507. Porta 8506 legada preservada apenas como contingência.",flush=True)
