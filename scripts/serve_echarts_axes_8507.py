@@ -7,6 +7,7 @@ Por segurança, usa 127.0.0.1 e deve ser encaminhado como porta PRIVATE.
 """
 from __future__ import annotations
 import argparse
+import csv
 import json
 import os
 import tempfile
@@ -22,7 +23,62 @@ HERE=ROOT/"experiments/echarts-axes-8507"
 WORKSPACE=ROOT/"storage/labs/echarts-axes-8507"
 STATE=WORKSPACE/"state.json"
 UPSTREAM="http://127.0.0.1:8505/api/fiscal"
+HISTORICAL=ROOT/"storage/reports/official_fiscal/rreo-2022-2026-dashboard.csv"
+LEGACY=ROOT/"storage/reports/official_fiscal/rreo-2025-dashboard.csv"
+REQUIRED={
+ "ano","bimestre","receita_realizada_acumulada",
+ "despesa_empenhada_acumulada","despesa_liquidada_acumulada",
+ "despesa_paga_acumulada","resultado_orcamentario_formal",
+ "margem_receita_menos_liquidada","liquidada_nao_paga",
+}
 MAX_BYTES=1_500_000
+
+def load_local_fiscal():
+    """Read-only fallback; never generates numbers and never modifies the source."""
+    source=HISTORICAL if HISTORICAL.is_file() else LEGACY
+    if not source.is_file():
+        raise FileNotFoundError("CSV histórico e CSV original 2025 não encontrados")
+    with source.open(encoding="utf-8-sig",newline="") as handle:
+        reader=csv.DictReader(handle)
+        columns=set(reader.fieldnames or [])
+        if not REQUIRED.issubset(columns):
+            raise ValueError("CSV fiscal sem colunas obrigatórias: "+
+                             ", ".join(sorted(REQUIRED-columns)))
+        rows=list(reader)
+    if not rows:
+        raise ValueError("CSV fiscal vazio")
+    unique=set()
+    for row in rows:
+        try:
+            year=int(row["ano"]);period=int(row["bimestre"])
+            if year<2022 or year>2026 or period<1 or period>6:
+                raise ValueError("Período fora do intervalo 2022–2026")
+            for key in REQUIRED-{"ano","bimestre"}:
+                if row[key] in ("",None,"None"):
+                    raise ValueError("Medida obrigatória ausente: "+key)
+                float(row[key])
+        except (ValueError,TypeError,KeyError) as exc:
+            raise ValueError("CSV fiscal contém registro inválido") from exc
+        if (year,period) in unique:
+            raise ValueError("Ano/bimestre duplicado no CSV fiscal")
+        unique.add((year,period))
+        row["ano"]=year;row["bimestre"]=period
+    rows.sort(key=lambda r:(r["ano"],r["bimestre"]))
+    return rows,source
+
+def load_fiscal():
+    """Prefer API 8505; fallback to the already homologated local CSV."""
+    upstream_error=None
+    try:
+        with urllib.request.urlopen(UPSTREAM,timeout=3) as response:
+            rows=json.load(response)
+        if not isinstance(rows,list) or not 0<len(rows)<=10000:
+            raise ValueError("API fiscal 8505 retornou formato inválido")
+        return rows,"api-8505"
+    except (ValueError,urllib.error.URLError,TimeoutError,OSError) as exc:
+        upstream_error=str(exc)
+    rows,source=load_local_fiscal()
+    return rows,"csv-local:"+source.name
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self,*args,**kwargs):
@@ -42,15 +98,18 @@ class Handler(SimpleHTTPRequestHandler):
         route=urlsplit(self.path).path
         if route=="/api/fiscal":
             try:
-                with urllib.request.urlopen(UPSTREAM,timeout=15) as response:
-                    rows=json.load(response)
-                if not isinstance(rows,list):
-                    raise ValueError("API fiscal não retornou uma lista")
-                if len(rows)>10000:
-                    raise ValueError("Quantidade inesperada de linhas")
+                rows,source=load_fiscal()
+                self._fiscal_source=source
                 return self.json(rows)
-            except (ValueError,urllib.error.URLError,TimeoutError) as exc:
-                return self.json({"error":"Fonte fiscal 8505 indisponível: "+str(exc)},503)
+            except (ValueError,OSError,urllib.error.URLError,TimeoutError) as exc:
+                return self.json({"error":"Fontes fiscais indisponíveis: "+str(exc)},503)
+        if route=="/api/source":
+            try:
+                rows,source=load_fiscal()
+                return self.json({"source":source,"periodos":len(rows),
+                                  "exercicios":sorted({int(r["ano"]) for r in rows})})
+            except (ValueError,OSError,urllib.error.URLError,TimeoutError) as exc:
+                return self.json({"error":str(exc)},503)
         if route=="/api/state":
             if STATE.exists():
                 try:return self.json(json.loads(STATE.read_text(encoding="utf-8")))
@@ -59,7 +118,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json({"version":1,"objects":[],"filters":{},"selected":null})
         if route=="/api/health":
             return self.json({"status":"ok","lab":"echarts-axes","port":8507,
-              "upstream":8505,"storage_isolated":True})
+              "upstream":8505,"fallback_csv":True,"storage_isolated":True})
         if route=="/":
             self.path="/index.html"
         elif route.startswith("/api/"):
