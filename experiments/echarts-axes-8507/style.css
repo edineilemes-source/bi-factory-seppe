@@ -417,3 +417,102 @@ footer{padding:9px 18px;background:#fff;border-top:1px solid var(--line);font-si
  outline:2px solid #168aa5;
  outline-offset:2px;
 }
+
+/* 8507 r7 — visualização do produto em tela cheia e filtros recolhíveis */
+#exit-panel-preview[hidden]{display:none!important}
+.lab-panel-preview{background:#fff;overflow:hidden}
+.lab-panel-preview .topbar,
+.lab-panel-preview .statusline,
+.lab-panel-preview footer,
+.lab-panel-preview #visual-page .sidebar,
+.lab-panel-preview #visual-page .area-title,
+.lab-panel-preview #empty-visual{display:none!important}
+.lab-panel-preview #visual-page.workspace,
+.lab-panel-preview #visual-page:fullscreen{
+ display:block!important;
+ position:fixed;
+ inset:0;
+ z-index:9999;
+ width:100vw;
+ height:100vh;
+ min-height:100vh;
+ overflow:auto;
+ padding:0;
+ margin:0;
+ background:#fff;
+ box-sizing:border-box;
+}
+.lab-panel-preview #visual-page .main-area{
+ display:block;
+ width:100%;
+ min-width:0;
+ min-height:100vh;
+ margin:0;
+ padding:0;
+ overflow:visible;
+ background:#fff;
+}
+.lab-panel-preview #visual-canvas{
+ display:block;
+ width:100%;
+ min-height:100vh!important;
+ border:none;
+ border-radius:0;
+ box-shadow:none;
+ margin:0;
+ padding:0;
+ background-color:#fff;
+ background-image:none;
+}
+#exit-panel-preview{
+ display:none;
+ position:fixed;
+ top:12px;
+ right:16px;
+ z-index:100000;
+ border:1px solid #b8cedc;
+ background:#fff;
+ color:#21516a;
+ border-radius:9px;
+ padding:9px 13px;
+ font-size:12px;
+ font-weight:700;
+ box-shadow:0 3px 12px #24415830;
+ cursor:pointer;
+}
+#exit-panel-preview span{font-size:18px;vertical-align:middle;padding-left:5px}
+.lab-panel-preview #exit-panel-preview{display:block}
+.lab-panel-preview .canvas-object{
+ cursor:default;
+ outline:none!important;
+ box-shadow:none;
+}
+.lab-panel-preview .canvas-object .move-handle,
+.lab-panel-preview .canvas-object .resize-handle{display:none!important}
+.lab-panel-preview .filter-control .small.muted{display:none!important}
+.lab-panel-preview .filter-control{padding:0}
+.lab-panel-preview .multi-select-summary{background:#fff;color:#244051}
+.multi-select-actions{
+ display:flex;
+ justify-content:flex-end;
+ position:sticky;
+ bottom:-6px;
+ margin:8px -6px -6px;
+ padding:8px;
+ background:#f7fafc;
+ border-top:1px solid #dce7ef;
+ border-radius:0 0 8px 8px;
+}
+.multi-select-done{
+ background:#176ba8!important;
+ color:#fff!important;
+ border:1px solid #176ba8!important;
+ font-size:12px!important;
+ padding:7px 12px!important;
+ width:auto!important;
+}
+.multi-select-done:hover{background:#125b8f!important}
+@media(max-width:620px){
+ #exit-panel-preview{top:8px;right:8px;padding:8px}
+ .lab-panel-preview #visual-page .main-area{padding:0}
+}
