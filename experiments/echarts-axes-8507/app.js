@@ -146,6 +146,12 @@ function addObject(type,details={},edit=false){
  if(edit&&type==="chart")openChart(obj.id);
  else{
   renderCanvas();renderProperties();
+  if(type==="image"){
+   // O clique em "+ Imagem" também abre o seletor imediatamente.
+   const picker=[...$("visual-canvas").querySelectorAll("[data-object-id]")]
+     .find(el=>el.dataset.objectId===obj.id)?.querySelector(".image-file-input");
+   picker?.click();
+  }
   if(TEXT_TYPES.has(type)){
    requestAnimationFrame(()=>{
     const element=document.querySelector('[data-object-id="'+obj.id+'"] [contenteditable="true"]');
@@ -409,6 +415,17 @@ function refreshVisualCharts(){
  }
  cacheDraft(snapshotDraft(),false);
 }
+function refreshOtherDimensionMenus(changedKey){
+ if(!E.DIMENSIONS[changedKey])return;
+ const boxes=[...$("visual-canvas").querySelectorAll(".filter-control[data-filter-dimension]")];
+ for(const box of boxes){
+  const dim=box.dataset.filterDimension;
+  if(dim===changedKey||!E.DIMENSIONS[dim])continue;
+  const host=box.parentElement;
+  box.remove();
+  renderFilterControl({dimension:dim},host);
+ }
+}
 function multiSelectControl(key,options,display,caption){
  const selected=E.filterValues(state.filters[key]).filter(v=>options.some(option=>String(option)===v));
  state.filters[key]=selected;
@@ -442,6 +459,7 @@ function multiSelectControl(key,options,display,caption){
   for(const filter of $("visual-canvas").querySelectorAll(".multi-select")){
    if(typeof filter.syncSelection==="function")filter.syncSelection();
   }
+  refreshOtherDimensionMenus(key);
   refreshVisualCharts();
  };
  const inputs=[];
@@ -470,6 +488,7 @@ function renderFilterControl(obj,host){
  const dim=E.DIMENSIONS[obj.dimension]?obj.dimension:"ano";
  const options=E.allowedOptions(charts(),rows,dim,state.filters);
  const box=node("div",undefined,"filter-control");
+ box.dataset.filterDimension=dim;
  box.append(node("label","Filtro: "+E.DIMENSIONS[dim]));
  if(!options.length){
   box.append(node("div","Nenhum gráfico autoriza variar "+E.DIMENSIONS[dim]+
