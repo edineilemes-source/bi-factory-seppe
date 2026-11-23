@@ -124,7 +124,20 @@ function applyObjectStyle(block,obj){
 }
 const instances=new Map();
 const formatNumber=v=>v===null||v===undefined?"Valor indisponível":E.money(v);
-function status(message,bad=false){const line=$("global-status");line.textContent=message;line.style.color=bad?"#a14635":"#496473"}
+let statusTimer=null;
+function status(message,bad=false){
+ const line=$("global-status");
+ line.textContent=message;line.style.color=bad?"#a14635":"#496473";
+ const floating=$("editor-status");
+ if(!floating)return;
+ floating.textContent=message;
+ floating.classList.toggle("error",Boolean(bad));
+ if(document.body.classList.contains("lab-edit-workspace")&&!previewOnly){
+  floating.hidden=false;
+  if(statusTimer!==null)clearTimeout(statusTimer);
+  statusTimer=setTimeout(()=>{floating.hidden=true;statusTimer=null},5000);
+ }else floating.hidden=true;
+}
 function object(id){return state.objects.find(o=>o.id===id)}
 function charts(){return state.objects.filter(o=>o.type==="chart"&&o.chart).map(o=>o.chart)}
 function newId(){return "o-"+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))}
@@ -1051,6 +1064,10 @@ function wire(){
  });
  document.addEventListener("pointerdown",event=>{
   if(!event.target.closest?.(".multi-select"))closeFilterMenus();
+  if(currentScreen==="visual"&&!previewOnly){
+   if(!event.target.closest?.("#visual-tools-drawer,#toggle-tools-drawer"))setEditorCurtain("tools",false);
+   if(!event.target.closest?.("#visual-props-drawer,#toggle-props-drawer"))setEditorCurtain("props",false);
+  }
  });
  $("back-to-visual").onclick=()=>{
   if(editing){
@@ -1096,6 +1113,15 @@ function wire(){
    return;
   }
   if(currentScreen!=="visual"||previewOnly)return;
+  if(event.key==="Escape"&&(
+    $("visual-tools-drawer").classList.contains("drawer-open")||
+    $("visual-props-drawer").classList.contains("drawer-open")
+  )){
+   setEditorCurtain("tools",false);
+   setEditorCurtain("props",false);
+   event.preventDefault();
+   return;
+  }
   if(event.key==="Escape"){state.selected=null;renderCanvas();renderProperties();return}
   const target=event.target;
   if(target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
