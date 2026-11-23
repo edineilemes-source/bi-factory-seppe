@@ -280,13 +280,25 @@ def deploy():
             print("OK: layout individual de produto existente consultado sem escrita",flush=True)
             break
     print("OFICIAL 8507: catálogo, ficha, novo editor e API por produto verificados.",flush=True)
+    # Só depois do sucesso é seguro aposentar a antiga interface na 8506.
+    old_vite=[
+        item for item in process_list("vite",OLD_WEB)
+        if "--port" in item[1]
+        and item[1].index("--port")+1<len(item[1])
+        and item[1][item[1].index("--port")+1]=="8506"
+    ]
+    if old_vite:
+        stop_known(old_vite,"Vite legado 8506",8506)
+        print("8506 anterior desativada; código e dados preservados para recuperação.",flush=True)
+    elif safe_port(8506):
+        print("8506 ainda ocupada por processo não identificado; não foi interrompida.",flush=True)
     # Iniciar o monitor persistente atualizado, com verificação 8507 em lugar de 8506.
     subprocess.run(["bash","scripts/autostart_bi_factory_codespaces.sh"],
                    cwd=ROOT,check=True);
     print("OK monitor: vigia API 8505 e aplicativo oficial 8507.",flush=True)
-    # The old 8506 may be left as emergency rollback; it is no longer monitored,
-    # linked, or the official URL. Do not kill unknown processes.
-    print("Porta oficial: 8507. Porta 8506 legada preservada apenas como contingência.",flush=True)
+    # O serviço antigo foi aposentado somente quando seu processo era identificável.
+    # O código está protegido por backup, não pela execução simultânea na 8506.
+    print("Porta oficial: 8507. O editor antigo da 8506 não é mais a interface principal.",flush=True)
     print("Nenhum registry/folders/layout antigo foi modificado ou apagado.",flush=True)
     print("No Codespaces, abra PORTAS > 8507 (Private) > Abrir no navegador.",flush=True)
 
