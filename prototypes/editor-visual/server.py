@@ -19,9 +19,10 @@ from app.components import information_product_registry as registry
 
 HERE = Path(__file__).resolve().parent
 LAYOUTS = ROOT / "storage" / "information_products" / "layouts"
+VISUAL_8507 = ROOT / "storage" / "information_products" / "visual_8507"
 EXTRA = ROOT / "storage" / "information_products" / "metadata"
 FIELDS = ("owner", "technical_owner", "audience", "project", "notes")
-MAX_BODY = 2_000_000
+MAX_BODY = 12_000_000
 
 
 def _id(value: str) -> str:
@@ -155,6 +156,44 @@ class Handler(SimpleHTTPRequestHandler):
                             product = registry.update_product(identifier, **permitted)
                         self._save_extra(identifier, data)
                         self._send(_enrich(product))
+                    else:
+                        self._send({"error": "Método inválido"}, 405)
+                    return True
+                if len(parts) == 4 and parts[3] == "visual-8507":
+                    # Editor oficial: um rascunho por ID de produto. NÃO altera o
+                    # layout GridStack anterior, nem a base fiscal ou as publicações.
+                    target = VISUAL_8507 / (identifier + ".json")
+                    if method == "GET":
+                        self._send(_read_json(target, None))
+                    elif method == "PUT":
+                        data = self._body()
+                        if (data.get("version") != 1 or not isinstance(data.get("objects"), list)
+                            or not isinstance(data.get("filters"), dict)
+                            or len(data["objects"]) > 100):
+                            raise ValueError("Formato do Editor Visual oficial 8507 inválido")
+                        seen = set()
+                        allowed = {"chart","text","title","image","filter","filter_panel",
+                                   "measure_filter","rectangle","square","diamond",
+                                   "ellipse","arrow","line"}
+                        for obj in data["objects"]:
+                            if not isinstance(obj, dict):
+                                raise ValueError("Objeto inválido")
+                            oid = str(obj.get("id", ""))
+                            if (not oid or len(oid) > 120 or oid in seen or
+                                obj.get("type") not in allowed):
+                                raise ValueError("ID, tipo ou duplicação de objeto inválido")
+                            seen.add(oid)
+                            if obj["type"] == "chart" and not isinstance(obj.get("chart"), dict):
+                                raise ValueError("Gráfico sem configuração ECharts")
+                        # Guarda uma cópia da versão anterior antes de substituir.
+                        if target.is_file():
+                            old = _read_json(target, None)
+                            if old != data:
+                                _write_json(VISUAL_8507 / "previous" / (identifier + ".json"), old)
+                        _write_json(target, data)
+                        registry.update_product(identifier)
+                        self._send({"ok": True,"objects": len(data["objects"]),
+                                    "product_id":identifier})
                     else:
                         self._send({"error": "Método inválido"}, 405)
                     return True
