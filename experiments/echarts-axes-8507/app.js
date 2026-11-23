@@ -104,6 +104,8 @@ function previewChart(chart){
   ({medida:"Medida",valor:"Valor",nenhum:"Sem rótulo"}[chart.axes.z])+" · "+chart.measures.length+" medida(s)";
 }
 function renderCanvas(){
+ // Salva alterações de estrutura e filtros no navegador sem depender da rota HTTP.
+ cacheDraft(snapshotDraft(),false);
  disposeAll();
  const canvas=$("visual-canvas");
  canvas.replaceChildren();
@@ -363,16 +365,56 @@ function buildExample(){
  showScreen("visual");
  status("Painel experimental criado. A Receita 2025 é fixa; os gráficos de execução e evolução permitem filtrar Ano.");
 }
-async function saveLab(){
+const LAB_DRAFT_CACHE="bi-factory-seppe-lab-8507-draft-v1";
+function snapshotDraft(){
+ return {version:1,objects:state.objects,filters:state.filters,selected:state.selected};
+}
+function draftValid(payload){
+ return payload?.version===1&&Array.isArray(payload.objects)&&
+   payload.objects.length<=100&&payload.filters&&typeof payload.filters==="object";
+}
+function cacheDraft(payload,synced=false){
+ if(!draftValid(payload))return false;
  try{
-  const response=await fetch("/api/state",{
-   method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({version:1,objects:state.objects,filters:state.filters,selected:state.selected})
+  localStorage.setItem(LAB_DRAFT_CACHE,JSON.stringify({
+   payload,updatedAt:new Date().toISOString(),synced:Boolean(synced)
+  }));
+  return true;
+ }catch(error){return false}
+}
+function recoverDraft(){
+ try{
+  const entry=JSON.parse(localStorage.getItem(LAB_DRAFT_CACHE)||"null");
+  return entry&&draftValid(entry.payload)?entry:null;
+ }catch(error){return null}
+}
+function applyDraft(saved){
+ state={version:1,objects:saved.objects,filters:saved.filters||{},selected:saved.selected||null};
+}
+async function saveLab(){
+ const payload=snapshotDraft();
+ const cached=cacheDraft(payload,false);
+ try{
+  const response=await fetch("/lab/draft",{
+   method:"POST",cache:"no-store",
+   headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify(payload)
   });
-  const info=await response.json();
-  if(!response.ok||!info.ok)throw Error(info.error||"HTTP "+response.status);
-  status("Rascunho salvo na 8507: "+info.objects+" objetos. Nenhum produto da porta 8506 foi modificado.");
- }catch(error){status("Falha ao salvar laboratório: "+error.message,true)}
+  let info;
+  try{info=await response.json()}catch(error){
+   throw Error("servidor retornou HTTP "+response.status+" sem JSON");
+  }
+  if(!response.ok||!info?.ok)throw Error(info?.error||"HTTP "+response.status);
+  cacheDraft(payload,true);
+  status("Rascunho salvo no laboratório 8507: "+info.objects+" objetos. A 8506 permanece intacta.");
+ }catch(error){
+  if(cached){
+   status("Rascunho guardado SOMENTE neste navegador. Não foi possível gravar no servidor 8507 ("+
+    error.message+"). Não apague os dados do navegador antes de sincronizar.",true);
+  }else{
+   status("Falha ao salvar no servidor e no navegador: "+error.message,true);
+  }
+ }
 }
 async function requestJSON(path,retries=2){
  let lastError=null;
@@ -403,16 +445,30 @@ async function requestJSON(path,retries=2){
 }
 async function loadLab(){
  const [stored,fiscal]=await Promise.allSettled([
-   requestJSON("/api/state"),
+   requestJSON("/lab/draft"),
    requestJSON("/api/fiscal")
  ]);
  let stateIssue="",fiscalIssue="";
+ const cached=recoverDraft();
  if(stored.status==="fulfilled"){
   const saved=stored.value;
-  if(saved?.version===1&&Array.isArray(saved.objects))
-   state={version:1,objects:saved.objects,filters:saved.filters||{},selected:saved.selected||null};
-  else stateIssue="Estado do laboratório sem versão compatível";
- }else stateIssue=String(stored.reason?.message||stored.reason);
+  if(draftValid(saved)){
+   // Um rascunho alterado sem confirmação de gravação no servidor tem prioridade.
+   if(cached&&!cached.synced)applyDraft(cached.payload);
+   else{applyDraft(saved);cacheDraft(saved,true)}
+  }else if(cached){
+   applyDraft(cached.payload);
+   stateIssue="Estado do servidor inválido; rascunho recuperado deste navegador";
+  }else stateIssue="Rascunho remoto indisponível; você pode iniciar um novo painel";
+ }else{
+  if(cached){
+   applyDraft(cached.payload);
+   stateIssue="Servidor de rascunhos indisponível; rascunho recuperado deste navegador";
+  }else{
+   stateIssue="Servidor de rascunhos indisponível ("+
+     String(stored.reason?.message||stored.reason)+"). Você pode montar um painel e salvar localmente.";
+  }
+ }
  if(fiscal.status==="fulfilled"){
   if(Array.isArray(fiscal.value)){
    rows=E.normalizedRows(fiscal.value);
@@ -427,6 +483,9 @@ async function loadLab(){
   $("data-status").textContent="Fonte fiscal indisponível";
  }
  showScreen("visual");
+ // Após carregar estado remoto, restaurar confirmação de sincronização apagada pelo redraw.
+ if(stored.status==="fulfilled"&&draftValid(stored.value)&&!stateIssue&&
+    !(cached&&!cached.synced))cacheDraft(stored.value,true);
  if(!stateIssue&&!fiscalIssue){
   status("Laboratório 8507 com "+rows.length+" bimestres oficiais. A 8506 permanece separada.");
  }else{
