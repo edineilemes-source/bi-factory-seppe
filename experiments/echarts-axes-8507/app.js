@@ -215,6 +215,11 @@ function toggleEditorCurtain(which){
 function syncVisualWorkspaceMode(){
  document.body.classList.toggle("lab-edit-workspace",currentScreen==="visual"&&!previewOnly);
 }
+function collapseEditorToolbar(collapse){
+ const page=$("visual-page");
+ page.classList.toggle("toolbar-collapsed",Boolean(collapse));
+ $("editor-toolbar-show").hidden=!collapse;
+}
 function toggleEditorNativeFullscreen(){
  const el=$("visual-page");
  if(document.fullscreenElement===el){
@@ -1027,6 +1032,8 @@ function wire(){
  $("editor-open-echarts").onclick=()=>$("go-charts").click();
  $("editor-save").onclick=saveLab;
  $("editor-fullscreen").onclick=toggleEditorNativeFullscreen;
+ $("editor-toolbar-hide").onclick=()=>collapseEditorToolbar(true);
+ $("editor-toolbar-show").onclick=()=>collapseEditorToolbar(false);
  $("go-visual").onclick=()=>showScreen("visual");
  $("go-charts").onclick=()=>{
   const sel=object(state.selected);
