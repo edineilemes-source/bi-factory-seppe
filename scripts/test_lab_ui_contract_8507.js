@@ -18,7 +18,8 @@ const visual=html.split('id="visual-page"')[1].split('id="echarts-page"')[0];
 assert.ok(!/id="year-fixed"|id="period-fixed"|id="axis-x"/.test(visual));
 assert.match(visual,/id="add-filter"/);
 assert.match(visual,/id="add-measure-filter"/);
-assert.match(app,/E\.allowedOptions\(charts\(\),rows,d\)/);
+// O filtro do painel recebe o contexto de outros filtros selecionados.
+assert.match(app,/E\\.allowedOptions\\(\\s*charts\\(\\)\\s*,\\s*rows\\s*,\\s*dim\\s*,\\s*state\\.filters\\s*\\)/);
 assert.match(app,/E\.allowedMeasures\(charts\(\)\)/);
 assert.match(srv,/UPSTREAM="http:\/\/127\.0\.0\.1:8505\/api\/fiscal"/);
 assert.match(srv,/storage\/labs\/echarts-axes-8507/);
