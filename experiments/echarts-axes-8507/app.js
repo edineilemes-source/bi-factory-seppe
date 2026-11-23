@@ -433,7 +433,7 @@ function renderProperties(){
  if(!o){root.append(node("p","Selecione um objeto no canvas.","small muted"));return}
  root.append(node("h3",elementLabel(o)));
  const field=(name,key,kind="input",options=[],parse=v=>v)=>{
-  const v=o[key]??(kind==="color"?"#ffffff":"");
+  const v=o[key]??(key==="color"?"#203047":key==="fontFamily"?"Arial":kind==="color"?"#ffffff":"");
   const control=propertiesField(name,kind==="color"&&(v==="transparent"||v==="")?"#ffffff":v,
    value=>{checkpoint();o[key]=parse(value);renderCanvas()},kind,options);
   root.append(control);
@@ -535,10 +535,10 @@ function renderProperties(){
  number("Arredondamento das bordas (px)","borderRadius",0,80,8);
  const layer=node("div",undefined,"properties-actions");
  layer.append(propButton("Trazer à frente",()=>{
-   checkpoint();o.z=bounded(o.z+100,-1000,1000,1);renderCanvas()
+   checkpoint();o.z=bounded((Number(o.z)||1)+100,-1000,1000,101);renderCanvas()
  },"secondary"));
  layer.append(propButton("Enviar para trás",()=>{
-   checkpoint();o.z=bounded(o.z-100,-1000,1000,1);renderCanvas()
+   checkpoint();o.z=bounded((Number(o.z)||1)-100,-1000,1000,-99);renderCanvas()
  },"secondary"));
  root.append(layer);
  root.append(node("p","Arraste pelo cabeçalho para mudar a ordem. Segure Shift e arraste para mover livremente. Arraste o canto inferior direito para redimensionar.","small muted"));
