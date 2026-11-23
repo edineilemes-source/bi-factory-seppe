@@ -42,5 +42,5 @@ assert.match(back,/editing=null;showScreen\("visual"\)/);
 assert.doesNotMatch(back,/addObject\(|createChart\(|state\.objects\.push\(/,
  "Voltar para o visual não insere outro gráfico");
 assert.match(css,/\.chart-edit-target/);
-assert.match(html,/lab8507-legenda-automatica-z-20261123-r10/);
+assert.match(html,/lab8507-preview-zoom-grafico-20261123-r11/);
 console.log("OK 8507: clique abre mesmo gráfico no ECharts com campos preenchidos, sem duplicar ou perder posições.");
