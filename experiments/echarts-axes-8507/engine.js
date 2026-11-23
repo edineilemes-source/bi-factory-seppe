@@ -91,23 +91,31 @@
   }
   return problems;
  }
+ function filterValues(value){
+  // [] e valor ausente significam Todos, inclusive para rascunhos antigos.
+  if(value==null||value===""||value==="all")return [];
+  const values=Array.isArray(value)?value:[value];
+  return [...new Set(values.filter(v=>v!==null&&v!==undefined&&v!==""&&v!=="all").map(String))];
+ }
  function allowedRows(chart,rows,globalFilters={}){
   return rows.filter(row=>{
    for(const d of ["ano","bimestre"]){
     const s=chart.scope?.[d];
     if(s?.mode==="fixed"&&String(row[d])!==String(s.fixed))return false;
-    if(s?.mode==="filterable"&&globalFilters[d]!==undefined&&globalFilters[d]!==""&&
-      String(row[d])!==String(globalFilters[d]))return false;
+    const selected=filterValues(globalFilters[d]);
+    if(s?.mode==="filterable"&&selected.length&&!selected.includes(String(row[d])))return false;
    }
    return true;
   });
  }
- function allowedOptions(charts,rows,dimension){
+ function allowedOptions(charts,rows,dimension,globalFilters={}){
   if(!DIMENSIONS[dimension])return [];
   const applicable=charts.filter(c=>c.scope?.[dimension]?.mode==="filterable");
   if(!applicable.length)return [];
   const found=new Set();
-  for(const chart of applicable)for(const row of allowedRows(chart,rows,{}))found.add(row[dimension]);
+  // Respeitar o escopo fixo de cada gráfico e os outros filtros do painel.
+  const otherFilters={...globalFilters};delete otherFilters[dimension];
+  for(const chart of applicable)for(const row of allowedRows(chart,rows,otherFilters))found.add(row[dimension]);
   return [...found].sort((a,b)=>a-b);
  }
  function allowedMeasures(charts){
@@ -135,7 +143,11 @@
   const rows=allowedRows(chart,rawRows,globalFilters);
   if(!rows.length)return {empty:"Sem registros para o escopo definido no ECharts"};
   let fields=chart.measures.filter(f=>byKey[f]);
-  if(chart.measureFilterable&&measureSelection&&fields.includes(measureSelection))fields=[measureSelection];
+  if(chart.measureFilterable){
+   const chosen=filterValues(measureSelection);
+   const matching=fields.filter(f=>chosen.includes(f));
+   if(chosen.length&&matching.length)fields=matching;
+  }
   const x=chart.axes.x,y=chart.axes.y,z=chart.axes.z,heading=chart.axes.header;
   const headingParts=[chart.title];
   if(heading==="ano"){
@@ -228,7 +240,7 @@
   // de cada ano; o escopo de bimestre fixo/filtrável já foi aplicado acima.
   let prepared=rows;
   if(categorical==="ano"&&chart.scope.bimestre.mode!=="fixed"&&
-     !(chart.scope.bimestre.mode==="filterable"&&globalFilters.bimestre)){
+     !(chart.scope.bimestre.mode==="filterable"&&filterValues(globalFilters.bimestre).length)){
     const map=new Map();for(const r of rows)map.set(r.ano,r);prepared=[...map.values()];
   }
   let categoryValues=[];
@@ -279,5 +291,5 @@
   }};
  }
  return {MEASURES,byKey,DIMENSIONS,AXES,TYPES,colors,money,compact,normalizedRows,
-   createChart,validate,allowedRows,allowedOptions,allowedMeasures,fixedBadge,build};
+   createChart,validate,filterValues,allowedRows,allowedOptions,allowedMeasures,fixedBadge,build};
 });
