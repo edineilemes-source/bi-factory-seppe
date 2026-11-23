@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-alca-persistente-20261123-r6";
+const LAB_BUILD="lab8507-preview-fullscreen-20261123-r7";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -164,6 +164,48 @@ function addObject(type,details={},edit=false){
 function disposeAll(){
  for(const chart of instances.values())try{chart.dispose()}catch(_){}
  instances.clear();
+}
+function closeFilterMenus(except=null){
+ for(const dropdown of document.querySelectorAll(".multi-select[open]")){
+  if(dropdown!==except){
+   if(typeof dropdown.cancelAutoClose==="function")dropdown.cancelAutoClose();
+   dropdown.open=false;
+  }
+ }
+}
+function refreshPreviewCharts(){
+ requestAnimationFrame(()=>{
+  for(const chart of instances.values())try{chart.resize()}catch(_){}
+ });
+}
+function setPanelPreview(enabled){
+ previewOnly=Boolean(enabled);
+ document.body.classList.toggle("lab-panel-preview",previewOnly);
+ $("exit-panel-preview").hidden=!previewOnly;
+ $("visual-preview").textContent=previewOnly?"Voltar à edição":"Visualizar painel";
+ closeFilterMenus();
+ renderCanvas();
+ refreshPreviewCharts();
+}
+function enterPanelPreview(){
+ if(previewOnly)return;
+ setPanelPreview(true);
+ const panel=$("visual-page");
+ // O modo imersivo via CSS funciona mesmo quando o navegador bloqueia a API Fullscreen.
+ if(panel.requestFullscreen){
+  try{
+   const promise=panel.requestFullscreen();
+   if(promise&&typeof promise.catch==="function")promise.catch(()=>{});
+  }catch(_){}
+ }
+}
+function exitPanelPreview(){
+ if(!previewOnly)return;
+ setPanelPreview(false);
+ if(document.fullscreenElement===$("visual-page")&&document.exitFullscreen){
+  const promise=document.exitFullscreen();
+  if(promise&&typeof promise.catch==="function")promise.catch(()=>{});
+ }
 }
 function showScreen(screen){
  currentScreen=screen;
@@ -445,11 +487,30 @@ function multiSelectControl(key,options,display,caption){
  root.dataset.filterKey=key;
  root.addEventListener("click",event=>event.stopPropagation());
  root.addEventListener("pointerdown",event=>event.stopPropagation());
+ let closeTimeout=null;
+ const cancelAutoClose=()=>{
+  if(closeTimeout!==null){clearTimeout(closeTimeout);closeTimeout=null}
+ };
+ const finishSelection=()=>{
+  cancelAutoClose();
+  root.open=false;
+ };
+ root.cancelAutoClose=cancelAutoClose;
+ root.addEventListener("toggle",()=>{
+  if(root.open)closeFilterMenus(root);
+  else cancelAutoClose();
+ });
+ const scheduleAutoClose=()=>{
+  cancelAutoClose();
+  // Na visualização, permite marcar vários itens em sequência e recolhe a lista
+  // após a última escolha; há também um botão Aplicar para fechar imediatamente.
+  if(previewOnly)closeTimeout=setTimeout(finishSelection,1600);
+ };
  const summary=node("summary",undefined,"multi-select-summary");
  const labelText=()=>{
   const active=E.filterValues(state.filters[key]);
   return active.length===0?"Todos":active.length===1?
-    display(active[0]):active.length+" selecionados: "+active.map(display).join(", ");
+    display(active[0]):active.length+" selecionados";
  };
  const summaryText=node("span",labelText(),"multi-select-text");
  summary.append(summaryText);
@@ -473,6 +534,7 @@ function multiSelectControl(key,options,display,caption){
   }
   refreshOtherDimensionMenus(key);
   refreshVisualCharts();
+  scheduleAutoClose();
  };
  const inputs=[];
  const row=(label,value)=>{
@@ -492,6 +554,15 @@ function multiSelectControl(key,options,display,caption){
  };
  row("Todos","__all__");
  for(const option of options)row(display(String(option)),String(option));
+ const actions=node("div",undefined,"multi-select-actions");
+ const done=node("button","Aplicar e fechar","multi-select-done");
+ done.type="button";
+ done.addEventListener("click",event=>{
+  event.preventDefault();event.stopPropagation();
+  finishSelection();
+ });
+ actions.append(done);
+ content.append(actions);
  root.append(content);
  root.title=caption;
  return root;
@@ -928,8 +999,15 @@ function wire(){
  $("visual-undo").onclick=undoVisual;
  $("visual-redo").onclick=redoVisual;
  $("save-lab").onclick=saveLab;
- $("visual-preview").onclick=()=>{previewOnly=!previewOnly;
-    $("visual-preview").textContent=previewOnly?"Voltar à edição":"Visualizar painel";renderCanvas()};
+ $("visual-preview").onclick=enterPanelPreview;
+ $("exit-panel-preview").onclick=exitPanelPreview;
+ document.addEventListener("fullscreenchange",()=>{
+  if(previewOnly&&document.fullscreenElement!==$("visual-page"))exitPanelPreview();
+  else refreshPreviewCharts();
+ });
+ document.addEventListener("pointerdown",event=>{
+  if(!event.target.closest?.(".multi-select"))closeFilterMenus();
+ });
  $("back-to-visual").onclick=()=>{
   if(editing){
    const issues=E.validate(editing);
@@ -963,6 +1041,16 @@ function wire(){
  });
  $("chart-title").addEventListener("input",updateBinding);
  document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&document.querySelector(".multi-select[open]")){
+   event.preventDefault();
+   closeFilterMenus();
+   return;
+  }
+  if(event.key==="Escape"&&previewOnly){
+   event.preventDefault();
+   exitPanelPreview();
+   return;
+  }
   if(currentScreen!=="visual"||previewOnly)return;
   if(event.key==="Escape"){state.selected=null;renderCanvas();renderProperties();return}
   const target=event.target;
