@@ -680,3 +680,46 @@ body.lab-panel-preview #visual-canvas{
  .editor-toolbar-group button{font-size:11px;padding:7px}
  body.lab-edit-workspace #visual-page > .sidebar{top:51px;height:calc(100dvh - 51px)}
 }
+
+/* Barra e aviso recolhíveis: liberam a área superior do painel para edição. */
+body.lab-edit-workspace #visual-page.toolbar-collapsed .editor-canvas-toolbar{
+ display:none!important;
+}
+#editor-toolbar-show[hidden]{display:none!important}
+body.lab-edit-workspace #visual-page #editor-toolbar-show{
+ display:block;
+ position:fixed;
+ top:8px;
+ right:12px;
+ z-index:9400;
+ padding:8px 11px;
+ background:#fff;
+ border:1px solid #bdd3de;
+ box-shadow:0 3px 12px #21466030;
+}
+body.lab-panel-preview #editor-toolbar-show{display:none!important}
+#editor-status[hidden]{display:none!important}
+body.lab-edit-workspace #visual-page .editor-floating-status{
+ display:block;
+ position:fixed;
+ bottom:13px;
+ left:50%;
+ transform:translateX(-50%);
+ z-index:9500;
+ max-width:min(720px,calc(100vw - 20px));
+ border-radius:9px;
+ padding:8px 15px;
+ background:#eaf5f9;
+ color:#265c73;
+ border:1px solid #c5dce7;
+ box-shadow:0 3px 16px #20435c23;
+ font-size:12px;
+ pointer-events:none;
+ text-align:center;
+}
+body.lab-edit-workspace #visual-page .editor-floating-status.error{
+ background:#fff3ec;
+ color:#a3422d;
+ border-color:#efc9bd;
+}
+body.lab-panel-preview #editor-status{display:none!important}
