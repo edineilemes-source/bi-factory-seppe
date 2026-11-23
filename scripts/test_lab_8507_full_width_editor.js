@@ -40,6 +40,11 @@ assert.match(css,/body\.lab-edit-workspace #visual-page > #visual-tools-drawer\.
 assert.match(css,/body\.lab-edit-workspace #visual-page > #visual-props-drawer\.drawer-open/);
 assert.match(css,/body\.lab-panel-preview #visual-page \.editor-canvas-toolbar,/);
 assert.match(css,/body\.lab-panel-preview #visual-canvas\s*\{[\s\S]*?width:100%;/);
+assert.equal(app.split("Math.max(560,Math.ceil(window.innerHeight||0)").length-1,2,
+ "O canvas deve acompanhar a altura da tela, inclusive objetos que passam do rodapé");
+assert.doesNotMatch(css,/min-height:100d?vh!important;/,
+ "A altura mínima CSS não pode impedir o crescimento vertical do canvas");
+
 assert.match(css,/body\.lab-edit-workspace #visual-page\.toolbar-collapsed \.editor-canvas-toolbar/);
 assert.match(css,/body\.lab-edit-workspace #visual-page #editor-toolbar-show/);
 assert.match(ui,/lab8507-editor-wide-curtains-20261123-r8/);
