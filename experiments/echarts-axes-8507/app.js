@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-click-editar-echarts-20261123-r9";
+const LAB_BUILD="lab8507-legenda-automatica-z-20261123-r10";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -326,7 +326,7 @@ function previewChart(chart){
  fallback.hidden=true;
  renderChartIn(host,chart);
  $("binding-summary").textContent="X "+E.AXES[chart.axes.x]+" · Y "+E.AXES[chart.axes.y]+" · Z "+
-  ({medida:"Medida",valor:"Valor",nenhum:"Sem rótulo"}[chart.axes.z])+" · "+chart.measures.length+" medida(s)";
+  ({medida:"Nome da medida",valor:"Valor",rotulo:"Categoria",nenhum:"Sem rótulo"}[E.zMode(chart)])+" · Legenda automática · "+chart.measures.length+" medida(s)";
 }
 function startObjectResize(event,obj,block,canvas){
  if(previewOnly||event.button!==0)return;
@@ -814,7 +814,7 @@ function fillChartEditor(spec){
  const axisChoices=Object.entries(E.AXES);
  configureOptions($("axis-x"),axisChoices,spec.axes.x);
  configureOptions($("axis-y"),axisChoices,spec.axes.y);
- configureOptions($("axis-z"),[["medida","Medida / legenda"],["valor","Valor / rótulo"],["nenhum","Nenhum"]],spec.axes.z);
+ configureOptions($("axis-z"),[["medida","Nome da medida"],["valor","Valor numérico"],["rotulo","Rótulo da categoria"],["nenhum","Nenhum rótulo"]],E.zMode(spec));
  configureOptions($("axis-header"),[["ano","Ano"],["bimestre","Bimestre"],["medida","Medida"],["nenhum","Sem cabeçalho"]],spec.axes.header);
  $("chart-title").value=spec.title;
  const years=[...new Set(rows.map(r=>r.ano))].sort();
@@ -823,7 +823,7 @@ function fillChartEditor(spec){
  $("year-mode").value=spec.scope.ano.mode;
  $("period-mode").value=spec.scope.bimestre.mode;
  $("allow-measure-filter").checked=Boolean(spec.measureFilterable);
- $("show-values").checked=Boolean(spec.showLabels);
+ $("show-values").checked=false; // controle legado oculto; Z define os rótulos.
  $("top-n").value=String([0,5,10,15].includes(spec.topN)?spec.topN:10);
  const choices=$("measure-choices");choices.replaceChildren();
  for(const [key,label] of E.MEASURES){
@@ -846,8 +846,9 @@ function renderContract(chart){
  const root=$("chart-contract");root.replaceChildren();
  const show=(text,style)=>root.append(node("div",text,style));
  show("X: "+(E.AXES[chart.axes.x]||"?")+" · Y: "+(E.AXES[chart.axes.y]||"?"),"");
- show("Z: "+({medida:"Identifica medidas",valor:"Mostra valor",nenhum:"Nenhum"}[chart.axes.z]||"?")+
+ show("Z (rótulo): "+({medida:"Nome da medida",valor:"Valor numérico",rotulo:"Categoria",nenhum:"Nenhum"}[E.zMode(chart)]||"?")+
       " · Cabeçalho: "+({ano:"Ano",bimestre:"Bimestre",medida:"Medida",nenhum:"Nenhum"}[chart.axes.header]),"");
+ show("Legenda: automática, independente dos eixos. As cores identificam cada série; o mapa de calor usa uma escala.","editable");
  for(const d of ["ano","bimestre"]){
   show(E.fixedBadge(chart,d),chart.scope[d].mode==="filterable"?"editable":"locked");
  }
@@ -868,6 +869,7 @@ function updateBinding(){
  editing.axes.x=$("axis-x").value;
  editing.axes.y=$("axis-y").value;
  editing.axes.z=$("axis-z").value;
+ editing.labelSchema=2;
  editing.axes.header=$("axis-header").value;
  editing.title=$("chart-title").value.trim()||"Gráfico sem nome";
  editing.scope.ano.mode=$("year-mode").value;
@@ -875,7 +877,7 @@ function updateBinding(){
  editing.scope.bimestre.mode=$("period-mode").value;
  editing.scope.bimestre.fixed=Number($("period-fixed").value);
  editing.measureFilterable=$("allow-measure-filter").checked&&editing.measures.length>1;
- editing.showLabels=$("show-values").checked;
+ editing.showLabels=false; // Z define os rótulos e a legenda é automática.
  editing.topN=Number($("top-n").value);
  const obj=object(state.selected);
  if(obj&&obj.chart===editing)obj.title=editing.title;
