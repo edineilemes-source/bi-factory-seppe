@@ -47,8 +47,8 @@ assert.doesNotMatch(css,/min-height:100d?vh!important;/,
 
 assert.match(css,/body\.lab-edit-workspace #visual-page\.toolbar-collapsed \.editor-canvas-toolbar/);
 assert.match(css,/body\.lab-edit-workspace #visual-page #editor-toolbar-show/);
-assert.match(ui,/lab8507-click-editar-echarts-20261123-r9/);
-assert.match(app,/lab8507-click-editar-echarts-20261123-r9/);
+assert.match(ui,/lab8507-legenda-automatica-z-20261123-r10/);
+assert.match(app,/lab8507-legenda-automatica-z-20261123-r10/);
 // IMPORTANT: No rewrite of saved x/y or data contracts during transitions.
 const show=app.split("function showScreen(screen){")[1].split("function setChartActive(")[0];
 const preview=app.split("function setPanelPreview(enabled){")[1].split("function enterPanelPreview()")[0];
