@@ -32,6 +32,7 @@ class DraftRouteTests(unittest.TestCase):
             try:
                 empty=get("/lab/draft")
                 self.assertEqual(empty["objects"],[])
+                self.assertIsNone(empty["selected"],"O estado vazio deve usar None em Python / null no JSON")
                 payload={
                     "version":1,"objects":[{
                       "id":"chart-stable-1","type":"chart","title":"Receita 2025"
