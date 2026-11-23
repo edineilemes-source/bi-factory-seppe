@@ -76,9 +76,42 @@ function duplicateObject(id){
  state.objects.splice(state.objects.indexOf(src)+1,0,copy);
  selectObject(copy.id);
 }
+function ensureFreeLayout(canvas){
+ // Migração não destrutiva: converter a grade antiga em coordenadas livres UMA VEZ,
+ // preservando os objetos e dimensões já salvos no laboratório.
+ const avail=Math.max(420,canvas.clientWidth-28),gap=12;
+ let nextX=12,nextY=12,rowHeight=0;
+ for(const obj of state.objects){
+  const legacyW=bounded(obj.width,1,12,4),legacyH=bounded(obj.height,1,12,2);
+  const w=bounded(obj.pixelWidth,80,2400,Math.max(90,Math.round(legacyW*(avail+gap)/12-gap)));
+  const h=bounded(obj.pixelHeight,45,2000,Math.max(70,legacyH*76-gap));
+  const exists=Number.isFinite(Number(obj.x))&&Number.isFinite(Number(obj.y));
+  if(!exists){
+   if(nextX>12&&nextX+w>avail+12){
+    nextX=12;nextY+=rowHeight+gap;rowHeight=0;
+   }
+   obj.x=nextX+bounded(obj.offsetX,-4000,4000,0);
+   obj.y=nextY+bounded(obj.offsetY,-4000,4000,0);
+   obj.offsetX=0;obj.offsetY=0;
+   nextX+=w+gap;rowHeight=Math.max(rowHeight,h);
+  }else{
+   nextY=Math.max(nextY,Math.max(0,Number(obj.y))+h+gap);
+  }
+  obj.pixelWidth=w;obj.pixelHeight=h;
+ }
+ canvas.style.minHeight=Math.max(560,...state.objects.map(o=>
+   bounded(o.y,-4000,15000,0)+bounded(o.pixelHeight,45,2000,120)+30))+"px";
+}
+function updateCanvasHeight(canvas){
+ canvas.style.minHeight=Math.max(560,...state.objects.map(o=>
+   bounded(o.y,-4000,15000,0)+bounded(o.pixelHeight,45,2000,120)+30))+"px";
+}
 function applyObjectStyle(block,obj){
- block.style.gridColumn="span "+bounded(obj.width,1,12,4);
- block.style.gridRow="span "+bounded(obj.height,1,12,2);
+ block.style.position="absolute";
+ block.style.left=bounded(obj.x,-4000,15000,12)+"px";
+ block.style.top=bounded(obj.y,-4000,15000,12)+"px";
+ block.style.width=bounded(obj.pixelWidth,80,2400,280)+"px";
+ block.style.height=bounded(obj.pixelHeight,45,2000,190)+"px";
  block.style.opacity=String(bounded(obj.opacity,0,100,100)/100);
  block.style.background=obj.bg||"transparent";
  block.style.color=obj.color||"#203047";
@@ -86,8 +119,7 @@ function applyObjectStyle(block,obj){
  block.style.borderWidth=bounded(obj.borderWidth,0,20,0)+"px";
  block.style.borderRadius=bounded(obj.borderRadius,0,80,8)+"px";
  block.style.zIndex=String(bounded(obj.z,-1000,1000,1)+1001);
- block.style.transform="translate("+bounded(obj.offsetX,-4000,4000,0)+"px,"+
-  bounded(obj.offsetY,-4000,4000,0)+"px) rotate("+bounded(obj.rotation,-180,180,0)+"deg)";
+ block.style.transform="rotate("+bounded(obj.rotation,-180,180,0)+"deg)";
 }
 const instances=new Map();
 const formatNumber=v=>v===null||v===undefined?"Valor indisponível":E.money(v);
@@ -194,22 +226,44 @@ function previewChart(chart){
   ({medida:"Medida",valor:"Valor",nenhum:"Sem rótulo"}[chart.axes.z])+" · "+chart.measures.length+" medida(s)";
 }
 function startObjectResize(event,obj,block,canvas){
- if(previewOnly)return;
+ if(previewOnly||event.button!==0)return;
  event.preventDefault();event.stopPropagation();
  checkpoint();
+ const startX=event.clientX,startY=event.clientY;
+ const width=bounded(obj.pixelWidth,80,2400,280);
+ const height=bounded(obj.pixelHeight,45,2000,160);
+ const move=e=>{
+  e.preventDefault();
+  obj.pixelWidth=bounded(width+e.clientX-startX,80,2400,width);
+  obj.pixelHeight=bounded(height+e.clientY-startY,45,2000,height);
+  applyObjectStyle(block,obj);
+  updateCanvasHeight(canvas);
+ };
+ const done=()=>{
+  document.removeEventListener("pointermove",move);
+  document.removeEventListener("pointerup",done);
+  document.removeEventListener("pointercancel",done);
+  renderCanvas();renderProperties();
+ };
+ document.addEventListener("pointermove",move);
+ document.addEventListener("pointerup",done);
+ document.addEventListener("pointercancel",done);
+}
+function startFreeMove(event,obj,block,force=false){
+ if(previewOnly||event.button!==0)return;
+ if(!force&&event.target.closest('input,textarea,select,button,[contenteditable="true"],.filter-control,.chart-host'))return;
+ event.preventDefault();event.stopPropagation();
+ checkpoint();
+ state.selected=obj.id;
+ block.classList.add("active");
  const x=event.clientX,y=event.clientY;
- const oldW=bounded(obj.width,1,12,4),oldH=bounded(obj.height,1,12,2);
- const css=getComputedStyle(canvas);
- const gap=parseFloat(css.columnGap)||12;
- const width=canvas.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight);
- const col=Math.max(18,(width-gap*11)/12+gap);
- const row=(parseFloat(css.gridAutoRows)||70)+(parseFloat(css.rowGap)||gap);
- const move=ev=>{
-  ev.preventDefault();
-  obj.width=bounded(Math.round(oldW+(ev.clientX-x)/col),1,12,oldW);
-  obj.height=bounded(Math.round(oldH+(ev.clientY-y)/row),1,12,oldH);
-  block.style.gridColumn="span "+obj.width;
-  block.style.gridRow="span "+obj.height;
+ const oldX=bounded(obj.x,-4000,15000,12),oldY=bounded(obj.y,-4000,15000,12);
+ const move=e=>{
+  e.preventDefault();
+  obj.x=bounded(oldX+e.clientX-x,-4000,15000,oldX);
+  obj.y=bounded(oldY+e.clientY-y,-4000,15000,oldY);
+  applyObjectStyle(block,obj);
+  updateCanvasHeight($("visual-canvas"));
  };
  const finish=()=>{
   document.removeEventListener("pointermove",move);
@@ -221,32 +275,13 @@ function startObjectResize(event,obj,block,canvas){
  document.addEventListener("pointerup",finish);
  document.addEventListener("pointercancel",finish);
 }
-function startFreeMove(event,obj,block){
- if(previewOnly||!event.shiftKey)return;
- event.preventDefault();event.stopPropagation();
- checkpoint();
- const x=event.clientX,y=event.clientY;
- const left=bounded(obj.offsetX,-4000,4000,0);
- const top=bounded(obj.offsetY,-4000,4000,0);
- const move=e=>{
-  obj.offsetX=bounded(left+e.clientX-x,-4000,4000,left);
-  obj.offsetY=bounded(top+e.clientY-y,-4000,4000,top);
-  applyObjectStyle(block,obj);
- };
- const finish=()=>{
-  document.removeEventListener("pointermove",move);
-  document.removeEventListener("pointerup",finish);
-  renderCanvas();renderProperties();
- };
- document.addEventListener("pointermove",move);
- document.addEventListener("pointerup",finish);
-}
 function renderCanvas(){
  // Rascunho do laboratório mantido no navegador, sem acessar os dados da 8506.
  cacheDraft(snapshotDraft(),false);
  disposeAll();
  const canvas=$("visual-canvas");
  canvas.replaceChildren();
+ ensureFreeLayout(canvas);
  if(!state.objects.length){
   canvas.append(node("div","Produto vazio. Use os objetos à esquerda para começar.","canvas-empty"));
   return;
@@ -257,57 +292,18 @@ function renderCanvas(){
    block.dataset.kind=obj.type==="chart"&&obj.chart?.type==="KPI"?"kpi":obj.type;
    applyObjectStyle(block,obj);
    if(obj.id===state.selected&&!previewOnly)block.classList.add("active");
-   block.draggable=!previewOnly;
+   block.draggable=false;
    block.addEventListener("click",event=>{
-      if(previewOnly||event.target.closest("select,button,input,[contenteditable],textarea,.resize-handle"))return;
-      if(state.selected!==obj.id)selectObject(obj.id);
+    if(previewOnly||event.target.closest("select,button,input,[contenteditable],textarea,.resize-handle,.move-handle"))return;
+    if(state.selected!==obj.id)selectObject(obj.id);
    });
-   block.addEventListener("dragstart",event=>{
-    if(previewOnly||event.target.closest("input,textarea,select,[contenteditable],button,.resize-handle")){
-     event.preventDefault();return;
-    }
-    event.dataTransfer.setData("text/plain",obj.id);
-   });
-   block.addEventListener("dragover",event=>event.preventDefault());
-   block.addEventListener("drop",event=>{
-      event.preventDefault();event.stopPropagation();
-      if(previewOnly)return;
-      const other=event.dataTransfer.getData("text/plain");
-      const from=state.objects.findIndex(o=>o.id===other);
-      const to=state.objects.findIndex(o=>o.id===obj.id);
-      if(from<0||to<0||from===to)return;
-      checkpoint();
-      const moved=state.objects.splice(from,1)[0];
-      state.objects.splice(to,0,moved);
-      renderCanvas();renderProperties();
-   });
-   if(!previewOnly){
-    const header=node("div",undefined,"object-header");
-    const title=node("strong",elementLabel(obj));
-    title.title="Arraste para reorganizar; Shift+arraste para mover livremente";
-    header.append(title);
-    const actions=node("div",undefined,"object-actions");
-    const duplicate=node("button","⧉","object-action");
-    duplicate.type="button";duplicate.title="Duplicar objeto";
-    duplicate.setAttribute("aria-label","Duplicar "+elementLabel(obj));
-    duplicate.onclick=event=>{event.stopPropagation();duplicateObject(obj.id)};
-    actions.append(duplicate);
-    const remove=node("button","×","object-action delete-action");
-    remove.type="button";remove.title="Excluir objeto";
-    remove.setAttribute("aria-label","Excluir "+elementLabel(obj));
-    remove.onclick=event=>{event.stopPropagation();deleteObject(obj.id)};
-    actions.append(remove);
-    header.append(actions);
-    header.addEventListener("pointerdown",event=>startFreeMove(event,obj,block));
-    block.append(header);
-   }else if(obj.type==="chart"){
-    block.append(node("div",obj.title||obj.chart?.title||"","object-preview-title"));
-   }
+   if(!previewOnly&&!TEXT_TYPES.has(obj.type)&&obj.type!=="image")
+    block.addEventListener("pointerdown",event=>startFreeMove(event,obj,block));
    const inner=node("div",undefined,"object-inner");
    block.append(inner);
    if(obj.type==="chart"&&obj.chart){
       inner.classList.add("chart-item");
-      inner.dataset.chartHeight=String(Math.max(90,bounded(obj.height,1,12,4)*70-40));
+      inner.dataset.chartHeight=String(Math.max(75,bounded(obj.pixelHeight,45,2000,230)-8));
    }else if(TEXT_TYPES.has(obj.type)){
       inner.classList.add("text-container");
       const editable=node("div",obj.text??"","text-edit");
@@ -334,11 +330,34 @@ function renderCanvas(){
       });
       inner.append(editable);
    }else if(obj.type==="image"){
+      inner.classList.add("image-picker");
+      const picker=node("input");picker.type="file";
+      picker.accept="image/png,image/jpeg,image/webp,image/gif";
+      picker.className="image-file-input";picker.hidden=true;
+      picker.onchange=()=>{
+       const file=picker.files?.[0];if(!file)return;
+       if(file.size>2*1024*1024||!["image/png","image/jpeg","image/webp","image/gif"].includes(file.type)){
+        status("Use PNG, JPG, WebP ou GIF de até 2 MB.",true);return;
+       }
+       const reader=new FileReader();
+       reader.onload=()=>{checkpoint();obj.src=String(reader.result);renderCanvas();renderProperties()};
+       reader.readAsDataURL(file);
+      };
+      inner.append(picker);
+      const surface=node("div",undefined,"image-click-surface");
+      surface.setAttribute("role","button");surface.tabIndex=previewOnly?-1:0;
+      surface.setAttribute("aria-label","Escolher arquivo de imagem");
       if(obj.src){
-       const image=node("img");
-       image.src=obj.src;image.alt=obj.title||"Imagem";
-       inner.append(image);
-      }else if(!previewOnly)inner.append(node("span","Imagem ainda não selecionada","small muted"));
+       const image=node("img");image.src=obj.src;image.alt=obj.title||"Imagem";
+       image.draggable=false;surface.append(image);
+      }else if(!previewOnly){
+       surface.append(node("span","Clique para escolher imagem","image-pick-hint"));
+      }
+      if(!previewOnly){
+       surface.onclick=e=>{e.stopPropagation();state.selected=obj.id;picker.click();};
+       surface.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();picker.click()}};
+      }
+      inner.append(surface);
    }else if(obj.type==="filter"){renderFilterControl(obj,inner)}
    else if(obj.type==="filter_panel"){
       const dims=Array.isArray(obj.dimensions)?obj.dimensions:["ano","bimestre"];
@@ -357,7 +376,13 @@ function renderCanvas(){
       inner.append(drawing);
    }
    canvas.append(block);
-   if(!previewOnly){
+   if(!previewOnly&&state.selected===obj.id){
+      const moveHandle=node("button","⠿","move-handle");
+      moveHandle.type="button";
+      moveHandle.title="Arraste para posicionar livremente";
+      moveHandle.setAttribute("aria-label","Mover "+elementLabel(obj));
+      moveHandle.addEventListener("pointerdown",event=>startFreeMove(event,obj,block,true));
+      block.append(moveHandle);
       const handle=node("button","", "resize-handle");
       handle.type="button";
       handle.title="Arraste para alterar largura e altura";
@@ -366,7 +391,8 @@ function renderCanvas(){
       block.append(handle);
    }
    if(obj.type==="chart"&&obj.chart)
-      renderChartIn(inner,obj.chart,state.filters,state.filters.medida||"");
+      renderChartIn(inner,obj.chart,state.filters,state.filters.medida||[]);
+   // Visível somente quando selecionado; não ocupa área interna do produto.
  }
 }
 function renderFilterControl(obj,host){
