@@ -70,8 +70,9 @@ function deleteObject(id){
 function duplicateObject(id){
  const src=object(id);if(!src||previewOnly)return;
  checkpoint();const copy=JSON.parse(JSON.stringify(src));copy.id=newId();
- copy.offsetX=bounded(src.offsetX||0,-4000,4000,0)+16;
- copy.offsetY=bounded(src.offsetY||0,-4000,4000,0)+16;
+ copy.x=bounded(src.x,-4000,15000,12)+22;
+ copy.y=bounded(src.y,-4000,15000,12)+22;
+ copy.z=bounded(src.z,-1000,1000,1)+1;
  if(copy.chart)copy.chart.id=copy.id;
  state.objects.splice(state.objects.indexOf(src)+1,0,copy);
  selectObject(copy.id);
@@ -282,6 +283,7 @@ function renderCanvas(){
  const canvas=$("visual-canvas");
  canvas.replaceChildren();
  ensureFreeLayout(canvas);
+ cacheDraft(snapshotDraft(),false);
  if(!state.objects.length){
   canvas.append(node("div","Produto vazio. Use os objetos à esquerda para começar.","canvas-empty"));
   return;
@@ -395,41 +397,90 @@ function renderCanvas(){
    // Visível somente quando selecionado; não ocupa área interna do produto.
  }
 }
+function refreshVisualCharts(){
+ for(const chart of instances.values())try{chart.dispose()}catch(_){}
+ instances.clear();
+ for(const obj of state.objects){
+  if(obj.type!=="chart"||!obj.chart)continue;
+  const block=[...$("visual-canvas").querySelectorAll("[data-object-id]")]
+   .find(el=>el.dataset.objectId===obj.id);
+  const host=block?.querySelector(".object-inner.chart-item");
+  if(host)renderChartIn(host,obj.chart,state.filters,state.filters.medida||[]);
+ }
+ cacheDraft(snapshotDraft(),false);
+}
+function multiSelectControl(key,options,display,caption){
+ const selected=E.filterValues(state.filters[key]).filter(v=>options.some(option=>String(option)===v));
+ state.filters[key]=selected;
+ const root=node("details",undefined,"multi-select");
+ const summary=node("summary",undefined,"multi-select-summary");
+ const labelText=()=>{
+  const active=E.filterValues(state.filters[key]);
+  return active.length===0?"Todos":active.length===1?
+    display(active[0]):active.length+" selecionados: "+active.map(display).join(", ");
+ };
+ const summaryText=node("span",labelText(),"multi-select-text");
+ summary.append(summaryText);
+ root.append(summary);
+ const content=node("div",undefined,"multi-select-options");
+ content.addEventListener("pointerdown",event=>event.stopPropagation());
+ content.addEventListener("click",event=>event.stopPropagation());
+ const apply=next=>{
+  checkpoint();
+  state.filters[key]=[...new Set(next.map(String))];
+  summaryText.textContent=labelText();
+  for(const {input,value} of inputs){
+   input.checked=value==="__all__"?!state.filters[key].length:state.filters[key].includes(value);
+  }
+  refreshVisualCharts();
+ };
+ const inputs=[];
+ const row=(label,value)=>{
+  const line=node("label",undefined,"multi-select-line");
+  const input=node("input");input.type="checkbox";
+  input.checked=value==="__all__"?!selected.length:selected.includes(value);
+  const captionNode=node("span",label);
+  line.append(input,captionNode);
+  input.addEventListener("change",()=>{
+   if(value==="__all__"){apply([]);return}
+   const updated=new Set(E.filterValues(state.filters[key]));
+   if(input.checked)updated.add(value);else updated.delete(value);
+   apply([...updated]);
+  });
+  inputs.push({input,value});
+  content.append(line);
+ };
+ row("Todos","__all__");
+ for(const option of options)row(display(String(option)),String(option));
+ root.append(content);
+ root.title=caption;
+ return root;
+}
 function renderFilterControl(obj,host){
- const d=E.DIMENSIONS[obj.dimension]?obj.dimension:"ano";
- const options=E.allowedOptions(charts(),rows,d);
+ const dim=E.DIMENSIONS[obj.dimension]?obj.dimension:"ano";
+ const options=E.allowedOptions(charts(),rows,dim,state.filters);
  const box=node("div",undefined,"filter-control");
- box.append(node("label","Filtro: "+E.DIMENSIONS[d]));
+ box.append(node("label","Filtro: "+E.DIMENSIONS[dim]));
  if(!options.length){
-  box.append(node("div","Nenhum gráfico autoriza alterar "+E.DIMENSIONS[d]+". Configure “Filtrável no produto” no ECharts.","filter-locked"));
+  box.append(node("div","Nenhum gráfico autoriza variar "+E.DIMENSIONS[dim]+
+   ". Ajuste o escopo para 'Filtrável no produto' dentro do ECharts.","filter-locked"));
  }else{
-  const select=node("select");select.add(new Option("Todos os valores permitidos",""));
-  for(const val of options)select.add(new Option(d==="bimestre"?val+"º bimestre":String(val),String(val)));
-  if(!options.some(val=>String(val)===String(state.filters[d]))){delete state.filters[d]}
-  select.value=String(state.filters[d]||"");
-  select.addEventListener("click",e=>e.stopPropagation());
-  select.addEventListener("mousedown",e=>e.stopPropagation());
-  select.onchange=()=>{state.filters[d]=select.value;renderCanvas()};
-  box.append(select);
-  box.append(node("p","Somente gráficos autorizados mudam; os gráficos fixos ficam intactos.","small muted"));
+  const display=v=>dim==="bimestre"?v+"º bimestre":String(v);
+  box.append(multiSelectControl(dim,options,display,"Seleção múltipla de "+E.DIMENSIONS[dim]));
+  box.append(node("p","Marque um, vários ou Todos. Gráficos com período fixo não são alterados.","small muted"));
  }
  host.append(box);
 }
 function renderMeasureControl(obj,host){
  const options=E.allowedMeasures(charts());
- const box=node("div",undefined,"filter-control");box.append(node("label","Seletor de medidas"));
+ const box=node("div",undefined,"filter-control");
+ box.append(node("label","Seletor de medidas"));
  if(!options.length){
-  box.append(node("div","Nenhum gráfico autoriza variar medidas. O seletor não pode adicionar Receita/Despesa fora do definido no ECharts.","filter-locked"));
+  box.append(node("div","Nenhum gráfico autoriza variar medidas. A seleção definida no ECharts permanece fixa.","filter-locked"));
  }else{
-  const select=node("select");select.add(new Option("Medidas originais dos gráficos",""));
-  for(const key of options)select.add(new Option(E.byKey[key],key));
-  if(!options.includes(state.filters.medida))state.filters.medida="";
-  select.value=state.filters.medida||"";
-  select.addEventListener("click",e=>e.stopPropagation());
-  select.addEventListener("mousedown",e=>e.stopPropagation());
-  select.onchange=()=>{state.filters.medida=select.value;renderCanvas()};
-  box.append(select);
-  box.append(node("p","Gráficos não autorizados mantêm suas medidas originais.","small muted"));
+  box.append(multiSelectControl("medida",options,
+    key=>E.byKey[key]||key,"Seleção múltipla apenas das medidas autorizadas"));
+  box.append(node("p","Marque uma, várias ou Todas. Cada gráfico mantém somente suas medidas autorizadas.","small muted"));
  }
  host.append(box);
 }
@@ -541,10 +592,10 @@ function renderProperties(){
    field("Nome da figura","title");
  }
  root.append(node("h3","Dimensões e posição"));
- number("Largura (colunas 1–12)","width",1,12,4);
- number("Altura (linhas 1–12)","height",1,12,2);
- number("Posição horizontal (px)","offsetX",-4000,4000,0);
- number("Posição vertical (px)","offsetY",-4000,4000,0);
+ number("Largura (px)","pixelWidth",80,2400,280);
+ number("Altura (px)","pixelHeight",45,2000,160);
+ number("Posição horizontal X (px)","x",-4000,15000,12);
+ number("Posição vertical Y (px)","y",-4000,15000,12);
  number("Rotação (graus)","rotation",-180,180,0);
  number("Opacidade (%)","opacity",0,100,100);
  root.append(node("h3","Aparência"));
@@ -567,7 +618,7 @@ function renderProperties(){
    checkpoint();o.z=bounded((Number(o.z)||1)-100,-1000,1000,-99);renderCanvas()
  },"secondary"));
  root.append(layer);
- root.append(node("p","Arraste pelo cabeçalho para mudar a ordem. Segure Shift e arraste para mover livremente. Arraste o canto inferior direito para redimensionar.","small muted"));
+ root.append(node("p","Posicione pelo próprio objeto ou pela alça no canto superior esquerdo. Redimensione pelo canto inferior direito. A sobreposição é livre; use Frente/Trás para mudar a camada.","small muted"));
  root.append(propButton("Duplicar objeto",()=>duplicateObject(o.id),"secondary"));
  root.append(propButton("Excluir objeto",()=>deleteObject(o.id),"danger"));
 }
