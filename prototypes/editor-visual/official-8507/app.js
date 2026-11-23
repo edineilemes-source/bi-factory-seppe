@@ -987,6 +987,28 @@ function exampleChart(title,type,measures,width,opts={}){
  });
  return {id:chart.id,type:"chart",title,width,height:chart.height,chart};
 }
+async function importPreviousLab(){
+ if(OFFICIAL_PREVIEW)return;
+ if(!OFFICIAL_PRODUCT_ID){
+  status("Salve primeiro o cadastro do novo produto para importar o painel experimental.",true);
+  return;
+ }
+ if(state.objects.length&&!confirm(
+  "Importar o painel de teste da antiga 8507 e substituir apenas o rascunho deste produto? "+
+  "Os layouts anteriores e o rascunho experimental original permanecerão guardados."
+ ))return;
+ try{
+  const imported=await requestJSON("/api/visual-8507/lab-draft");
+  if(!draftValid(imported))throw Error("Rascunho experimental em formato incompatível");
+  checkpoint();
+  applyDraft(JSON.parse(JSON.stringify(imported)));
+  cacheDraft(snapshotDraft(),false);
+  showScreen("visual");
+  status("Painel da antiga 8507 importado para esta ficha. Clique em Salvar produto para confirmar.");
+ }catch(error){
+  status("Não foi possível importar o painel experimental: "+error.message,true);
+ }
+}
 function buildExample(){
  if(state.objects.length&&!confirm("Substituir o rascunho atual da 8507 pelo painel de exemplo? A versão 8506 não será modificada."))return;
  checkpoint();
@@ -1214,6 +1236,7 @@ function wire(){
  });
  $("add-filter").onclick=()=>addObject("filter",{title:"Filtro de dimensão",dimension:"ano",height:1});
  $("add-measure-filter").onclick=()=>addObject("measure_filter",{title:"Seletor de medidas",height:1});
+ $("import-previous-lab").onclick=importPreviousLab;
  $("add-example").onclick=buildExample;
  $("visual-undo").onclick=undoVisual;
  $("visual-redo").onclick=redoVisual;
