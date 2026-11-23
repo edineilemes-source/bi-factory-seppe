@@ -40,8 +40,8 @@ assert.match(app,/document\.addEventListener\("pointerdown",event=>\{/);
 assert.match(app,/event\.target\.closest\?\.\("\.multi-select"\)/);
 assert.match(css,/\.multi-select-actions/);
 assert.match(css,/\.multi-select-done/);
-assert.match(html,/lab8507-editor-wide-curtains-20261123-r8/);
-assert.match(app,/lab8507-editor-wide-curtains-20261123-r8/);
+assert.match(html,/lab8507-click-editar-echarts-20261123-r9/);
+assert.match(app,/lab8507-click-editar-echarts-20261123-r9/);
 const E=require(path.join(dir,"engine.js"));
 const rows=E.normalizedRows([2022,2023,2024,2025,2026].map(ano=>({
  ano,bimestre:1,receita_realizada_acumulada:ano*100
