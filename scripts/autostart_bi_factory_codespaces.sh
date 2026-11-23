@@ -23,7 +23,7 @@ while true; do
       (cd web/bi_factory && npm ci) 9>&- >> "$LOG/autostart.log" 2>&1 || echo "npm ci failed" >> "$LOG/autostart.log"
     fi
     # Restart missing API or frontend; never kill healthy processes.
-    if ! curl -fsS --max-time 3 -o /dev/null http://127.0.0.1:8505/api/overview || ! curl -fsS --max-time 3 -o /dev/null http://127.0.0.1:8506/; then
+    if ! curl -fsS --max-time 3 -o /dev/null http://127.0.0.1:8505/api/overview || ! curl -fsS --max-time 3 -o /dev/null http://127.0.0.1:8507/; then
       echo "[$(date -Is)] Service unhealthy; checking startup" >> "$LOG/autostart.log"
       bash scripts/start_bi_factory_codespaces.sh 9>&- >> "$LOG/autostart.log" 2>&1 || echo "[$(date -Is)] Startup failed; retrying in 20s" >> "$LOG/autostart.log"
     fi
