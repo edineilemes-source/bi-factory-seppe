@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-editor-wide-curtains-20261123-r8";
+const LAB_BUILD="lab8507-click-editar-echarts-20261123-r9";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -412,6 +412,26 @@ function renderCanvas(){
    if(obj.type==="chart"&&obj.chart){
       inner.classList.add("chart-item");
       inner.dataset.chartHeight=String(Math.max(75,bounded(obj.pixelHeight,45,2000,230)-8));
+      // Edição direta do gráfico EXISTENTE. O canvas continua livre:
+      // movimentar/redimensionar somente pelas alças externas.
+      if(!previewOnly){
+       inner.classList.add("chart-edit-target");
+       inner.tabIndex=0;
+       inner.setAttribute("role","button");
+       inner.setAttribute("aria-label","Editar no ECharts: "+(obj.chart.title||obj.title||"Gráfico"));
+       inner.title="Clique para editar este gráfico no ECharts";
+       inner.addEventListener("pointerdown",event=>event.stopPropagation());
+       inner.addEventListener("click",event=>{
+        event.stopPropagation();
+        openChart(obj.id);
+       });
+       inner.addEventListener("keydown",event=>{
+        if(event.key==="Enter"||event.key===" "){
+         event.preventDefault();event.stopPropagation();
+         openChart(obj.id);
+        }
+       });
+      }
    }else if(TEXT_TYPES.has(obj.type)){
       inner.classList.add("text-container");
       const editable=node("div",obj.text??"","text-edit");
