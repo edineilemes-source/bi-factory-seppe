@@ -262,6 +262,10 @@ function startFreeMove(event,obj,block,force=false){
  event.preventDefault();event.stopPropagation();
  checkpoint();
  state.selected=obj.id;
+ // Selecionar a alça de um objeto antigo também desfaz a seleção visual anterior.
+ for(const previous of $("visual-canvas").querySelectorAll(".canvas-object.active")){
+  previous.classList.remove("active");
+ }
  block.classList.add("active");
  const x=event.clientX,y=event.clientY;
  const oldX=bounded(obj.x,-4000,15000,12),oldY=bounded(obj.y,-4000,15000,12);
@@ -327,7 +331,11 @@ function renderCanvas(){
       editable.addEventListener("pointerdown",event=>event.stopPropagation());
       editable.addEventListener("mousedown",event=>event.stopPropagation());
       editable.addEventListener("focus",()=>{
-       state.selected=obj.id;block.classList.add("active");
+       state.selected=obj.id;
+       for(const previous of canvas.querySelectorAll(".canvas-object.active")){
+        previous.classList.remove("active");
+       }
+       block.classList.add("active");
        renderProperties();
       });
       editable.addEventListener("input",()=>{
@@ -384,23 +392,27 @@ function renderCanvas(){
       inner.append(drawing);
    }
    canvas.append(block);
-   if(!previewOnly&&state.selected===obj.id){
+   // A alça de mover fica disponível em TODOS os objetos durante a edição.
+   // Apenas a alça de redimensionar depende de selecionar o objeto.
+   if(!previewOnly){
       const moveHandle=node("button","⠿","move-handle");
       moveHandle.type="button";
-      moveHandle.title="Arraste para posicionar livremente";
+      moveHandle.title="Arraste para mover este objeto, mesmo quando outro estiver selecionado";
       moveHandle.setAttribute("aria-label","Mover "+elementLabel(obj));
       moveHandle.addEventListener("pointerdown",event=>startFreeMove(event,obj,block,true));
       block.append(moveHandle);
-      const handle=node("button","", "resize-handle");
-      handle.type="button";
-      handle.title="Arraste para alterar largura e altura";
-      handle.setAttribute("aria-label","Redimensionar "+elementLabel(obj));
-      handle.addEventListener("pointerdown",event=>startObjectResize(event,obj,block,canvas));
-      block.append(handle);
+      if(state.selected===obj.id){
+         const handle=node("button","", "resize-handle");
+         handle.type="button";
+         handle.title="Arraste para alterar largura e altura";
+         handle.setAttribute("aria-label","Redimensionar "+elementLabel(obj));
+         handle.addEventListener("pointerdown",event=>startObjectResize(event,obj,block,canvas));
+         block.append(handle);
+      }
    }
    if(obj.type==="chart"&&obj.chart)
       renderChartIn(inner,obj.chart,state.filters,state.filters.medida||[]);
-   // Visível somente quando selecionado; não ocupa área interna do produto.
+   // Alças externas não ocupam a área de texto, imagem ou gráfico.
  }
 }
 function refreshVisualCharts(){
