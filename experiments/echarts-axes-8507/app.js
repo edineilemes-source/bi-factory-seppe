@@ -125,6 +125,7 @@ function applyObjectStyle(block,obj){
 const instances=new Map();
 let expandedChartId=null;
 let zoomFocusOrigin=null;
+let zoomEscapeGuard=false;
 const formatNumber=v=>v===null||v===undefined?"Valor indisponível":E.money(v);
 let statusTimer=null;
 function status(message,bad=false){
@@ -290,6 +291,7 @@ function setPanelPreview(enabled){
 }
 function enterPanelPreview(){
  if(previewOnly)return;
+ zoomEscapeGuard=false;
  setPanelPreview(true);
  const panel=$("visual-page");
  // O modo imersivo via CSS funciona mesmo quando o navegador bloqueia a API Fullscreen.
@@ -302,6 +304,7 @@ function enterPanelPreview(){
 }
 function exitPanelPreview(){
  if(!previewOnly)return;
+ zoomEscapeGuard=false;
  setPanelPreview(false);
  if(document.fullscreenElement===$("visual-page")&&document.exitFullscreen){
   const promise=document.exitFullscreen();
@@ -360,6 +363,21 @@ function renderChartIn(host,chart,filterState={},selectedMeasure=""){
  host.replaceChildren(inner);
  const chartInstance=echarts.init(inner);
  instances.set(inner,chartInstance);
+ if(host.id==="chart-zoom-host"){
+  // A ampliação usa opções temporárias; não altera configurações salvas do gráfico.
+  const options=view.options;
+  if(options.legend)options.legend.textStyle={...(options.legend.textStyle||{}),fontSize:15};
+  if(options.tooltip)options.tooltip.textStyle={...(options.tooltip.textStyle||{}),fontSize:15};
+  for(const axisName of ["xAxis","yAxis"]){
+   const axes=Array.isArray(options[axisName])?options[axisName]:[options[axisName]];
+   for(const axis of axes)if(axis){
+    axis.axisLabel={...(axis.axisLabel||{}),fontSize:14};
+    if(axis.name)axis.nameTextStyle={...(axis.nameTextStyle||{}),fontSize:15};
+   }
+  }
+  for(const series of options.series||[])if(series.label)
+   series.label={...series.label,fontSize:14};
+ }
  chartInstance.setOption(view.options,{notMerge:true});
 }
 function previewChart(chart){
@@ -1154,7 +1172,11 @@ function wire(){
   const active=document.fullscreenElement===$("visual-page");
   $("editor-fullscreen").setAttribute("aria-pressed",String(active));
   $("editor-fullscreen").textContent=active?"Sair da tela cheia":"Tela cheia";
-  if(previewOnly&&!active)exitPanelPreview();
+  if(previewOnly&&!active&&(expandedChartId||zoomEscapeGuard)){
+   zoomEscapeGuard=false;
+   if(expandedChartId)closeExpandedChart();
+   refreshPreviewCharts();
+  }else if(previewOnly&&!active)exitPanelPreview();
   else refreshPreviewCharts();
  });
  document.addEventListener("pointerdown",event=>{
@@ -1200,6 +1222,8 @@ function wire(){
   // Primeiro fecha somente o gráfico ampliado; Esc seguinte sai da visualização.
   if(event.key==="Escape"&&!$("chart-zoom-overlay").hidden){
    event.preventDefault();
+   // O navegador pode sair do Fullscreen nativo com Esc; preservar a prévia.
+   zoomEscapeGuard=true;
    closeExpandedChart();
    return;
   }
