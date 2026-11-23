@@ -20,6 +20,7 @@ from app.components import information_product_registry as registry
 HERE = Path(__file__).resolve().parent
 LAYOUTS = ROOT / "storage" / "information_products" / "layouts"
 VISUAL_8507 = ROOT / "storage" / "information_products" / "visual_8507"
+LEGACY_LAB_8507 = ROOT / "storage" / "labs" / "echarts-axes-8507" / "state.json"
 EXTRA = ROOT / "storage" / "information_products" / "metadata"
 FIELDS = ("owner", "technical_owner", "audience", "project", "notes")
 MAX_BODY = 12_000_000
@@ -121,6 +122,22 @@ class Handler(SimpleHTTPRequestHandler):
                         if len(rows) > 10000:
                             raise ValueError("Fonte fiscal excede o limite da prévia")
                 self._send(rows)
+                return True
+            if path == "/api/visual-8507/lab-draft" and method == "GET":
+                # Importação SOMENTE DE LEITURA. O painel experimental original
+                # nunca é transferido automaticamente para outro produto.
+                source = LEGACY_LAB_8507
+                if not source.is_file():
+                    self._send({"error": "Não há rascunho anterior da 8507 neste Codespaces."}, 404)
+                elif source.stat().st_size > MAX_BODY:
+                    self._send({"error": "Rascunho experimental excede o limite."}, 413)
+                else:
+                    draft = _read_json(source, None)
+                    if (not isinstance(draft, dict) or draft.get("version") != 1 or
+                        not isinstance(draft.get("objects"), list)):
+                        self._send({"error": "Rascunho experimental inválido."}, 422)
+                    else:
+                        self._send(draft)
                 return True
             parts = path.strip("/").split("/")
             if parts == ["api", "products"]:
