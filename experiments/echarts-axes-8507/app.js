@@ -420,52 +420,131 @@ function propertiesField(label,value,onchange,kind="input",options=[]){
 function propButton(text,fn,kind=""){
  const btn=node("button",text,kind);btn.onclick=fn;return btn;
 }
+function propsCheckbox(label,checked,callback){
+ const item=node("label",undefined,"props-checkline");
+ const input=node("input");input.type="checkbox";input.checked=Boolean(checked);
+ input.addEventListener("change",()=>callback(input.checked));
+ item.append(input,node("span",label));
+ return item;
+}
 function renderProperties(){
  const root=$("visual-props");root.replaceChildren();
  const o=object(state.selected);
  if(!o){root.append(node("p","Selecione um objeto no canvas.","small muted"));return}
  root.append(node("h3",elementLabel(o)));
- root.append(propertiesField("Título",o.title||"",v=>{o.title=v;if(o.chart)o.chart.title=v;renderCanvas()}));
- root.append(propertiesField("Largura",o.width,v=>{o.width=Number(v);renderCanvas()},"select",
-  [[3,"3 colunas"],[4,"4 colunas"],[6,"6 colunas"],[8,"8 colunas"],[12,"12 colunas"]]));
+ const field=(name,key,kind="input",options=[],parse=v=>v)=>{
+  const v=o[key]??(kind==="color"?"#ffffff":"");
+  const control=propertiesField(name,kind==="color"&&(v==="transparent"||v==="")?"#ffffff":v,
+   value=>{checkpoint();o[key]=parse(value);renderCanvas()},kind,options);
+  root.append(control);
+  return control;
+ };
+ const number=(name,key,min,max,fallback)=>{
+  const element=propertiesField(name,o[key]??fallback,v=>{
+   checkpoint();o[key]=bounded(v,min,max,fallback);renderCanvas();renderProperties()
+  },"number");
+  root.append(element);
+ };
  if(o.type==="chart"){
-  root.append(propertiesField("Altura",o.height||4,v=>{o.height=Number(v);renderCanvas()},"select",
-    [[2,"Baixa"],[3,"Compacta"],[4,"Padrão"],[5,"Alta"],[6,"Muito alta"]]));
-  root.append(propButton("Editar X, Y, Z e Cabeçalho no ECharts",()=>openChart(o.id),"primary"));
-  root.append(node("p","Escopo atual: "+E.fixedBadge(o.chart,"ano")+"; "+E.fixedBadge(o.chart,"bimestre"),"small muted"));
- }else if(o.type==="filter"){
-  root.append(propertiesField("Dimensão do filtro",o.dimension,v=>{
-     const oldDimension=o.dimension;o.dimension=v;
-     if(oldDimension!==v)delete state.filters[oldDimension];
-     renderCanvas()
-   },"select",
-   Object.entries(E.DIMENSIONS)));
-  root.append(node("p","Aqui você posiciona e identifica o filtro. Os valores permitidos vêm dos gráficos.","small muted"));
- }else if(o.type==="text"){
-  root.append(propertiesField("Texto",o.text||"",v=>{o.text=v;renderCanvas()},"textarea"));
+   field("Nome do gráfico","title","input",[],value=>{
+    o.chart.title=value;return value
+   });
+   root.append(propButton("Editar KPI, medidas, X, Y, Z e Cabeçalho no ECharts",()=>openChart(o.id),"primary"));
+   root.append(node("p","Ano: "+E.fixedBadge(o.chart,"ano")+" · Bimestre: "+
+    E.fixedBadge(o.chart,"bimestre"),"small muted"));
+ }else if(TEXT_TYPES.has(o.type)){
+   const textField=propertiesField("Texto (edição também direto no canvas)",o.text||"",v=>{
+    checkpoint();o.text=v;renderCanvas()
+   },"textarea");
+   const textarea=textField.querySelector("textarea");
+   textarea?.setAttribute("data-object-text-input","");
+   root.append(textField);
+   field("Fonte","fontFamily","select",[
+    ["Arial","Arial"],["Georgia","Georgia"],["Verdana","Verdana"],
+    ["Tahoma","Tahoma"],["Times New Roman","Times New Roman"],
+    ["Courier New","Courier New"]
+   ]);
+   number("Tamanho da fonte (px)","size",8,120,o.type==="title"?28:18);
+   field("Alinhamento do texto","textAlign","select",[
+    ["left","Esquerda"],["center","Centro"],["right","Direita"],["justify","Justificado"]
+   ]);
+   root.append(propsCheckbox("Negrito",o.bold,checked=>{checkpoint();o.bold=checked;renderCanvas()}));
+   root.append(propsCheckbox("Itálico",o.italic,checked=>{checkpoint();o.italic=checked;renderCanvas()}));
  }else if(o.type==="image"){
-  root.append(propertiesField("URL HTTPS da imagem",o.src?.startsWith("http")?o.src:"",v=>{
-    if(v&&!/^https:\/\//i.test(v)){status("A URL da imagem precisa usar HTTPS.",true);return}
-    o.src=v;renderCanvas()
-  }));
-  const input=node("input");input.type="file";input.accept="image/png,image/jpeg,image/webp";input.style.marginTop="8px";
-  input.onchange=()=>{const file=input.files?.[0];if(!file)return;
-    if(file.size>500000){status("Imagem acima de 500 KB; reduza o arquivo antes de enviar.",true);return}
-    const reader=new FileReader();reader.onload=()=>{o.src=String(reader.result);renderCanvas()};reader.readAsDataURL(file)};
-  root.append(input);
+   field("Nome da imagem","title");
+   const source=propertiesField("URL HTTPS da imagem",o.src?.startsWith("https://")?o.src:"",v=>{
+    if(v&&!/^https:\/\//i.test(v)){
+      status("A URL da imagem precisa começar com https://",true);return
+    }
+    checkpoint();o.src=v;renderCanvas()
+   },"input");
+   root.append(source);
+   const upload=node("input");upload.type="file";
+   upload.accept="image/png,image/jpeg,image/webp,image/gif";
+   upload.onchange=()=>{
+    const file=upload.files?.[0];if(!file)return;
+    if(file.size>2*1024*1024||!["image/png","image/jpeg","image/webp","image/gif"].includes(file.type)){
+     status("Selecione PNG, JPG, WebP ou GIF de até 2 MB.",true);return
+    }
+    const reader=new FileReader();
+    reader.onload=()=>{checkpoint();o.src=String(reader.result);renderCanvas()};
+    reader.readAsDataURL(file);
+   };
+   root.append(upload);
+ }else if(o.type==="filter"){
+   field("Título do filtro","title");
+   field("Dimensão","dimension","select",Object.entries(E.DIMENSIONS),v=>{
+    const previous=o.dimension;if(previous!==v)delete state.filters[previous];
+    return v
+   });
+   root.append(node("p","Os valores são definidos exclusivamente pelos gráficos que autorizam esse filtro no ECharts.","small muted"));
+ }else if(o.type==="filter_panel"){
+   field("Título do painel de filtros","title");
+   root.append(node("h3","Dimensões exibidas"));
+   for(const [key,label] of Object.entries(E.DIMENSIONS)){
+    root.append(propsCheckbox(label,(o.dimensions||[]).includes(key),checked=>{
+     checkpoint();const allowed=new Set(o.dimensions||[]);
+     if(checked)allowed.add(key);else allowed.delete(key);
+     o.dimensions=[...allowed];renderCanvas()
+    }));
+   }
+ }else if(o.type==="measure_filter"){
+   field("Título do seletor","title");
+   root.append(node("p","A seleção de medidas permanece limitada ao contrato de cada gráfico, definido no ECharts.","small muted"));
+ }else if(SHAPES.has(o.type)){
+   field("Nome da figura","title");
  }
- root.append(propButton("Duplicar objeto",()=>{
-   const copy=JSON.parse(JSON.stringify(o));copy.id=newId();
-   if(copy.chart)copy.chart.id=copy.id;
-   state.objects.splice(state.objects.indexOf(o)+1,0,copy);selectObject(copy.id);
+ root.append(node("h3","Dimensões e posição"));
+ number("Largura (colunas 1–12)","width",1,12,4);
+ number("Altura (linhas 1–12)","height",1,12,2);
+ number("Posição horizontal (px)","offsetX",-4000,4000,0);
+ number("Posição vertical (px)","offsetY",-4000,4000,0);
+ number("Rotação (graus)","rotation",-180,180,0);
+ number("Opacidade (%)","opacity",0,100,100);
+ root.append(node("h3","Aparência"));
+ field(SHAPES.has(o.type)?"Preenchimento":"Cor do texto / gráfico","color","color");
+ const bg=propertiesField("Plano de fundo",o.bg==="transparent"?"#ffffff":o.bg||"#ffffff",v=>{
+    checkpoint();o.bg=v;renderCanvas()
+ },"color");
+ root.append(bg);
+ root.append(propsCheckbox("Fundo transparente",o.bg==="transparent",checked=>{
+   checkpoint();o.bg=checked?"transparent":"#ffffff";renderCanvas();renderProperties()
+ }));
+ field("Cor do contorno","borderColor","color",[],v=>v);
+ number("Espessura da borda (px)","borderWidth",0,20,0);
+ number("Arredondamento das bordas (px)","borderRadius",0,80,8);
+ const layer=node("div",undefined,"properties-actions");
+ layer.append(propButton("Trazer à frente",()=>{
+   checkpoint();o.z=bounded(o.z+100,-1000,1000,1);renderCanvas()
  },"secondary"));
- root.append(propButton("Excluir objeto",()=>{
-    if(!confirm("Excluir este objeto do laboratório?"))return;
-    state.objects=state.objects.filter(item=>item.id!==o.id);
-    state.selected=state.objects.at(-1)?.id||null;renderCanvas();renderProperties()
- },"danger"));
+ layer.append(propButton("Enviar para trás",()=>{
+   checkpoint();o.z=bounded(o.z-100,-1000,1000,1);renderCanvas()
+ },"secondary"));
+ root.append(layer);
+ root.append(node("p","Arraste pelo cabeçalho para mudar a ordem. Segure Shift e arraste para mover livremente. Arraste o canto inferior direito para redimensionar.","small muted"));
+ root.append(propButton("Duplicar objeto",()=>duplicateObject(o.id),"secondary"));
+ root.append(propButton("Excluir objeto",()=>deleteObject(o.id),"danger"));
 }
-
 function fillChartEditor(spec){
  if(!spec)return;
  configureOptions($("chart-type"),Object.entries(E.TYPES),spec.type);
