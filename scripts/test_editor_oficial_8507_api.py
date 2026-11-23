@@ -25,12 +25,18 @@ class OfficialProductEditorTests(unittest.TestCase):
     def test_per_product_isolation_backup_and_legacy_preservation(self):
         with tempfile.TemporaryDirectory(prefix="bi-official-8507-test-") as directory:
             base=Path(directory)
-            old_visual,old_layouts,old_find,old_update=(
+            old_visual,old_layouts,old_find,old_update,old_lab=(
                 module.VISUAL_8507,module.LAYOUTS,module._get_product,
-                module.registry.update_product
+                module.registry.update_product,module.LEGACY_LAB_8507
             )
             module.VISUAL_8507=base/"visual_8507"
             module.LAYOUTS=base/"legacy"
+            module.LEGACY_LAB_8507=base/"lab-state.json"
+            laboratory={"version":1,"objects":[
+                {"id":"lab1","type":"text","text":"Rascunho experimental"}],
+                "filters":{},"selected":None}
+            module.LEGACY_LAB_8507.write_text(json.dumps(laboratory),encoding="utf-8")
+            lab_original=module.LEGACY_LAB_8507.read_bytes()
             module._get_product=lambda identifier: (
                 {"id":identifier,"name":"Produto "+identifier[:4]}
                 if identifier in (ID1,ID2) else None
@@ -58,6 +64,9 @@ class OfficialProductEditorTests(unittest.TestCase):
                 with urlopen(request,timeout=3) as resp:
                     return json.load(resp)
             try:
+                with urlopen(url+"/api/visual-8507/lab-draft",timeout=3) as response:
+                    self.assertEqual(json.load(response),laboratory)
+                self.assertEqual(module.LEGACY_LAB_8507.read_bytes(),lab_original)
                 self.assertIsNone(get(ID1))
                 self.assertIsNone(get(ID2))
                 first={"version":1,"objects":[
@@ -87,11 +96,12 @@ class OfficialProductEditorTests(unittest.TestCase):
                 self.assertEqual(http.exception.code,400)
                 self.assertEqual(get(ID1),changed)
                 self.assertEqual(legacy_path.read_bytes(),original_bytes)
+                self.assertEqual(module.LEGACY_LAB_8507.read_bytes(),lab_original)
             finally:
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
-                module.VISUAL_8507,module.LAYOUTS=old_visual,old_layouts
+                module.VISUAL_8507,module.LAYOUTS,module.LEGACY_LAB_8507=old_visual,old_layouts,old_lab
                 module._get_product=old_find
                 module.registry.update_product=old_update
 
