@@ -31,7 +31,7 @@ REQUIRED={
  "despesa_paga_acumulada","resultado_orcamentario_formal",
  "margem_receita_menos_liquidada","liquidada_nao_paga",
 }
-MAX_BYTES=1_500_000
+MAX_BYTES=8_000_000
 
 def load_local_fiscal():
     """Read-only fallback; never generates numbers and never modifies the source."""
@@ -126,7 +126,7 @@ class Handler(SimpleHTTPRequestHandler):
         if route=="/api/health":
             return self.json({"status":"ok","lab":"echarts-axes","port":8507,
               "upstream":8505,"fallback_csv":True,"storage_isolated":True,
-              "build":"lab8507-20261123-r3"})
+              "build":"lab8507-objetos-20261123-r4"})
         if route=="/":
             self.path="/index.html"
         elif route.startswith("/api/"):
@@ -148,7 +148,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json({"error":"Lista de objetos inválida"},400)
             for obj in objects:
                 if not isinstance(obj,dict) or obj.get("type") not in (
-                    "chart","text","image","filter","measure_filter"):
+                    "chart","text","title","image","filter","filter_panel","measure_filter",
+                    "rectangle","square","diamond","ellipse","arrow","line"):
                     return self.json({"error":"Tipo de objeto não permitido"},400)
                 if not isinstance(obj.get("id"),str) or len(obj["id"])>100:
                     return self.json({"error":"ID inválido"},400)
