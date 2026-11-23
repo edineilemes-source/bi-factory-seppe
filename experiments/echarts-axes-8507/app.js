@@ -413,6 +413,7 @@ function multiSelectControl(key,options,display,caption){
  const selected=E.filterValues(state.filters[key]).filter(v=>options.some(option=>String(option)===v));
  state.filters[key]=selected;
  const root=node("details",undefined,"multi-select");
+ root.dataset.filterKey=key;
  const summary=node("summary",undefined,"multi-select-summary");
  const labelText=()=>{
   const active=E.filterValues(state.filters[key]);
@@ -425,12 +426,19 @@ function multiSelectControl(key,options,display,caption){
  const content=node("div",undefined,"multi-select-options");
  content.addEventListener("pointerdown",event=>event.stopPropagation());
  content.addEventListener("click",event=>event.stopPropagation());
+ const sync=()=>{
+  const active=E.filterValues(state.filters[key]);
+  summaryText.textContent=labelText();
+  for(const {input,value} of inputs){
+   input.checked=value==="__all__"?!active.length:active.includes(value);
+  }
+ };
+ root.syncSelection=sync;
  const apply=next=>{
   checkpoint();
   state.filters[key]=[...new Set(next.map(String))];
-  summaryText.textContent=labelText();
-  for(const {input,value} of inputs){
-   input.checked=value==="__all__"?!state.filters[key].length:state.filters[key].includes(value);
+  for(const filter of $("visual-canvas").querySelectorAll(".multi-select")){
+   if(typeof filter.syncSelection==="function")filter.syncSelection();
   }
   refreshVisualCharts();
  };
