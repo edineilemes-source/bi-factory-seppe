@@ -100,11 +100,11 @@ function ensureFreeLayout(canvas){
   }
   obj.pixelWidth=w;obj.pixelHeight=h;
  }
- canvas.style.minHeight=Math.max(560,...state.objects.map(o=>
+ canvas.style.minHeight=Math.max(560,Math.ceil(window.innerHeight||0),...state.objects.map(o=>
    bounded(o.y,-4000,15000,0)+bounded(o.pixelHeight,45,2000,120)+30))+"px";
 }
 function updateCanvasHeight(canvas){
- canvas.style.minHeight=Math.max(560,...state.objects.map(o=>
+ canvas.style.minHeight=Math.max(560,Math.ceil(window.innerHeight||0),...state.objects.map(o=>
    bounded(o.y,-4000,15000,0)+bounded(o.pixelHeight,45,2000,120)+30))+"px";
 }
 function applyObjectStyle(block,obj){
@@ -1153,6 +1153,7 @@ function wire(){
   }
  });
  window.addEventListener("resize",()=>{
+  updateCanvasHeight($("visual-canvas"));
   for(const chart of instances.values())try{chart.resize()}catch(_){}
  });
 }
