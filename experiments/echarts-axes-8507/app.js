@@ -424,7 +424,7 @@ function renderCanvas(){
        inner.addEventListener("click",event=>{
         event.stopPropagation();
         openChart(obj.id);
-       });
+       },true); // captura antes do ECharts, mesmo que o canvas intercepte cliques
        inner.addEventListener("keydown",event=>{
         if(event.key==="Enter"||event.key===" "){
          event.preventDefault();event.stopPropagation();
