@@ -10,7 +10,7 @@
 
 ## Infraestrutura e persistência
 
-- **8507**: catálogo oficial React/Vite com o Editor Visual 8507 na ficha do produto. A porta 8506 não é mais a rota principal; pode permanecer aberta temporariamente para recuperação.
+- **8507**: catálogo oficial React/Vite com o Editor Visual 8507 na ficha do produto. A porta 8506 deixa de ser a interface oficial e seu processo conhecido é encerrado **somente depois** de validar a 8507. O código anterior fica no Git e no backup; serviços desconhecidos não são encerrados.
 - **8505**: API do catálogo e dados fiscais, com proxy do Vite.
 - **Editor oficial**: `/visual-editor/official-8507/index.html?product=<uuid>&mode=edit`; usa recursos estáticos próprios versionados em `prototypes/editor-visual/official-8507/`. **Não depende** do antigo servidor de laboratório na 8507.
 - **Layout novo por produto**: GET/PUT `/api/products/<uuid>/visual-8507` → `storage/information_products/visual_8507/<uuid>.json`. São aceitos somente objetos conhecidos, até 100 objetos por produto e até 12 MB por requisição.
