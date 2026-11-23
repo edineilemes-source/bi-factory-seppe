@@ -1097,7 +1097,8 @@ async function saveLab(){
 }
 window.addEventListener("message",event=>{
  if(event.origin!==location.origin||event.source!==window.parent)return;
- if(event.data?.type==="bi-factory:official-save-result"){
+ if(event.data?.type==="bi-factory:official-save-result"||
+    event.data?.type==="bi-factory:save-result"){
   if(event.data.ok){
    if(event.data.product)OFFICIAL_PRODUCT_ID=event.data.product;
    cacheDraft(snapshotDraft(),true);
