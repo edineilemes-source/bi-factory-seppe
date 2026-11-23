@@ -516,3 +516,167 @@ footer{padding:9px 18px;background:#fff;border-top:1px solid var(--line);font-si
  #exit-panel-preview{top:8px;right:8px;padding:8px}
  .lab-panel-preview #visual-page .main-area{padding:0}
 }
+
+/* BI Factory SEPPE 8507 r8 — editor WYSIWYG em página inteira, estilo PowerPoint.
+   Os painéis laterais são cortinas SOBRE o canvas; jamais reduzem sua largura.
+   Esta regra não alcança o ECharts, que mantém seu layout independente. */
+body.lab-edit-workspace{overflow:hidden;background:#fff}
+body.lab-edit-workspace > .topbar,
+body.lab-edit-workspace > .statusline,
+body.lab-edit-workspace > footer{display:none!important}
+body.lab-edit-workspace #visual-page.lab-wide-editor{
+ display:block!important;
+ position:fixed;
+ inset:0;
+ z-index:9000;
+ width:100vw;
+ height:100dvh;
+ min-height:100dvh;
+ overflow:hidden;
+ background:#fff;
+ padding:0;
+ margin:0;
+ box-sizing:border-box;
+}
+body.lab-edit-workspace #visual-page .main-area{
+ display:block;
+ position:relative;
+ width:100%;
+ height:100dvh;
+ min-height:100dvh;
+ max-height:100dvh;
+ min-width:0;
+ overflow:auto;
+ padding:0;
+ margin:0;
+ background:#fff;
+ overscroll-behavior:contain;
+}
+body.lab-edit-workspace #visual-canvas{
+ position:relative;
+ display:block;
+ width:100%;
+ min-width:100%;
+ min-height:100dvh!important;
+ padding:0;
+ margin:0;
+ border:0;
+ border-radius:0;
+ box-shadow:none;
+ background-color:#fff;
+ background-image:linear-gradient(#eef5f8 1px,transparent 1px),
+                  linear-gradient(90deg,#eef5f8 1px,transparent 1px);
+ background-size:20px 20px;
+ isolation:isolate;
+}
+/* Os objetos mantêm coordenadas absolutas no mesmo canvas em edição e prévia. */
+body.lab-edit-workspace #visual-canvas .canvas-object{position:absolute}
+body.lab-edit-workspace #visual-page .editor-canvas-toolbar{
+ display:flex;
+ position:fixed;
+ top:8px;
+ left:50%;
+ transform:translateX(-50%);
+ width:max-content;
+ max-width:calc(100vw - 20px);
+ gap:12px;
+ align-items:center;
+ justify-content:space-between;
+ z-index:9400;
+ margin:0;
+ padding:6px 9px;
+ border:1px solid #d4e1ec;
+ background:rgba(255,255,255,.97);
+ box-shadow:0 4px 16px #21466020;
+ border-radius:11px;
+ backdrop-filter:blur(10px);
+}
+.editor-toolbar-group{display:flex;align-items:center;flex-wrap:nowrap;gap:6px}
+.editor-toolbar-group button{
+ padding:8px 10px;
+ white-space:nowrap;
+ font-size:12px;
+ min-height:35px;
+}
+.editor-toolbar-name{
+ display:block;
+ font-size:11px;
+ font-weight:700;
+ white-space:nowrap;
+ padding:0 6px;
+ color:#496879;
+}
+#toggle-tools-drawer[aria-expanded="true"],
+#toggle-props-drawer[aria-expanded="true"]{
+ background:#dff2f6;
+ border-color:#91c1ce;
+ color:#17627a;
+}
+body.lab-edit-workspace #visual-page > .sidebar{
+ position:fixed;
+ display:block;
+ top:58px;
+ bottom:0;
+ height:calc(100dvh - 58px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ width:290px;
+ max-width:calc(100vw - 28px);
+ padding:20px 17px 70px;
+ background:#fff;
+ border:1px solid #d7e4ee;
+ border-top:0;
+ box-shadow:0 8px 32px #183e5630;
+ z-index:9300;
+ transition:transform .2s ease,visibility .2s ease;
+ visibility:hidden;
+ pointer-events:none;
+}
+body.lab-edit-workspace #visual-page > #visual-tools-drawer{
+ left:0;
+ right:auto;
+ border-radius:0 11px 11px 0;
+ transform:translateX(-105%);
+}
+body.lab-edit-workspace #visual-page > #visual-props-drawer{
+ right:0;
+ left:auto;
+ width:315px;
+ border-radius:11px 0 0 11px;
+ transform:translateX(105%);
+}
+body.lab-edit-workspace #visual-page > #visual-tools-drawer.drawer-open,
+body.lab-edit-workspace #visual-page > #visual-props-drawer.drawer-open{
+ visibility:visible;
+ pointer-events:auto;
+ transform:translateX(0);
+}
+body.lab-panel-preview #visual-page .editor-canvas-toolbar,
+body.lab-panel-preview #visual-page > #visual-tools-drawer,
+body.lab-panel-preview #visual-page > #visual-props-drawer{display:none!important}
+body.lab-panel-preview #visual-canvas{
+ width:100%;
+ min-width:100%;
+ box-sizing:border-box;
+}
+@media(max-width:1230px){
+ .editor-toolbar-name{display:none}
+ body.lab-edit-workspace #visual-page .editor-canvas-toolbar{
+  width:calc(100vw - 16px);
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:5px;
+ }
+}
+@media(max-width:710px){
+ body.lab-edit-workspace #visual-page .editor-canvas-toolbar{
+  top:4px;
+  max-height:100px;
+  overflow-x:auto;
+  flex-wrap:nowrap;
+  justify-content:flex-start;
+  white-space:nowrap;
+ }
+ .editor-toolbar-group button{font-size:11px;padding:7px}
+ body.lab-edit-workspace #visual-page > .sidebar{top:51px;height:calc(100dvh - 51px)}
+}
