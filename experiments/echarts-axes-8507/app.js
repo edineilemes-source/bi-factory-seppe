@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-livre-multifiltro-20261123-r5";
+const LAB_BUILD="lab8507-alca-persistente-20261123-r6";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
