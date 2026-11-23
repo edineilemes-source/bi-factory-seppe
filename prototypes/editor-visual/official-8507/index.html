@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BI Factory SEPPE — Editor Visual Oficial</title>
+<meta name="bi-lab-build" content="bi-factory-editor-oficial-8507-r1">
+<link rel="stylesheet" href="/visual-editor/official-8507/style.css?v=bi-factory-editor-oficial-8507-r1">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js" defer></script>
+<script src="/visual-editor/official-8507/engine.js?v=bi-factory-editor-oficial-8507-r1" defer></script>
+<script src="/visual-editor/official-8507/app.js?v=bi-factory-editor-oficial-8507-r1" defer></script>
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><span class="brand-mark">BI</span><div><strong>BI Factory SEPPE</strong><small>Editor Visual Oficial · ECharts <b>8507</b></small></div></div>
+ <div class="main-tabs"><button id="go-visual" class="active">Editor Visual</button><button id="go-charts">ECharts · Configurar gráfico</button></div>
+ <div class="top-actions"><span id="data-status" class="data-status">Consultando STN…</span><button id="save-lab" class="primary">Salvar produto</button></div>
+</header>
+<div id="global-status" class="statusline" role="status">Editor Visual oficial vinculado à ficha de cada produto.</div>
+
+<div id="visual-page" class="workspace lab-wide-editor" aria-label="Editor de painel em página inteira">
+ <aside class="sidebar left" id="visual-tools-drawer" aria-label="Objetos e componentes" aria-hidden="true">
+  <div class="section-kicker">01 · MONTAGEM</div>
+  <h2>Editor Visual</h2>
+  <p class="small">Aqui você monta a estrutura do produto. Dados, medidas, eixos e limitações de cada gráfico são definidos no ECharts.</p>
+  <h3>Objetos</h3>
+  <div class="tool-grid">
+   <button id="add-text">+ Texto</button>
+   <button id="add-image">+ Imagem</button>
+   <button id="add-chart">+ Gráfico</button>
+   <button id="add-title">+ Título</button>
+  </div>
+  <h3>Figuras geométricas</h3>
+  <div class="tool-grid">
+   <button id="add-rectangle">+ Retângulo</button>
+   <button id="add-square">+ Quadrado</button>
+   <button id="add-diamond">+ Losango</button>
+   <button id="add-ellipse">+ Elipse</button>
+   <button id="add-arrow">+ Seta</button>
+   <button id="add-line">+ Linha</button>
+  </div>
+  <h3>Componentes de filtros</h3>
+  <div class="tool-stack">
+   <button id="add-filter">+ Filtro de dimensão</button>
+   <button id="add-filter-panel">+ Painel de filtros</button>
+   <button id="add-measure-filter">+ Seletor de medidas</button>
+  </div>
+  <p class="small muted">Estes botões colocam componentes no painel; <strong>não escolhem anos ou bimestres</strong>. Um filtro só altera gráficos que autorizaram essa variação no ECharts.</p>
+  <div class="divider"></div>
+  <button id="add-example" class="outline wide">Montar painel fiscal de exemplo</button>
+  <div class="note">A imagem de referência mostra dimensões detalhadas. Nesta base fiscal RREO estão disponíveis apenas <b>Ano, Bimestre</b> e as sete medidas oficiais.</div>
+ </aside>
+ <section class="main-area">
+  <div class="area-title editor-canvas-toolbar" role="toolbar" aria-label="Ferramentas do Editor Visual">
+   <div class="editor-toolbar-group editor-toolbar-left">
+    <button id="toggle-tools-drawer" type="button" aria-expanded="false" aria-controls="visual-tools-drawer" title="Abrir ou fechar a cortina de objetos">☰ Objetos</button>
+    <button id="toggle-props-drawer" type="button" aria-expanded="false" aria-controls="visual-props-drawer" title="Abrir ou fechar a cortina de propriedades">⚙ Propriedades</button>
+    <span class="editor-toolbar-name">BI Factory SEPPE · Editor Visual</span>
+   </div>
+   <div class="editor-toolbar-group editor-toolbar-right">
+    <button id="visual-undo" type="button" title="Desfazer última alteração">Desfazer</button>
+    <button id="visual-redo" type="button" title="Refazer alteração">Refazer</button>
+    <button id="editor-open-echarts" type="button" title="Abrir o ECharts para o gráfico selecionado">ECharts</button>
+    <button id="editor-save" type="button" title="Salvar este painel experimental">Salvar</button>
+    <button id="editor-fullscreen" type="button" aria-pressed="false" title="Expandir o Editor Visual em tela inteira">Tela cheia</button>
+    <button id="visual-preview" class="primary" type="button" title="Ver o painel como será apresentado">Visualizar painel</button>
+    <button id="editor-toolbar-hide" type="button" title="Ocultar barra de ferramentas para liberar o painel" aria-label="Recolher ferramentas">−</button>
+   </div>
+  </div>
+  <button id="editor-toolbar-show" type="button" title="Reabrir barra de ferramentas" hidden>☰ Ferramentas</button>
+  <button id="exit-panel-preview" type="button" hidden aria-label="Fechar visualização do painel e voltar ao Editor Visual">Sair da visualização <span aria-hidden="true">×</span></button>
+  <div id="visual-canvas" class="canvas-grid" aria-label="Objetos do produto"></div>
+  <section id="chart-zoom-overlay" class="chart-zoom-overlay" role="dialog"
+    aria-modal="true" aria-label="Gráfico ampliado em tela inteira" hidden>
+   <div class="chart-zoom-toolbar">
+    <h2 id="chart-zoom-title">Gráfico ampliado</h2>
+    <button id="close-chart-zoom" type="button" aria-label="Fechar gráfico ampliado e voltar ao painel">Voltar ao painel <span aria-hidden="true">×</span></button>
+   </div>
+   <div id="chart-zoom-host" class="chart-zoom-host" aria-label="Gráfico ampliado"></div>
+  </section>
+  <div id="editor-status" class="editor-floating-status" role="status" aria-live="polite" hidden></div>
+  <div id="empty-visual" class="empty-state" hidden>Adicione um gráfico, texto, imagem ou filtro. Use o ECharts para definir os dados.</div>
+ </section>
+ <aside class="sidebar right" id="visual-props-drawer" aria-label="Propriedades do objeto" aria-hidden="true">
+  <div class="section-kicker">PROPRIEDADES</div><h2>Objeto selecionado</h2>
+  <div id="visual-props" class="props"><p class="small muted">Clique em um objeto para configurar título, posição e aparência.</p></div>
+ </aside>
+</div>
+
+<div id="echarts-page" class="workspace" hidden>
+ <aside class="sidebar left chart-sidebar">
+  <div class="section-kicker">02 · CONFIGURAÇÃO DE DADOS</div>
+  <h2>Estúdio ECharts</h2>
+  <div class="small muted">Cada gráfico define seus próprios campos e seus limites. O Editor Visual respeita essas regras.</div>
+  <label for="chart-type">Tipo de gráfico</label>
+  <select id="chart-type"></select>
+  <h3>Papéis visuais</h3>
+  <div class="axis-grid">
+   <label>Eixo X<select id="axis-x"></select></label>
+   <label>Eixo Y<select id="axis-y"></select></label>
+   <label>Eixo Z<select id="axis-z"></select></label>
+   <label>Cabeçalho<select id="axis-header"></select></label>
+  </div>
+  <p class="hint">O eixo Z controla somente o texto exibido sobre os dados: <b>nome da medida, valor, rótulo da categoria ou nenhum</b>. <b>A legenda das cores aparece automaticamente</b>, independente do eixo Z.</p>
+  <h3>Medidas permitidas</h3>
+  <div id="measure-choices" class="measure-choices"></div>
+  <h3>Restrições deste gráfico</h3>
+  <label for="year-mode">Ano</label>
+  <select id="year-mode"><option value="fixed">Fixo: só ano escolhido</option><option value="filterable">Filtrável no produto</option><option value="all">Todos, sem filtro externo</option></select>
+  <select id="year-fixed" aria-label="Ano fixo"></select>
+  <label for="period-mode">Bimestre</label>
+  <select id="period-mode"><option value="fixed">Fixo: só bimestre escolhido</option><option value="filterable">Filtrável no produto</option><option value="all">Todos, sem filtro externo</option></select>
+  <select id="period-fixed" aria-label="Bimestre fixo"></select>
+  <label class="checkline"><input type="checkbox" id="allow-measure-filter"> Permitir que o produto altere as medidas selecionadas</label>
+  <input type="checkbox" id="show-values" hidden aria-hidden="true" tabindex="-1">
+  <label for="top-n">Ranking</label>
+  <select id="top-n"><option value="5">Top 5</option><option value="10">Top 10</option><option value="15">Top 15</option><option value="0">Todas as categorias</option></select>
+ </aside>
+ <section class="main-area chart-main">
+  <div class="area-title"><div><span class="section-kicker">ECharts · MODELO EXPERIMENTAL</span><h2>Construtor de gráfico</h2></div><div class="inline-actions"><button id="back-to-visual" class="primary">Aplicar e voltar ao Editor Visual</button></div></div>
+  <div class="editor-row"><label>Nome do gráfico<input id="chart-title" placeholder="Ex.: Receita realizada — 2025"></label><span id="binding-summary" class="chip"></span></div>
+  <div class="chart-preview-card">
+   <h3 id="preview-heading">Pré-visualização</h3>
+   <div id="chart-preview" class="chart-preview"></div>
+   <div id="preview-fallback" class="chart-fallback" hidden></div>
+  </div>
+  <div class="note">Filtros globais do produto não estão aplicados aqui. A prévia mostra o escopo definido no ECharts; filtros autorizados serão aplicados no Editor Visual.</div>
+ </section>
+ <aside class="sidebar right">
+  <div class="section-kicker">CONTRATO DO GRÁFICO</div><h2>O que poderá variar?</h2>
+  <div id="chart-contract" class="contract"></div>
+  <h3>Organização sugerida</h3>
+  <div class="small"><p><b>X:</b> tempo, categoria ou valor.</p><p><b>Y:</b> valor ou categoria.</p><p><b>Z:</b> rótulos numéricos ou identificação da medida.</p><p><b>Cabeçalho:</b> contexto do gráfico (como Ano 2025).</p></div>
+  <div class="note">Não é possível selecionar Unidade Gestora, Fonte, Mês, Dia ou Elemento de Despesa usando somente o RREO agregado. Essas opções serão habilitadas quando houver base com tais campos.</div>
+ </aside>
+</div>
+<footer>BI Factory SEPPE · Editor Visual oficial · Dados STN/SICONFI</footer>
+</body>
+</html>
