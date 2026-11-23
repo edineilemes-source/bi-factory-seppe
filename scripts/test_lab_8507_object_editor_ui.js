@@ -35,5 +35,5 @@ assert.match(css,/\.resize-handle/);
 assert.match(css,/\.shape-diamond/);
 assert.match(css,/\.shape-arrow/);
 assert.match(css,/caret-color/);
-assert.match(ui,/lab8507-click-editar-echarts-20261123-r9/);
+assert.match(ui,/lab8507-legenda-automatica-z-20261123-r10/);
 console.log("OK 8507: KPI apenas ECharts, texto vazio, figuras, resize, propriedades, apagar, duplicar e histórico.");
