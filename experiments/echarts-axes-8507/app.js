@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-20261123-r3";
+const LAB_BUILD="lab8507-objetos-20261123-r4";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -12,26 +12,114 @@ const node=(tag,text,cls)=>{const item=document.createElement(tag);if(text!==und
 const modeLabels={fixed:"Fixo",filterable:"Filtrável no produto",all:"Todos, independente dos filtros"};
 let state={version:1,objects:[],filters:{},selected:null};
 let rows=[],currentScreen="visual",editing=null,previewOnly=false;
+const SHAPES=new Set(["rectangle","square","diamond","ellipse","arrow","line"]);
+const TEXT_TYPES=new Set(["text","title"]);
+const OBJECT_TYPES=new Set(["chart","text","title","image","filter","filter_panel","measure_filter",...SHAPES]);
+let undoStack=[],redoStack=[];
+function checkpoint(){
+ undoStack.push(JSON.stringify(snapshotDraft()));
+ if(undoStack.length>80)undoStack.shift();
+ redoStack=[];
+}
+function restoreSnapshot(content){
+ const snapshot=JSON.parse(content);
+ if(!draftValid(snapshot))throw Error("Estado de edição inválido");
+ state={version:1,objects:snapshot.objects,filters:snapshot.filters||{},selected:snapshot.selected||null};
+ cacheDraft(snapshot,false);
+ renderCanvas();renderProperties();
+}
+function undoVisual(){
+ if(!undoStack.length)return;
+ redoStack.push(JSON.stringify(snapshotDraft()));
+ restoreSnapshot(undoStack.pop());
+ status("Última alteração desfeita no laboratório 8507.");
+}
+function redoVisual(){
+ if(!redoStack.length)return;
+ undoStack.push(JSON.stringify(snapshotDraft()));
+ restoreSnapshot(redoStack.pop());
+ status("Alteração refeita no laboratório 8507.");
+}
+const bounded=(val,min,max,fallback)=>{
+ const n=Number(val);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
+};
+const defaults=type=>({
+ id:newId(),type,title:"",width:type==="chart"?6:type==="title"?8:4,
+ height:type==="chart"?4:type==="text"?2:2,
+ bg:"#ffffff",color:"#203047",borderColor:"transparent",borderWidth:0,
+ borderRadius:8,fontFamily:"Arial",bold:false,italic:false,size:type==="title"?28:18,
+ textAlign:"left",opacity:100,rotation:0,z:1,offsetX:0,offsetY:0
+});
+function labelOfType(type){
+ return {chart:"Gráfico / Indicador ECharts",text:"Texto",title:"Título",
+ image:"Imagem",filter:"Filtro de dimensão",filter_panel:"Painel de filtros",
+ measure_filter:"Seletor de medidas",rectangle:"Retângulo",square:"Quadrado",
+ diamond:"Losango",ellipse:"Elipse",arrow:"Seta",line:"Linha"}[type]||"Objeto";
+}
+function deleteObject(id){
+ if(previewOnly)return;
+ const index=state.objects.findIndex(o=>o.id===id);
+ if(index<0)return;
+ checkpoint();
+ state.objects.splice(index,1);
+ if(state.selected===id)state.selected=state.objects.at(-1)?.id||null;
+ if(state.selected===null)editing=null;
+ renderCanvas();renderProperties();
+ status("Objeto excluído. Use Desfazer para recuperá-lo.");
+}
+function duplicateObject(id){
+ const src=object(id);if(!src||previewOnly)return;
+ checkpoint();const copy=JSON.parse(JSON.stringify(src));copy.id=newId();
+ copy.offsetX=bounded(src.offsetX||0,-4000,4000,0)+16;
+ copy.offsetY=bounded(src.offsetY||0,-4000,4000,0)+16;
+ if(copy.chart)copy.chart.id=copy.id;
+ state.objects.splice(state.objects.indexOf(src)+1,0,copy);
+ selectObject(copy.id);
+}
+function applyObjectStyle(block,obj){
+ block.style.gridColumn="span "+bounded(obj.width,1,12,4);
+ block.style.gridRow="span "+bounded(obj.height,1,12,2);
+ block.style.opacity=String(bounded(obj.opacity,0,100,100)/100);
+ block.style.background=obj.bg||"transparent";
+ block.style.color=obj.color||"#203047";
+ block.style.borderColor=obj.borderColor||"transparent";
+ block.style.borderWidth=bounded(obj.borderWidth,0,20,0)+"px";
+ block.style.borderRadius=bounded(obj.borderRadius,0,80,8)+"px";
+ block.style.zIndex=String(bounded(obj.z,-1000,1000,1)+1001);
+ block.style.transform="translate("+bounded(obj.offsetX,-4000,4000,0)+"px,"+
+  bounded(obj.offsetY,-4000,4000,0)+"px) rotate("+bounded(obj.rotation,-180,180,0)+"deg)";
+}
 const instances=new Map();
 const formatNumber=v=>v===null||v===undefined?"Valor indisponível":E.money(v);
 function status(message,bad=false){const line=$("global-status");line.textContent=message;line.style.color=bad?"#a14635":"#496473"}
 function object(id){return state.objects.find(o=>o.id===id)}
 function charts(){return state.objects.filter(o=>o.type==="chart"&&o.chart).map(o=>o.chart)}
 function newId(){return "o-"+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))}
-function elementLabel(o){return o.title||({chart:"Gráfico",text:"Texto",image:"Imagem",filter:"Filtro de dimensão",measure_filter:"Seletor de medidas"}[o.type]||"Objeto")}
+function elementLabel(o){return o.title||labelOfType(o.type)}
 function addObject(type,details={},edit=false){
- const obj={id:newId(),type,title:"",width:type==="chart"?6:4,height:type==="chart"?4:2,...details};
+ if(!OBJECT_TYPES.has(type)){status("Objeto não reconhecido: "+type,true);return null}
+ checkpoint();
+ const obj={...defaults(type),...details};
  if(type==="chart"){
    obj.chart=obj.chart||E.createChart(obj.id,{title:obj.title||"Novo gráfico",type:"BAR"});
    obj.chart.id=obj.id;
    obj.title=obj.title||obj.chart.title;
  }
  if(type==="filter")obj.dimension=obj.dimension||"ano";
- if(type==="text")obj.text=obj.text||"Clique aqui e escreva seu texto.";
+ if(type==="filter_panel")obj.dimensions=obj.dimensions||["ano","bimestre"];
+ if(TEXT_TYPES.has(type))obj.text=obj.text??"";
  state.objects.push(obj);
  state.selected=obj.id;
  if(edit&&type==="chart")openChart(obj.id);
- else{renderCanvas();renderProperties()}
+ else{
+  renderCanvas();renderProperties();
+  if(TEXT_TYPES.has(type)){
+   requestAnimationFrame(()=>{
+    const element=document.querySelector('[data-object-id="'+obj.id+'"] [contenteditable="true"]');
+    element?.focus();
+  });
+  }
+ }
  return obj;
 }
 function disposeAll(){
