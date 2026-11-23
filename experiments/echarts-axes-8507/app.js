@@ -3,7 +3,7 @@
  */
 (()=>{
 "use strict";
-const LAB_BUILD="lab8507-preview-fullscreen-20261123-r7";
+const LAB_BUILD="lab8507-editor-wide-curtains-20261123-r8";
 document.documentElement.dataset.labBuild=LAB_BUILD;
 const E=window.BIAxesEngine;
 if(!E){document.body.textContent="Motor do laboratório não foi carregado.";return}
@@ -178,9 +178,44 @@ function refreshPreviewCharts(){
   for(const chart of instances.values())try{chart.resize()}catch(_){}
  });
 }
+function setEditorCurtain(which,open){
+ const ids={
+  tools:["visual-tools-drawer","toggle-tools-drawer"],
+  props:["visual-props-drawer","toggle-props-drawer"]
+ };
+ const pair=ids[which];
+ if(!pair)return;
+ const curtain=$(pair[0]),toggle=$(pair[1]);
+ const willOpen=Boolean(open);
+ curtain.classList.toggle("drawer-open",willOpen);
+ curtain.setAttribute("aria-hidden",String(!willOpen));
+ toggle.setAttribute("aria-expanded",String(willOpen));
+ toggle.classList.toggle("active",willOpen);
+}
+function toggleEditorCurtain(which){
+ const id=which==="tools"?"visual-tools-drawer":"visual-props-drawer";
+ const opening=!$(id).classList.contains("drawer-open");
+ // Se uma cortina estiver aberta, fecha-a antes de abrir a outra.
+ if(opening)setEditorCurtain(which==="tools"?"props":"tools",false);
+ setEditorCurtain(which,opening);
+}
+function syncVisualWorkspaceMode(){
+ document.body.classList.toggle("lab-edit-workspace",currentScreen==="visual"&&!previewOnly);
+}
+function toggleEditorNativeFullscreen(){
+ const el=$("visual-page");
+ if(document.fullscreenElement===el){
+  const action=document.exitFullscreen?.();
+  if(action?.catch)action.catch(()=>status("Não foi possível sair do modo tela cheia.",true));
+ }else if(el.requestFullscreen){
+  const action=el.requestFullscreen();
+  if(action?.catch)action.catch(()=>status("Seu navegador bloqueou a tela cheia. O canvas continua na largura total.",true));
+ }else status("O canvas já ocupa a página inteira; este navegador não oferece tela cheia nativa.",true);
+}
 function setPanelPreview(enabled){
  previewOnly=Boolean(enabled);
  document.body.classList.toggle("lab-panel-preview",previewOnly);
+ syncVisualWorkspaceMode();
  $("exit-panel-preview").hidden=!previewOnly;
  $("visual-preview").textContent=previewOnly?"Voltar à edição":"Visualizar painel";
  closeFilterMenus();
@@ -209,6 +244,7 @@ function exitPanelPreview(){
 }
 function showScreen(screen){
  currentScreen=screen;
+ syncVisualWorkspaceMode();
  $("visual-page").hidden=screen!=="visual";
  $("echarts-page").hidden=screen!=="echarts";
  $("go-visual").classList.toggle("active",screen==="visual");
@@ -973,6 +1009,11 @@ async function loadLab(){
  }
 }
 function wire(){
+ $("toggle-tools-drawer").onclick=()=>toggleEditorCurtain("tools");
+ $("toggle-props-drawer").onclick=()=>toggleEditorCurtain("props");
+ $("editor-open-echarts").onclick=()=>$("go-charts").click();
+ $("editor-save").onclick=saveLab;
+ $("editor-fullscreen").onclick=toggleEditorNativeFullscreen;
  $("go-visual").onclick=()=>showScreen("visual");
  $("go-charts").onclick=()=>{
   const sel=object(state.selected);
@@ -1002,7 +1043,10 @@ function wire(){
  $("visual-preview").onclick=enterPanelPreview;
  $("exit-panel-preview").onclick=exitPanelPreview;
  document.addEventListener("fullscreenchange",()=>{
-  if(previewOnly&&document.fullscreenElement!==$("visual-page"))exitPanelPreview();
+  const active=document.fullscreenElement===$("visual-page");
+  $("editor-fullscreen").setAttribute("aria-pressed",String(active));
+  $("editor-fullscreen").textContent=active?"Sair da tela cheia":"Tela cheia";
+  if(previewOnly&&!active)exitPanelPreview();
   else refreshPreviewCharts();
  });
  document.addEventListener("pointerdown",event=>{
