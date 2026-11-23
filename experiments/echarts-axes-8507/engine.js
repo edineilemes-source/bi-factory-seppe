@@ -50,7 +50,8 @@
    id:id||"g-"+Math.random().toString(36).slice(2),type:opts.type||"BAR",
    title:opts.title||"Novo gráfico",
    axes:{x:opts.axes?.x||"bimestre",y:opts.axes?.y||"valor",
-     z:opts.axes?.z||"medida",header:opts.axes?.header||"ano"},
+     z:opts.axes?.z||"nenhum",header:opts.axes?.header||"ano"},
+   labelSchema:2,
    measures:picked.length?picked:["receita_realizada_acumulada"],
    scope:{
     ano:scope(opts.scope?.ano?.mode||"fixed",opts.scope?.ano?.fixed??2025),
@@ -91,6 +92,21 @@
   }
   return problems;
  }
+ // Agora Z controla somente os rótulos, e não a legenda.
+ // Compatibilidade: antes da versão 2, Z="medida" controlava a legenda.
+ function zMode(chart){
+  const z=chart.axes?.z||"nenhum";
+  if(chart.labelSchema!==2&&z==="medida")return chart.showLabels?"valor":"nenhum";
+  if(chart.labelSchema!==2&&z==="nenhum"&&chart.showLabels)return "valor";
+  return ["medida","valor","rotulo","nenhum"].includes(z)?z:"nenhum";
+ }
+ function dataLabel(mode,measure,category,value){
+  if(mode==="medida")return measure||"";
+  if(mode==="rotulo")return category||"";
+  if(mode==="valor")return value==null?"":compact(value);
+  return "";
+ }
+ const autoLegend=names=>({show:true,type:"scroll",top:0,left:"center",data:[...new Set(names)]});
  function filterValues(value){
   // [] e valor ausente significam Todos, inclusive para rascunhos antigos.
   if(value==null||value===""||value==="all")return [];
@@ -148,7 +164,7 @@
    const matching=fields.filter(f=>chosen.includes(f));
    if(chosen.length&&matching.length)fields=matching;
   }
-  const x=chart.axes.x,y=chart.axes.y,z=chart.axes.z,heading=chart.axes.header;
+  const x=chart.axes.x,y=chart.axes.y,z=zMode(chart),heading=chart.axes.header;
   const headingParts=[chart.title];
   if(heading==="ano"){
    const years=[...new Set(rows.map(r=>r.ano))];
@@ -169,15 +185,19 @@
   }
   if(chart.type==="SCATTER"){
    const ax=fields[0],ay=fields[1];
+   const seriesName=byKey[ax]+" × "+byKey[ay];
    const points=rows.map(r=>[r[ax],r[ay],r.ano+" / "+r.bimestre+"º bim."])
      .filter(p=>p[0]!==null&&p[1]!==null);
    return {kind:"chart",header,rows,fields,options:{
-      color:chart.palette,grid:{left:20,right:20,top:28,bottom:62,containLabel:true},
+      color:chart.palette||colors,legend:autoLegend([seriesName]),
+      grid:{left:20,right:20,top:60,bottom:62,containLabel:true},
       xAxis:{type:"value",name:byKey[ax],nameLocation:"middle",nameGap:34,axisLabel:{formatter:compact}},
       yAxis:{type:"value",name:byKey[ay],nameLocation:"middle",nameGap:64,axisLabel:{formatter:compact}},
       tooltip:{trigger:"item",formatter:p=>p.value[2]+": "+money(p.value[0])+" × "+money(p.value[1])},
-      series:[{type:"scatter",symbolSize:12,data:points,
-       label:{show:z==="valor"||chart.showLabels,formatter:p=>p.value[2],position:"top"}}]
+      series:[{type:"scatter",name:seriesName,symbolSize:12,data:points,
+       label:{show:z!=="nenhum",position:"top",formatter:p=>
+        z==="valor"?compact(p.value[0])+" × "+compact(p.value[1]):
+        dataLabel(z,seriesName,p.value[2],p.value[1])}}]
     }};
   }
   const first=fields[0],categorical=x==="valor"?y:x;
@@ -202,13 +222,16 @@
     const all=values.map(v=>v[2]);
     return {kind:"chart",header,rows,fields,options:{
       tooltip:{position:"top",formatter:p=>xs[p.value[0]]+" / "+ys[p.value[1]]+": "+money(p.value[2])},
-      grid:{top:26,left:20,right:35,bottom:50,containLabel:true},
+      grid:{top:28,left:20,right:35,bottom:95,containLabel:true},
       xAxis:{type:"category",data:xs,splitArea:{show:true}},
       yAxis:{type:"category",data:ys,splitArea:{show:true}},
-      visualMap:{min:Math.min(...all),max:Math.max(...all),calculable:true,
-       orient:"horizontal",left:"center",bottom:0,inRange:{color:["#eaf4f7","#27a0a7"]}},
-      series:[{type:"heatmap",data:values,label:{show:z==="valor"||chart.showLabels,
-       formatter:p=>compact(p.value[2])}}]
+      // Legenda contínua automática: associa explicitamente a escala de cores à medida.
+      visualMap:{show:true,min:Math.min(...all),max:Math.max(...all),calculable:true,
+       text:[byKey[first]+" · maior valor","Menor valor"],textGap:10,
+       orient:"horizontal",left:"center",bottom:4,inRange:{color:["#eaf4f7","#27a0a7"]}},
+      series:[{type:"heatmap",name:byKey[first],data:values,
+       label:{show:z!=="nenhum",formatter:p=>dataLabel(z,byKey[first],
+        xs[p.value[0]]+" / "+ys[p.value[1]],p.value[2])}}]
     }};
   }
   if(!chartRows.length)return {empty:"Sem dados numéricos para o gráfico"};
@@ -227,13 +250,15 @@
     if(chart.topN>0)ranked=ranked.slice(0,chart.topN);
     const labelPosition=x==="valor"?"right":"top";
     return {kind:"chart",header,rows,fields,options:{
-      color:chart.palette,grid:{left:20,right:85,top:14,bottom:40,containLabel:true},
+      color:chart.palette||colors,legend:autoLegend([byKey[first]]),
+      grid:{left:20,right:85,top:60,bottom:40,containLabel:true},
       xAxis:{type:"value",axisLabel:{formatter:compact}},
       yAxis:{type:"category",inverse:true,data:ranked.map(p=>p.label),
        axisLabel:{width:145,overflow:"truncate",interval:0}},
       tooltip:{trigger:"axis",valueFormatter:money,axisPointer:{type:"shadow"}},
       series:[{type:"bar",name:byKey[first],barMaxWidth:28,data:ranked.map(p=>p.value),
-       label:{show:z==="valor"||chart.showLabels,position:"right",formatter:p=>compact(p.value)}}]
+       label:{show:z!=="nenhum",position:"right",formatter:p=>dataLabel(z,byKey[first],
+        ranked[p.dataIndex]?.label,p.value)}}]
      }};
   }
   // Evitar somas de acumulados: se o eixo usa Ano, escolher último bimestre
@@ -259,10 +284,18 @@
   };
   const horizontal=x==="valor";
   if(categorical==="medida"){
-    series=[{name:"Valor",type:chart.type==="LINE"||chart.type==="AREA"?"line":"bar",
-      data:categoryValues.map(label=>{
-       const f=fields.find(k=>byKey[k]===label);return f?prepared.at(-1)[f]:null;
-      })}];
+    // Cada categoria Medida recebe sua própria cor e nome na legenda.
+    const latest=prepared.at(-1);
+    series=fields.map((field,i)=>({
+      name:byKey[field],type:chart.type==="LINE"||chart.type==="AREA"?"line":
+        chart.type==="POINTS"?"scatter":"bar",
+      barMaxWidth:40,symbolSize:chart.type==="POINTS"?12:undefined,
+      itemStyle:{color:(chart.palette||colors)[i%(chart.palette||colors).length]},
+      areaStyle:chart.type==="AREA"?{}:undefined,
+      data:categoryValues.map(label=>label===byKey[field]?latest[field]:null),
+      label:{show:z!=="nenhum",position:horizontal?"right":"top",
+       formatter:p=>dataLabel(z,byKey[field],p.name,p.value)}
+    }));
   }else series=fields.map((field,i)=>({
     name:byKey[field],type:["LINE","AREA"].includes(chart.type)?"line":
       chart.type==="POINTS"?"scatter":"bar",
@@ -273,23 +306,23 @@
       if(v===null)return null;
       return horizontal&&["LINE","AREA","POINTS"].includes(chart.type)?[v,label]:v;
     }),
-    label:{show:z==="valor"||chart.showLabels,
-      position:horizontal?"right":"top",
-      formatter:p=>{const v=Array.isArray(p.value)?p.value[0]:p.value;return v==null?"":compact(v)}}
+    label:{show:z!=="nenhum",position:horizontal?"right":"top",
+      formatter:p=>{const v=Array.isArray(p.value)?p.value[0]:p.value;
+        return dataLabel(z,byKey[field],p.name,v)}}
   }));
   const categoryAxis={type:"category",data:categoryValues,
    axisLabel:{hideOverlap:true,width:120,overflow:"truncate",interval:"auto"}},
    valueAxis={type:"value",axisLabel:{formatter:compact}};
   return {kind:"chart",header,rows,fields,options:{
-    color:chart.palette,
-    legend:{show:z==="medida"&&fields.length>1,top:0,type:"scroll"},
+    color:chart.palette||colors,
+    legend:autoLegend(series.map(item=>item.name)),
     tooltip:{trigger:"axis",valueFormatter:v=>money(Array.isArray(v)?v[0]:v)},
-    grid:{left:20,right:28,top:z==="medida"&&fields.length>1?55:28,bottom:48,containLabel:true},
+    grid:{left:20,right:28,top:60,bottom:48,containLabel:true},
     xAxis:horizontal?valueAxis:categoryAxis,
     yAxis:horizontal?categoryAxis:valueAxis,
     series
   }};
  }
  return {MEASURES,byKey,DIMENSIONS,AXES,TYPES,colors,money,compact,normalizedRows,
-   createChart,validate,filterValues,allowedRows,allowedOptions,allowedMeasures,fixedBadge,build};
+   createChart,validate,zMode,filterValues,allowedRows,allowedOptions,allowedMeasures,fixedBadge,build};
 });
