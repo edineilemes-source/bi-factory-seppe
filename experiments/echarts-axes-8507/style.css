@@ -738,3 +738,125 @@ body.lab-panel-preview #visual-canvas .chart-item{
  cursor:default;
  box-shadow:none;
 }
+
+/* 8507 r11: gráfico ampliado em modo Visualizar, sem deslocar ou editar o painel.
+   Camada dentro de #visual-page para funcionar inclusive com a API Fullscreen. */
+#chart-zoom-overlay[hidden]{display:none!important}
+#visual-page #chart-zoom-overlay{
+ position:fixed;
+ inset:0;
+ z-index:100200;
+ display:flex;
+ flex-direction:column;
+ width:100vw;
+ height:100vh;
+ height:100dvh;
+ padding:0;
+ margin:0;
+ box-sizing:border-box;
+ background:#fff;
+ color:#203047;
+ overflow:hidden;
+ isolation:isolate;
+}
+#visual-page .chart-zoom-toolbar{
+ height:64px;
+ min-height:64px;
+ width:100%;
+ padding:10px 18px 10px 22px;
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:18px;
+ border-bottom:1px solid #e3eaf1;
+ background:#fff;
+}
+#visual-page #chart-zoom-title{
+ margin:0;
+ color:#193958;
+ font-size:clamp(17px,2vw,25px);
+ font-weight:700;
+ line-height:1.25;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ white-space:nowrap;
+}
+#visual-page #close-chart-zoom{
+ flex:0 0 auto;
+ padding:10px 15px;
+ color:#194d67;
+ background:#fff;
+ border:1px solid #bed3e0;
+ border-radius:8px;
+ font-size:13px;
+ font-weight:700;
+ cursor:pointer;
+ box-shadow:0 1px 7px #193c561e;
+}
+#visual-page #close-chart-zoom:hover,
+#visual-page #close-chart-zoom:focus-visible{
+ border-color:#238ca3;
+ background:#eef8fb;
+ outline-offset:2px;
+}
+#visual-page #close-chart-zoom span{font-size:18px;margin-left:6px;vertical-align:middle}
+#visual-page .chart-zoom-host{
+ box-sizing:border-box;
+ display:block;
+ position:relative;
+ flex:1 1 auto;
+ width:100%;
+ min-width:0;
+ height:calc(100dvh - 64px);
+ min-height:0;
+ padding:12px 22px 18px;
+ overflow:auto;
+ background:#fff;
+}
+#visual-page .chart-zoom-host .chart-host{
+ width:100%!important;
+ height:100%!important;
+ min-height:0;
+}
+#visual-page .chart-zoom-host > .kpi-value{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:clamp(42px,7vw,102px);
+ font-weight:700;
+ padding-top:14vh;
+}
+#visual-page .chart-zoom-host > .kpi-sub{
+ text-align:center;
+ font-size:clamp(17px,2vw,28px);
+}
+#visual-page .chart-zoom-host table{
+ width:100%;
+ max-width:100%;
+ font-size:clamp(13px,1.4vw,19px)!important;
+}
+#visual-page .chart-zoom-host table td,
+#visual-page .chart-zoom-host table th{
+ font-size:inherit!important;
+ padding:10px 14px!important;
+}
+body.lab-panel-preview .canvas-object .chart-zoom-target{
+ cursor:zoom-in;
+}
+body.lab-panel-preview .canvas-object .chart-zoom-target:focus-visible{
+ outline:2px dashed #2298af;
+ outline-offset:2px;
+}
+body.lab-panel-preview .canvas-object .chart-zoom-target:hover{
+ box-shadow:inset 0 0 0 1px rgba(31,145,163,.32);
+}
+body.lab-chart-expanded #visual-page .main-area{
+ overflow:hidden!important;
+}
+@media(max-width:640px){
+ #visual-page .chart-zoom-toolbar{height:58px;min-height:58px;padding:8px 12px;gap:9px}
+ #visual-page #chart-zoom-title{font-size:16px}
+ #visual-page #close-chart-zoom{font-size:11px;padding:8px 9px}
+ #visual-page .chart-zoom-host{padding:7px;height:calc(100dvh - 58px)}
+}
