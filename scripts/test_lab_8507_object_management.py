@@ -62,12 +62,15 @@ class ObjectPersistenceTests(unittest.TestCase):
                     if kind in ("text","title"):item["text"]=""
                     if kind=="filter_panel":item["dimensions"]=["ano","bimestre"]
                     objects.append(item)
-                payload={"version":1,"objects":objects,"filters":{},"selected":"obj-0"}
+                payload={"version":1,"objects":objects,"filters":{"ano":["2022","2024"],"bimestre":["1","3"],"medida":["receita_realizada_acumulada","despesa_paga_acumulada"]},"selected":"obj-0"}
                 saved=put(payload)
                 self.assertTrue(saved["ok"])
                 self.assertEqual(saved["objects"],len(types))
                 recovered=get("/lab/draft")
                 self.assertEqual(recovered,payload)
+                self.assertEqual(recovered["filters"]["ano"],["2022","2024"])
+                self.assertEqual(recovered["filters"]["bimestre"],["1","3"])
+                self.assertEqual(len(recovered["filters"]["medida"]),2)
                 self.assertEqual(recovered["objects"][0]["text"],"")
                 self.assertEqual(recovered["objects"][0]["fontFamily"],"Georgia")
                 self.assertEqual(recovered["objects"][0]["size"],26)
