@@ -31,8 +31,9 @@ PREVIOUS=(
     "origin/fix/lab8507-recarregar-assets-20261123",
     "origin/fix/lab8507-python-none-20261123",
     "origin/feat/lab8507-gerenciamento-objetos-20261123",
+    "origin/fix/lab8507-canvas-livre-multifiltros-20261123",
 )
-TARGET="origin/fix/lab8507-canvas-livre-multifiltros-20261123"
+TARGET="origin/fix/lab8507-teste-contrato-multifiltro-20261123"
 FILES=(
     "experiments/echarts-axes-8507/index.html",
     "experiments/echarts-axes-8507/app.js",
@@ -45,6 +46,7 @@ FILES=(
     "scripts/test_lab_8507_object_editor_ui.js",
     "scripts/test_lab_8507_free_canvas_ui.js",
     "scripts/test_lab_8507_multiselect_filters.js",
+    "scripts/test_lab_ui_contract_8507.js",
 )
 URL="http://127.0.0.1:8507"
 LOG=Path("/tmp/bi-factory-seppe-logs/lab-echarts-8507.log")
