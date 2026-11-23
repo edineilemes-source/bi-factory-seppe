@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT=Path("/workspaces/bi-factory-seppe")
 SERVER=ROOT/"scripts/serve_echarts_axes_8507.py"
-BUILD="lab8507-livre-multifiltro-20261123-r5"
+BUILD="lab8507-alca-persistente-20261123-r6"
 PREVIOUS=(
     "origin/feat/lab-echarts-eixos-8507-20261119",
     "origin/fix/lab8507-fonte-historica-e-reinicio-20261123",
@@ -32,8 +32,10 @@ PREVIOUS=(
     "origin/fix/lab8507-python-none-20261123",
     "origin/feat/lab8507-gerenciamento-objetos-20261123",
     "origin/fix/lab8507-canvas-livre-multifiltros-20261123",
+    "origin/fix/lab8507-teste-contrato-multifiltro-20261123",
+    "origin/fix/lab8507-canvas-livre-multifiltros-20261123",
 )
-TARGET="origin/fix/lab8507-teste-contrato-multifiltro-20261123"
+TARGET="origin/fix/lab8507-alca-persistente-20261123"
 FILES=(
     "experiments/echarts-axes-8507/index.html",
     "experiments/echarts-axes-8507/app.js",
@@ -47,6 +49,7 @@ FILES=(
     "scripts/test_lab_8507_free_canvas_ui.js",
     "scripts/test_lab_8507_multiselect_filters.js",
     "scripts/test_lab_ui_contract_8507.js",
+    "scripts/test_lab_8507_persistent_move_handles.js",
 )
 URL="http://127.0.0.1:8507"
 LOG=Path("/tmp/bi-factory-seppe-logs/lab-echarts-8507.log")
@@ -163,7 +166,7 @@ def main():
         updates[name]=(actual,desired)
         print("ATUALIZANDO:",name,"de",digest(actual),"para",digest(desired))
     backup=ROOT/".git"/"backups"/(
-        "lab8507-canvas-livre-multifiltro-"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        "lab8507-alca-persistente-"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     )
     if updates:
         for name,(actual,_) in updates.items():
@@ -194,6 +197,7 @@ def main():
             ["node","scripts/test_lab_8507_multiselect_filters.js"],
             ["node","scripts/test_echarts_axes_8507.js"],
             ["node","scripts/test_lab_ui_contract_8507.js"],
+            ["node","scripts/test_lab_8507_persistent_move_handles.js"],
         ]:
             print("TESTE:",' '.join(command),flush=True)
             subprocess.run(command,cwd=ROOT,check=True)
@@ -216,6 +220,8 @@ def main():
         raise RuntimeError("JS servido não aponta para a rota nova /lab/draft.")
     if b'function startObjectResize(' not in script or b'function deleteObject(' not in script:
         raise RuntimeError("JS servido ainda não contém gerenciamento de objetos da 8507.")
+    if b'if(!previewOnly){\n      const moveHandle=node("button","⠿","move-handle");' not in script:
+        raise RuntimeError("Alças de movimentação de todos os objetos não estão ativas no JS servido.")
     if b'function multiSelectControl(' not in script or b'function ensureFreeLayout(' not in script:
         raise RuntimeError("JS servido não contém seleção múltipla ou posicionamento livre.")
     if b'const header=node("div",undefined,"object-header")' in script:
@@ -249,7 +255,7 @@ def main():
     print("OK /engine.js: filtros de Ano, Bimestre e Medida múltiplos")
     print("OK /app.js: excluir, duplicar, editar fonte, cores e sobreposição")
     print("OK /api/fiscal:",len(unique),"bimestres disponíveis")
-    print("8507 CONFIRMADA: objetos sobrepostos sem cabeçalho, imagem no clique e filtros multiseleção.")
+    print("8507 CONFIRMADA: todos os objetos têm alça permanente de mover, sem faixa interna.")
     print("Atualize a aba 8507 com Ctrl+Shift+R ou reabra seu link no painel PORTAS.")
     print("A 8506, a API 8505, os CSV fiscais, a branch e os produtos não foram modificados.")
 
