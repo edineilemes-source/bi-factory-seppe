@@ -84,11 +84,18 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,directory=str(HERE),**kwargs)
 
+    def end_headers(self):
+        # Arquivos de desenvolvimento da 8507 devem ser sempre revalidados.
+        # Evita que o navegador mantenha um app.js antigo usando /api/state.
+        self.send_header("Cache-Control","no-store, max-age=0")
+        self.send_header("Pragma","no-cache")
+        self.send_header("Expires","0")
+        return super().end_headers()
+
     def json(self,data,status=200):
         payload=json.dumps(data,ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type","application/json; charset=utf-8")
-        self.send_header("Cache-Control","no-store")
         self.send_header("X-Content-Type-Options","nosniff")
         self.send_header("Content-Length",str(len(payload)))
         self.end_headers()
@@ -118,7 +125,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json({"version":1,"objects":[],"filters":{},"selected":null})
         if route=="/api/health":
             return self.json({"status":"ok","lab":"echarts-axes","port":8507,
-              "upstream":8505,"fallback_csv":True,"storage_isolated":True})
+              "upstream":8505,"fallback_csv":True,"storage_isolated":True,
+              "build":"lab8507-20261123-r2"})
         if route=="/":
             self.path="/index.html"
         elif route.startswith("/api/"):
