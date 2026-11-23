@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BI Factory SEPPE — Laboratório ECharts 8507</title>
-<meta name="bi-lab-build" content="lab8507-click-editar-echarts-20261123-r9">
-<link rel="stylesheet" href="/style.css?v=lab8507-click-editar-echarts-20261123-r9">
+<meta name="bi-lab-build" content="lab8507-legenda-automatica-z-20261123-r10">
+<link rel="stylesheet" href="/style.css?v=lab8507-legenda-automatica-z-20261123-r10">
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js" defer></script>
-<script src="/engine.js?v=lab8507-click-editar-echarts-20261123-r9" defer></script>
-<script src="/app.js?v=lab8507-click-editar-echarts-20261123-r9" defer></script>
+<script src="/engine.js?v=lab8507-legenda-automatica-z-20261123-r10" defer></script>
+<script src="/app.js?v=lab8507-legenda-automatica-z-20261123-r10" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -93,7 +93,7 @@
    <label>Eixo Z<select id="axis-z"></select></label>
    <label>Cabeçalho<select id="axis-header"></select></label>
   </div>
-  <p class="hint">Valor é o número da medida, não uma coluna independente. No eixo Z, <b>Medida</b> identifica séries; <b>Valor</b> exibe os números.</p>
+  <p class="hint">O eixo Z controla somente o texto exibido sobre os dados: <b>nome da medida, valor, rótulo da categoria ou nenhum</b>. <b>A legenda das cores aparece automaticamente</b>, independente do eixo Z.</p>
   <h3>Medidas permitidas</h3>
   <div id="measure-choices" class="measure-choices"></div>
   <h3>Restrições deste gráfico</h3>
@@ -104,7 +104,7 @@
   <select id="period-mode"><option value="fixed">Fixo: só bimestre escolhido</option><option value="filterable">Filtrável no produto</option><option value="all">Todos, sem filtro externo</option></select>
   <select id="period-fixed" aria-label="Bimestre fixo"></select>
   <label class="checkline"><input type="checkbox" id="allow-measure-filter"> Permitir que o produto altere as medidas selecionadas</label>
-  <label class="checkline"><input type="checkbox" id="show-values"> Exibir valores nos elementos do gráfico</label>
+  <input type="checkbox" id="show-values" hidden aria-hidden="true" tabindex="-1">
   <label for="top-n">Ranking</label>
   <select id="top-n"><option value="5">Top 5</option><option value="10">Top 10</option><option value="15">Top 15</option><option value="0">Todas as categorias</option></select>
  </aside>
