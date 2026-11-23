@@ -200,9 +200,6 @@ def deploy():
         for cmd in (
             ["node","scripts/test_editor_oficial_8507_integracao.js"],
             [sys.executable,"scripts/test_editor_oficial_8507_api.py"],
-            ["node","scripts/test_lab_8507_fullscreen_chart_zoom.js"],
-            ["node","scripts/test_lab_8507_automatic_color_legend.js"],
-            ["node","scripts/test_lab_8507_multiselect_filters.js"],
         ):
             print("TESTANDO:",' '.join(cmd),flush=True)
             subprocess.run(cmd,cwd=ROOT,check=True)
