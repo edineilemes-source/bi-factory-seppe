@@ -296,7 +296,7 @@ function renderCanvas(){
    if(obj.id===state.selected&&!previewOnly)block.classList.add("active");
    block.draggable=false;
    block.addEventListener("click",event=>{
-    if(previewOnly||event.target.closest("select,button,input,[contenteditable],textarea,.resize-handle,.move-handle"))return;
+    if(previewOnly||event.target.closest("select,button,input,[contenteditable],textarea,.resize-handle,.move-handle,.multi-select,.filter-control,.image-click-surface"))return;
     if(state.selected!==obj.id)selectObject(obj.id);
    });
    if(!previewOnly&&!TEXT_TYPES.has(obj.type)&&obj.type!=="image")
@@ -414,6 +414,8 @@ function multiSelectControl(key,options,display,caption){
  state.filters[key]=selected;
  const root=node("details",undefined,"multi-select");
  root.dataset.filterKey=key;
+ root.addEventListener("click",event=>event.stopPropagation());
+ root.addEventListener("pointerdown",event=>event.stopPropagation());
  const summary=node("summary",undefined,"multi-select-summary");
  const labelText=()=>{
   const active=E.filterValues(state.filters[key]);
