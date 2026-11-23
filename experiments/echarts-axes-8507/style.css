@@ -723,3 +723,18 @@ body.lab-edit-workspace #visual-page .editor-floating-status.error{
  border-color:#efc9bd;
 }
 body.lab-panel-preview #editor-status{display:none!important}
+
+/* O gráfico no Editor Visual abre seu próprio registro no ECharts com um clique.
+   A movimentação continua nas alças externas, sem barra sobre o gráfico. */
+body.lab-edit-workspace #visual-canvas .chart-edit-target{cursor:pointer}
+body.lab-edit-workspace #visual-canvas .chart-edit-target:focus-visible{
+ outline:2px dashed #1a8da8;
+ outline-offset:-2px;
+}
+body.lab-edit-workspace #visual-canvas .chart-edit-target:hover{
+ box-shadow:inset 0 0 0 1px rgba(31,145,163,.4);
+}
+body.lab-panel-preview #visual-canvas .chart-item{
+ cursor:default;
+ box-shadow:none;
+}
