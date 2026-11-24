@@ -263,3 +263,5 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **IA**: busca oficial funciona sem API paga. Sugestões de termos são opcionais via Ollama local MIT, modelo escolhido precisa ter licença declarada (recomendado Qwen2.5 1.5B Apache 2.0). Sem instalação/credencial automática nem geração inventada de normas.
 - **Testes**: workflow `.github/workflows/bi-knowledge-official.yml`, bateria offline (redirecionamento/domínio oficial, integridade PDF, deduplicação, isolamento) e build React. Resultado CI final deve ser verificado após último commit.
 - **Pendente**: instalação e abertura real no Codespaces (8505 e frontend ativo), teste online dos sites, confirmar download de PDF grande e homologação visual. Não existe comprovação de implantação local.
+
+- **CI final confirmado:** GitHub Actions [execução 45416126373](https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/45416126373), commit do código `dd1e17f35232950a9ee6d3502985b8cf86ba5402`: sintaxe Python, cinco testes offline, `npm ci` e build React, todos PASS. Sem teste de navegação/HTTP a partir do Codespaces nesta entrega.
