@@ -330,6 +330,18 @@ def wait_http(path,port=8507,loops=60):
 def deploy():
     if not (ROOT/".git").is_dir():
         raise RuntimeError("Abra o Codespace original /workspaces/bi-factory-seppe")
+    # Simula uma personalização local antes de escrever qualquer arquivo.
+    main_name="web/bi_factory/src/main.jsx"
+    base_main=tracked(BASE,main_name)
+    target_main=tracked(TARGET,main_name)
+    if base_main is None or target_main is None:
+        raise RuntimeError("Versões de referência do catálogo indisponíveis")
+    stub="// teste de preservação de código local\n"
+    result=semantic_local(main_name,stub.encode("utf-8")+base_main,target_main)
+    semantic_verify(main_name,result)
+    if not result.startswith(stub.encode("utf-8")):
+        raise RuntimeError("A conciliação removeu conteúdo local")
+    print("OK: conciliação simulada de main.jsx com alterações locais preservadas.",flush=True)
     pending={}
     for name in (*MODIFIED,*NEW):
         target=tracked(TARGET,name)
@@ -354,15 +366,12 @@ def deploy():
         if current==base:
             pending[name]=(current,target,None)
         else:
-            patch=git_patch(name,base,target)
-            if not patch:
-                raise RuntimeError("Código local divergente: "+name)
-            test=subprocess.run(["git","apply","--check","--whitespace=nowarn"],
-                  cwd=ROOT,input=patch,capture_output=True,text=True)
-            if test.returncode:
-                raise RuntimeError("O arquivo possui alterações locais incompatíveis: "+name+
-                  ". Nenhum dado será sobrescrito. "+test.stderr[-1000:])
-            pending[name]=(current,target,patch)
+            print("CONCILIANDO ALTERAÇÕES LOCAIS:",name,flush=True)
+            effective=merge_compatible(name,current,base,target)
+            if effective==current:
+                print("OK JÁ CONCILIADO:",name)
+                continue
+            pending[name]=(current,effective,None)
     if not pending:
         print("Arquivos oficiais já instalados.")
     backup=ROOT/".git"/"backups"/(
@@ -377,18 +386,13 @@ def deploy():
                 saved.parent.mkdir(parents=True,exist_ok=True)
                 saved.write_bytes(previous)
             dest.parent.mkdir(parents=True,exist_ok=True)
-            if patch:
-                p=subprocess.run(["git","apply","--whitespace=nowarn"],
-                    cwd=ROOT,input=patch,capture_output=True,text=True)
-                if p.returncode:raise RuntimeError("Patch falhou: "+name+": "+p.stderr[-800:])
-            else:
-                pending_file=dest.with_name(dest.name+".official8507-pending")
-                if pending_file.exists():raise RuntimeError("Arquivo temporário ocupado: "+str(pending_file))
-                try:
-                    pending_file.write_bytes(wanted)
-                    if dest.exists():os.chmod(pending_file,dest.stat().st_mode&0o777)
-                    os.replace(pending_file,dest)
-                finally:pending_file.unlink(missing_ok=True)
+            pending_file=dest.with_name(dest.name+".official8507-pending")
+            if pending_file.exists():raise RuntimeError("Arquivo temporário ocupado: "+str(pending_file))
+            try:
+                pending_file.write_bytes(wanted)
+                if dest.exists():os.chmod(pending_file,dest.stat().st_mode&0o777)
+                os.replace(pending_file,dest)
+            finally:pending_file.unlink(missing_ok=True)
             written.append(name)
             print("INSTALADO:",name,flush=True)
         for cmd in (
