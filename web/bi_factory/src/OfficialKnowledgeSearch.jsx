@@ -32,16 +32,20 @@ export default function OfficialKnowledgeSearch({project}){
  const [result,setResult]=useState(null);
  const [selected,setSelected]=useState([]);
  const [previous,setPrevious]=useState([]);
+ const [archived,setArchived]=useState([]);
  useEffect(()=>{
   setTopic(project?.theme||"");
   setScope(project?.scope||"Brasil");
-  setResult(null);setSelected([]);setPrevious([]);
+  setResult(null);setSelected([]);setPrevious([]);setArchived([]);
  },[id]);
  useEffect(()=>{
   if(!id)return;
   let live=true;
   knowledgeApi(endpoint+"/knowledge").then(data=>{
-   if(live)setPrevious((data.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,12));
+   if(live){
+    setPrevious((data.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,12));
+    setArchived((data.items||[]).filter(x=>["document","official_reference"].includes(x.type)&&x.source_url).reverse());
+   }
   }).catch(()=>{});
   return()=>{live=false};
  },[endpoint,id]);
@@ -51,6 +55,7 @@ export default function OfficialKnowledgeSearch({project}){
    await callback();
    const all=await knowledgeApi(endpoint+"/knowledge");
    setPrevious((all.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,12));
+   setArchived((all.items||[]).filter(x=>["document","official_reference"].includes(x.type)&&x.source_url).reverse());
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  };
@@ -105,6 +110,18 @@ export default function OfficialKnowledgeSearch({project}){
       const data=await knowledgeApi(endpoint+"/discovery/"+encodeURIComponent(row.id));
       setResult(data);setSelected([]);setNotice("Pesquisa anterior recuperada.");
      })}>{row.topic} · {row.created_at?.slice(0,10)} · {row.count||0} referências</button>)}
+   </div>
+  </details>}
+  {archived.length>0&&<details>
+   <summary>Documentos oficiais já incorporados ({archived.length})</summary>
+   <div style={{display:"grid",gap:8,padding:10}}>
+    {archived.map(doc=><div key={doc.id} style={{border:"1px solid #dce5ef",padding:10,borderRadius:8}}>
+     <a href={doc.source_url} target="_blank" rel="noopener noreferrer">{doc.title}</a>
+     <div className="hint">{doc.source} · {doc.status}{doc.validity_note?" · "+doc.validity_note:""}</div>
+     {doc.relative_path&&<div><a href={endpoint+"/documents/"+encodeURIComponent(doc.id)+"/download"}>
+      Baixar PDF preservado no projeto</a></div>}
+     {doc.sha256&&<div className="hint">SHA-256: {doc.sha256.slice(0,16)}…</div>}
+    </div>)}
    </div>
   </details>}
   {result&&<>
