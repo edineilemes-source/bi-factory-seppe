@@ -134,8 +134,8 @@ def semantic_local(name, current, target):
                 # Em branches locais personalizadas, identificar o hook específico
                 # de prévia do produto, sem mexer nos outros efeitos do catálogo.
                 local_match=re.search(
-                    r'useEffect\\(\\(\\)=>\\{if\\(!selectedProduct\\?\\.id\\)return;'
-                    r'[\\s\\S]{0,2500}?\\},\\[selectedProduct\\?\\.id,visualRevision\\]\\);',
+                    r'useEffect\(\(\)=>\{if\(!selectedProduct\?\.id\)return;'
+                    r'[\s\S]{0,2500}?\},\[selectedProduct\?\.id,visualRevision\]\);',
                     src
                 )
                 if (local_match and new_hook and
