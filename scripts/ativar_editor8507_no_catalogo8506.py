@@ -131,19 +131,22 @@ def semantic_local(name, current, target):
             if original_hook and new_hook and original_hook in src:
                 src=src.replace(original_hook,new_hook,1)
             else:
-                hook=(
-                 '/* BI_FACTORY_OFFICIAL_8507_LAYOUT_CHECK */\n'
-                 'useEffect(()=>{if(!selectedProduct?.id)return;let active=true;\n'
-                 'const id=encodeURIComponent(selectedProduct.id);\n'
-                 'Promise.all([\n'
-                 'fetch("/api/products/"+id+"/visual-8507").then(r=>r.ok?r.json():null),\n'
-                 'fetch("/api/products/"+id+"/layout").then(r=>r.ok?r.json():null)\n'
-                 ']).then(([a,b])=>{if(active&&'
-                 '(a?.objects?.length||b?.layout?.length||Object.keys(b?.objects||{}).length))'
-                 'setVisualHasLayout(true)}).catch(()=>{});\n'
-                 'return()=>{active=false}},[selectedProduct?.id,visualRevision]);\n'
+                # Em branches locais personalizadas, identificar o hook específico
+                # de prévia do produto, sem mexer nos outros efeitos do catálogo.
+                local_match=re.search(
+                    r'useEffect\\(\\(\\)=>\\{if\\(!selectedProduct\\?\\.id\\)return;'
+                    r'[\\s\\S]{0,2500}?\\},\\[selectedProduct\\?\\.id,visualRevision\\]\\);',
+                    src
                 )
-                src=src.replace(guard,hook+guard,1)
+                if (local_match and new_hook and
+                    'setVisualHasLayout' in local_match.group(0) and
+                    '/layout' in local_match.group(0)):
+                    src=src[:local_match.start()]+new_hook+src[local_match.end():]
+                else:
+                    raise RuntimeError(
+                        "main.jsx: hook local de prévia não identificado sem ambiguidades; "
+                        "preservado sem substituição"
+                    )
         if src==before:
             raise RuntimeError("main.jsx divergente, mas nenhum ponto de integração pôde ser aplicado")
         return src.encode("utf-8")
