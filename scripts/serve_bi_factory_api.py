@@ -10,6 +10,7 @@ import csv
 import json
 import bi_factory_analytics_adapter as analytics
 import bi_factory_projects as projects
+import bi_knowledge_official as knowledge_official
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import ThreadingHTTPServer
 import sys
@@ -176,6 +177,37 @@ class Handler(visual_editor_server.Handler):
                     result = projects.get(parts[2])
                 elif len(parts) == 4 and parts[3] == "knowledge":
                     result = projects.summary(parts[2])
+                elif len(parts) == 5 and parts[3] == "discovery":
+                    projects.get(parts[2])
+                    identifier=parts[4]
+                    if not __import__("re").fullmatch(r"[0-9a-f]{32}",identifier):
+                        raise ValueError("Identificador de pesquisa inválido")
+                    target=projects.DIR / parts[2] / "discoveries" / (identifier + ".json")
+                    result=projects._read(target,None)
+                    if result is None or result.get("project_id") != parts[2]:
+                        raise ValueError("Pesquisa não encontrada neste projeto")
+                elif len(parts) == 6 and parts[3] == "documents" and parts[5] == "download":
+                    projects.get(parts[2])
+                    doc_id=parts[4]
+                    rows=projects.summary(parts[2])["items"]
+                    document=next((x for x in rows
+                        if x.get("id")==doc_id and x.get("type")=="document"
+                        and x.get("sha256") and x.get("source_url")),None)
+                    if document is None:raise ValueError("Documento oficial não encontrado")
+                    target=projects.DIR / parts[2] / "originals" / (document["sha256"]+".pdf")
+                    if not target.is_file() or target.stat().st_size>knowledge_official.MAX_DOCUMENT:
+                        raise ValueError("PDF original não disponível")
+                    data=target.read_bytes()
+                    if not data.startswith(b"%PDF-"):raise ValueError("PDF original inválido")
+                    self.send_response(200)
+                    self.send_header("Content-Type","application/pdf")
+                    self.send_header("Content-Disposition",'attachment; filename="documento-oficial.pdf"')
+                    self.send_header("X-Content-Type-Options","nosniff")
+                    self.send_header("Cache-Control","private, no-store")
+                    self.send_header("Content-Length",str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return True
                 else:
                     self._analytics_send({"error": "Rota não encontrada"}, 404)
                     return True
@@ -192,6 +224,14 @@ class Handler(visual_editor_server.Handler):
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
                     result = projects.research(data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "discover":
+                    if data.get("project_id") != parts[2]:
+                        raise ValueError("Projeto inconsistente")
+                    result = knowledge_official.discover_for_project(data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "approve":
+                    if data.get("project_id") != parts[2]:
+                        raise ValueError("Projeto inconsistente")
+                    result = knowledge_official.approve_for_project(data)
                 elif method == "POST" and len(parts) == 4 and parts[3] == "documents":
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
