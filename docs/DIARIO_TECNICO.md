@@ -226,3 +226,10 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **Próxima etapa:** executar instalador no Codespaces, confirmar API/React, experimentar pesquisas e importações aprovadas, e depois vincular normas selecionadas a medidas da modelagem.
 
 - **CI final confirmado:** GitHub Actions [execução 45416126373](https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/45416126373), commit do código `dd1e17f35232950a9ee6d3502985b8cf86ba5402`: sintaxe Python, cinco testes offline, `npm ci` e build React, todos PASS. Sem teste de navegação/HTTP a partir do Codespaces nesta entrega.
+
+## 2026-11-24 — Instalação de Conhecimento: conflito local preservado e compatibilidade criada
+
+- **Evidência do Codespaces fornecida pelo operador:** na branch local `teste/cadastro-filtros-20261113`, o instalador anterior interrompeu antes de qualquer escrita por conflito 3-way em `web/bi_factory/src/KnowledgeStart.jsx`. O `serve_bi_factory_api.py` apresentava diferenças conciliáveis; não há confirmação de instalação.
+- **Correção no GitHub:** branch `fix/conhecimento-preservar-knowledge-local-20261124`; componente independente `web/bi_factory/src/OfficialKnowledgeSearch.jsx` e instalador `scripts/instalar_conhecimento_oficial_compat.py`. O instalador passa a preservar o JSX existente, inserindo uma importação e um componente na área da tela, sem substituir `KnowledgeStart.jsx` completo. Conserva backup, validação, rollback e mescla da API.
+- **Testes confirmados:** [GitHub Actions 45438701588](https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/45438701588), aprovação de sintaxe Python, pesquisa documental offline, simulações de tela local divergente e idempotência, validação JSX e build React.
+- **Pendente:** execução do novo instalador no Codespaces, confirmação da tela Conhecimento e testes reais de download HTTPS. Se a tela local não corresponder à estrutura JSX conhecida, o instalador interrompe sem sobrescrever o arquivo. Nenhum serviço do Codespaces foi iniciado a partir desta conversa.
