@@ -258,6 +258,19 @@ def wait_http(path,port=8507,loops=60):
 def deploy():
     if not (ROOT/".git").is_dir():
         raise RuntimeError("Abra o Codespace original /workspaces/bi-factory-seppe")
+    # Exercitar antes de escrever: simular alterações locais feitas na ficha.
+    main_name="web/bi_factory/src/main.jsx"
+    base_main=tracked(BASE,main_name)
+    target_main=tracked(TARGET,main_name)
+    if base_main is None or target_main is None:
+        raise RuntimeError("Versões de referência do catálogo indisponíveis")
+    stub="// teste de preservação de componente local na ficha 8507\n"
+    sample=stub.encode("utf-8")+base_main
+    compatible=semantic_local(main_name,sample,target_main)
+    semantic_verify(main_name,compatible)
+    if not compatible.startswith(stub.encode("utf-8")):
+        raise RuntimeError("Falha na verificação de preservação de código local")
+    print("OK: compatibilidade com main.jsx divergente, mantendo código existente.",flush=True)
     pending={}
     for name in (*MODIFIED,*NEW):
         target=tracked(TARGET,name)
@@ -464,6 +477,12 @@ def semantic_verify(name, candidate):
                                ": verificação ausente "+expected)
 
 def merge_compatible(name,current,base,target):
+    # Retomar uma implantação parcial deve ser seguro e não repetir alterações.
+    try:
+        semantic_verify(name,current)
+        return current
+    except RuntimeError:
+        pass
     if name=="web/bi_factory/src/main.jsx":
         # A ficha do usuário é a fonte da verdade. Alterar apenas rotas e eventos.
         integrated=semantic_local(name,current,target)
