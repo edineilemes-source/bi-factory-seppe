@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/instalar_conhecimento_oficial.py'
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
@@ -10,6 +11,7 @@ on:
   pull_request:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/instalar_conhecimento_oficial.py'
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
@@ -26,7 +28,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Python syntax
-        run: python -m py_compile scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py
+        run: python -m py_compile scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py
       - name: Pesquisa e importação, testes offline
         run: python scripts/test_knowledge_official.py
       - uses: actions/setup-node@v4
