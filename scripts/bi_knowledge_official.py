@@ -23,7 +23,7 @@ from uuid import uuid4
 
 import bi_factory_projects as projects
 
-MAX_DOCUMENT = 12 * 1024 * 1024
+MAX_DOCUMENT = 25 * 1024 * 1024
 MAX_HTML = 1_500_000
 MAX_RESULTS = 36
 MAX_REQUESTS = 7
@@ -169,11 +169,24 @@ def candidate(title,url,source,kind,origin,context,query_terms):
         return None
     title=(title.strip() or unquote(urlsplit(url).path.rsplit("/",1)[-1]))[:210]
     if not title:return None
-    ispdf=urlsplit(url).path.lower().endswith(".pdf")
+    lower_label=normalize(title)
+    host=urlsplit(url).hostname or ""
+    ispdf=(urlsplit(url).path.lower().endswith(".pdf")
+           or (host=="thot-arquivos.tesouro.gov.br"
+               and any(word in lower_label for word in ("manual","portaria","sintese"))))
+    version=None
+    if "manual-de-demonstrativos-fiscais" in origin:
+        if "16ª" in title or "16a" in lower_label:
+            version="MDF 16ª edição — aplicável a partir de 2027"
+        elif "15ª" in title or "15a" in lower_label:
+            version="MDF 15ª edição — vigente para 2026"
+    if "manual-de-contabilidade" in origin and ("11ª" in title or "11a" in lower_label):
+        version="MCASP 11ª edição — válido a partir de 2025"
     return {"id":hashlib.sha256(url.encode("utf-8")).hexdigest()[:24],
             "title":title,"url":url,"source":source,
             "category":classify(title,url,kind),"format":"PDF" if ispdf else "LINK",
-            "downloadable":ispdf,"origin":origin,"score":score(title,url,context,query_terms)}
+            "downloadable":ispdf,"origin":origin,"score":score(title,url,context,query_terms),
+            "validity_note":version}
 
 def optional_local_ai_terms(topic):
     """Only opt-in, local loopback. No names, files or documents sent to cloud."""
@@ -342,6 +355,7 @@ def approve_for_project(payload):
                        "sha256":digest,
                        "size_bytes":len(data) if data is not None else None,
                        "discovered_at":discovery["searched_at"],"approved_at":now(),
+                       "validity_note":item.get("validity_note"),
                        "discovery_id":discovery_id}
                 existing.append(entry)
                 projects._write(knowledge,existing)
