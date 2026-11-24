@@ -212,3 +212,15 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Execução validada https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/44187616806: 418 testes principais aprovados, um slow aprovado, nove PostgreSQL aprovados, um E2E Chromium aprovado, cinco ignorados por condições; quatro jobs verdes. Novo teste de inicialização direta da API criado após o erro real encontrado no E2E.
 - Installer criado na branch feat/integracao-react-pipeline-legado-20261117, sem implantação Codespaces nem mutação de dados. O código dos quatro arquivos de aplicação alvo é o mesmo do SHA testado 10c68b71. O Editor Visual do marco 751e292d permanece congelado.
 - npm ci informa quatro alertas high de segurança nas dependências; relatório técnico registra risco, sem alteração automática das dependências.
+
+
+## 2026-11-24 — Implementação de pesquisa oficial em Conhecimento
+
+- **Objetivo:** atender consulta por tema antes da modelagem de Receita/Despesa, com descoberta de leis, normas, MCASP, MDF, PCASP, Siconfi e aprovação manual de documentos originais para cada projeto.
+- **Origem:** branch `feat/conhecimento-pesquisa-oficial-20261124`, baseada no estado do GitHub `fix/editor8507-integrado-catalogo-8506-20261124`; Codespaces local não foi acessado.
+- **Alterações:** novo `scripts/bi_knowledge_official.py`, rotas GET/POST em `scripts/serve_bi_factory_api.py`, interface `web/bi_factory/src/KnowledgeStart.jsx`, testes Python, CI, documentação e instalador não destrutivo.
+- **Decisões:** sem dependência paga para buscar; fontes somente oficiais, documentos com links auditáveis, seleção e aprovação antes de baixar PDFs, 25 MiB por PDF, SHA-256 e deduplicação. Sem `git push` de PDFs; dado operacional fica sob storage/working/projects. IA local Ollama opcional apenas para termos auxiliares, não para fabricar fontes. Teste real com internet condicionado ao Codespaces.
+- **Testes:** primeiro CI apresentou falha no caminho relativo quando usando pasta temporária; corrigido. GitHub Actions `45415488183` concluiu com sucesso, incluindo cinco testes Python e build React. CI adicional com verificação de sintaxe do instalador disparado após esse resultado.
+- **Risco:** a pesquisa inicial não é busca exaustiva; bloqueios de portal, páginas JS ou PDF sem extensão podem reduzir cobertura, e os resultados relatam essas limitações.
+- **Segurança:** nenhum dado do usuário nem segredo versionado; URLs oficiais com validação de domínio/redirecionamento; somente alterações de código na branch separada; nenhuma migração de dados nem serviço reiniciado.
+- **Próxima etapa:** executar instalador no Codespaces, confirmar API/React, experimentar pesquisas e importações aprovadas, e depois vincular normas selecionadas a medidas da modelagem.
