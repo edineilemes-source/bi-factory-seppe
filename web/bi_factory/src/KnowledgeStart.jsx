@@ -8,6 +8,7 @@ async function asBase64(file){
  for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(raw);
 }
 const categories=[["legislacao","Leis e decretos"],["normas","Resoluções e normas"],["manuais","Manuais e orientações"],["sites_oficiais","Sites de órgãos oficiais"],["metodos","Métodos e referências técnicas"]];
+const suggestedTopics=["Receita orçamentária","Despesa orçamentária","Empenho","Liquidação da despesa","Pagamento","Balanço patrimonial","Prestação de contas","RREO","RGF","DCA","PCASP"];
 export default function KnowledgeStart({project,onProjectChanged}){
  const [rows,setRows]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [discovery,setDiscovery]=useState(null),[selectedSources,setSelectedSources]=useState([]);
@@ -25,6 +26,12 @@ export default function KnowledgeStart({project,onProjectChanged}){
   <div className="card catalogForm" style={{padding:20}}>
    <h2>1. O que você deseja conhecer?</h2>
    <label>Tema ou assunto<input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Ex.: prestação de contas de convênios"/></label>
+   <div className="hint">Temas relacionados à modelagem de receita e despesa:</div>
+   <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+    {suggestedTopics.map(name=><button key={name} type="button"
+      disabled={busy} onClick={()=>setTopic(name)} style={{fontSize:12,padding:"7px 10px"}}>
+      {name}</button>)}
+   </div>
    <label>Abrangência<input value={scope} onChange={e=>setScope(e.target.value)} placeholder="Ex.: Brasil, TCE-MS, Campo Grande"/></label>
    <fieldset style={{border:"1px solid #dce5ef",padding:14,borderRadius:10}}><legend>Quais documentos pesquisar?</legend>
     {categories.map(([id,name])=><label key={id} style={{display:"flex",alignItems:"center",gap:10,margin:"9px 0"}}>
@@ -73,7 +80,7 @@ export default function KnowledgeStart({project,onProjectChanged}){
        })}/>
       <div style={{minWidth:0}}>
        <strong><a href={item.url} target="_blank" rel="noreferrer noopener">{item.title}</a></strong>
-       <div className="hint">{item.source} · {item.category} · {item.downloadable?"PDF — será baixado após aprovação":"Página oficial — somente referência"} · pontuação {item.score}</div>
+       <div className="hint">{item.source} · {item.category} · {item.downloadable?"PDF — será baixado após aprovação":"Página oficial — somente referência"} · pontuação {item.score}{item.validity_note?" · "+item.validity_note:""}</div>
        {item.origin!==item.url&&<div className="hint">Encontrado em <a href={item.origin} target="_blank" rel="noreferrer noopener">página do órgão</a></div>}
       </div>
      </div>)}</div>}
@@ -100,7 +107,7 @@ export default function KnowledgeStart({project,onProjectChanged}){
     <div style={{display:"grid",gap:12}}>{rows.map(x=><div key={x.id} style={{border:"1px solid #e0e6ef",borderRadius:8,padding:14}}>
      <strong>{x.type==="document"||x.type==="official_reference"?x.title:x.topic}</strong>
      <div className="hint">{x.type==="document"?"Arquivo preservado":x.type==="official_reference"?"Fonte catalogada":x.type==="research_result"?"Busca oficial executada":"Solicitação antiga"} · {x.status}</div>
-     {(x.type==="document"||x.type==="official_reference")&&<p>{[x.source,x.reference].filter(Boolean).join(" · ")}</p>}
+     {(x.type==="document"||x.type==="official_reference")&&<p>{[x.source,x.reference,x.validity_note].filter(Boolean).join(" · ")}</p>}
      {x.source_url&&<p><a href={x.source_url} target="_blank" rel="noreferrer noopener">Consultar documento no órgão emissor</a>
       {x.relative_path&&" · "}
       {x.relative_path&&<a href={base+"/documents/"+encodeURIComponent(x.id)+"/download"}>Baixar cópia PDF armazenada</a>}</p>}
