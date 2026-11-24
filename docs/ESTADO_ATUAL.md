@@ -252,3 +252,14 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Relatório detalhado docs/RELATORIO_VALIDACAO_MOTORES_20261117.md. Nenhum arquivo do Codespaces foi alterado nesta etapa, aplicação 8506 ainda não recebeu esta branch. Marco anterior intacto; não realizar merge automático.
 
 - 2026-11-17 (validação final do código): CI #44187616806 aprovada nos quatro jobs: 418 pytest base, 1 slow, 9 PostgreSQL e 1 E2E Chromium; 5 skips de ambiente, 0 falhas. Em total, 429 testes aprovados contando E2E. Fix da API iniciada diretamente por scripts/ verificado; teste regressivo adicionado. Preparado instalador restrito scripts/implantar_react_motores_codespaces_20261117.py, com commit remoto de código alvo 10c68b71, verificação de worktree, backup e rollback. Ainda NÃO implantado no Codespaces: aguarda operação local. Relatório atualizado em docs/RELATORIO_VALIDACAO_MOTORES_20261117.md.
+
+
+## 2026-11-24 — Pesquisa oficial na seção Conhecimento (branch isolada)
+
+- **Código confirmado no GitHub**: `feat/conhecimento-pesquisa-oficial-20261124`. Frontend `KnowledgeStart.jsx`, API `serve_bi_factory_api.py`, motor `bi_knowledge_official.py`, testes offline, CI e instalador `scripts/instalar_conhecimento_oficial.py`.
+- **Fluxo implementado**: tema e tipos documentais → pesquisa real em páginas selecionadas STN, Siconfi, MCASP, MDF, PCASP, Planalto → lista de URLs e possíveis PDFs → seleção e aprovação explícitas → armazenamento do original e SHA-256 por projeto. Pesquisa antiga que só enfileirava pedidos não foi removida; o botão principal passou a usar o novo endpoint.
+- **Persistência planejada**: `storage/working/projects/<id>/discoveries/`, `originals/` e `knowledge.json`; nunca `git push` automático de PDF. Não altera cadastro, produtos, layout, bancos ou dados RREO.
+- **Fontes e vigência**: MCASP 11ª (desde 2025), MDF 15ª (vigente 2026) e 16ª (aplicável 2027); confirmar sempre na origem, não inferir vigência apenas pelo nome.
+- **IA**: busca oficial funciona sem API paga. Sugestões de termos são opcionais via Ollama local MIT, modelo escolhido precisa ter licença declarada (recomendado Qwen2.5 1.5B Apache 2.0). Sem instalação/credencial automática nem geração inventada de normas.
+- **Testes**: workflow `.github/workflows/bi-knowledge-official.yml`, bateria offline (redirecionamento/domínio oficial, integridade PDF, deduplicação, isolamento) e build React. Resultado CI final deve ser verificado após último commit.
+- **Pendente**: instalação e abertura real no Codespaces (8505 e frontend ativo), teste online dos sites, confirmar download de PDF grande e homologação visual. Não existe comprovação de implantação local.
