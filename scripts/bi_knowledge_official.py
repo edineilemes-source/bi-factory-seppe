@@ -338,7 +338,7 @@ def approve_for_project(payload):
                        "reference":"","category":item["category"],
                        "status":"PDF original armazenado" if data else "Referência oficial catalogada",
                        "filename":target.name if target else None,
-                       "relative_path":str(target.relative_to(projects.ROOT)) if target else None,
+                       "relative_path":str(Path("storage/working/projects")/pid/"originals"/target.name) if target else None,
                        "sha256":digest,
                        "size_bytes":len(data) if data is not None else None,
                        "discovered_at":discovery["searched_at"],"approved_at":now(),
