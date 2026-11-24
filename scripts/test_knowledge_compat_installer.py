@@ -33,6 +33,10 @@ class KnowledgeLocalCompatibilityTests(unittest.TestCase):
         self.assertIn('<button onClick={registrar}>Meu botão</button>',text)
         self.assertEqual(out.count(b"BI_KNOWLEDGE_OFFICIAL_SLOT"),1)
         self.assertEqual(out,installer.inject_knowledge_ui(out))
+        import_line=b'import OfficialKnowledgeSearch from "./OfficialKnowledgeSearch.jsx";\\n'.replace(b"\\\\n",b"\\n")
+        injected=b'\\n  {/* BI_KNOWLEDGE_OFFICIAL_SLOT: pesquisa oficial adicionada sem substituir o cadastro */}\\n  <OfficialKnowledgeSearch project={project}/>\\n'.replace(b"\\\\n",b"\\n")
+        self.assertEqual(out.replace(import_line,b"",1).replace(injected,b"",1),original,
+                         "A inserção deve poder ser revertida exatamente, byte a byte")
 
     def test_prepend_local_comments_and_multiline_return(self):
         original=(
@@ -51,6 +55,7 @@ class KnowledgeLocalCompatibilityTests(unittest.TestCase):
         text=data.decode()
         self.assertIn("const alpha = 42",text)
         self.assertIn("// customizações feitas no Codespaces",text)
+        self.assertTrue(text.startswith("// customizações feitas no Codespaces\\n".replace("\\\\n","\\n")), "Cabeçalho local deve continuar na primeira linha")
         self.assertIn("<main className='knowledge'>",text)
         self.assertIn("<OfficialKnowledgeSearch project={project}/>",text)
 
