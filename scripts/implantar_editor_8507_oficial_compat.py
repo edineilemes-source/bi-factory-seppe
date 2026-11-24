@@ -3,7 +3,7 @@
 
 Run from current Codespaces with:
   git fetch origin feat/lab8507-ampliar-grafico-na-visualizacao-20261123 feat/oficializar-editor-8507-ficha-produto-20261123
-  git show origin/feat/oficializar-editor-8507-ficha-produto-20261123:scripts/implantar_editor_8507_oficial.py | python3 -
+  git show origin/fix/oficial8507-integracao-sem-sobrescrever-main-20261123:scripts/implantar_editor_8507_oficial_compat.py | python3 -
 
 Does not checkout a branch, replace/delete products, change old GridStack layouts,
 or overwrite locally-diverged application files. A failed test restores old code.
@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/feat/lab8507-ampliar-grafico-na-visualizacao-20261123"
-TARGET="origin/feat/oficializar-editor-8507-ficha-produto-20261123"
+TARGET="origin/fix/oficial8507-integracao-sem-sobrescrever-main-20261123"
 MODIFIED=(
  "web/bi_factory/src/main.jsx",
  "web/bi_factory/vite.config.js",
