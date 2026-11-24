@@ -25,9 +25,11 @@ assert.match(main,/bi-factory:official-save-request/);
 assert.match(main,/bi-factory:official-save-result/);
 assert.match(main,/visual-8507/);
 assert.match(main,/\/api\/products\/.*\/layout/,"Layout anterior deve permanecer consultável");
-assert.match(main,/Editar visual/);
-assert.match(main,/Editar metadados/);
-assert.match(main,/Visualizar produto/);
+// A ficha pode ter rótulos e funções de interface customizados no Codespaces.
+// O teste valida integração funcional, sem impor textos do botão da versão base.
+assert.match(main,/function saveVisualFromEditor\(/);
+assert.match(main,/function visualUrl\(mode\)/);
+assert.match(main,/visualMode/);
 assert.match(main,/folder_id/);
 assert.match(main,/technical_owner/);
 assert.match(app,/function officialEndpoint\(\)/);
