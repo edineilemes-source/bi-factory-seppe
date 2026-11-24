@@ -354,6 +354,7 @@ def approve_for_project(payload):
                        "relative_path":str(Path("storage/working/projects")/pid/"originals"/target.name) if target else None,
                        "sha256":digest,
                        "size_bytes":len(data) if data is not None else None,
+                       "subject":discovery.get("topic"),"scope":discovery.get("scope"),
                        "discovered_at":discovery["searched_at"],"approved_at":now(),
                        "validity_note":item.get("validity_note"),
                        "discovery_id":discovery_id}
