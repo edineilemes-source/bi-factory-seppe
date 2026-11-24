@@ -21,7 +21,7 @@ import json
 
 ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/fix/editor8507-integrado-catalogo-8506-20261124"
-TARGET="origin/fix/conhecimento-preservar-knowledge-local-20261124"
+TARGET="origin/fix/conhecimento-installer-autoteste-preservacao-20261124"
 MODIFIED=("scripts/serve_bi_factory_api.py",)
 EXTENDED="web/bi_factory/src/KnowledgeStart.jsx"
 NEW=(
@@ -29,6 +29,7 @@ NEW=(
  "scripts/test_knowledge_official.py",
  "web/bi_factory/src/OfficialKnowledgeSearch.jsx",
  "scripts/test_knowledge_compat_installer.py",
+ "scripts/instalar_conhecimento_oficial_compat.py",
 )
 ALL=(*MODIFIED,EXTENDED,*NEW)
 WEB=ROOT/"web/bi_factory"
@@ -74,8 +75,17 @@ def inject_knowledge_ui(original):
     import_stmt='import OfficialKnowledgeSearch from "./OfficialKnowledgeSearch.jsx";\n'
     # Import estático no início do módulo; componente dentro do container original.
     if import_stmt not in text:
-        text=import_stmt+text
-        at+=len(import_stmt)
+        # Colocar após imports já existentes mantém comentários e personalizações
+        # no começo do arquivo, inclusive na simulação com cabeçalho local.
+        imports=list(re.finditer(r'(?m)^[ \\t]*import[^\\n]*;[ \\t]*\\r?\\n',text[:func.start()]))
+        if imports:
+            position=imports[-1].end()
+        else:
+            # Componentes sem import devem receber o import no topo.
+            position=0
+        text=text[:position]+import_stmt+text[position:]
+        if position<=at:
+            at+=len(import_stmt)
     slot='\n  {/* BI_KNOWLEDGE_OFFICIAL_SLOT: pesquisa oficial adicionada sem substituir o cadastro */}\n  <OfficialKnowledgeSearch project={project}/>\n'
     text=text[:at]+slot+text[at:]
     if text.count("BI_KNOWLEDGE_OFFICIAL_SLOT")!=1:
@@ -115,8 +125,12 @@ def main():
     base_view=git_bytes(BASE,EXTENDED)
     edited_view=b"// comentario local que deve permanecer intacto\n"+base_view
     merged_view=inject_knowledge_ui(edited_view)
-    assert merged_view.startswith(b"// comentario local"),"Código local foi perdido"
-    assert inject_knowledge_ui(merged_view)==merged_view,"Componente duplicado"
+    if not merged_view.startswith(b"// comentario local"):
+        raise RuntimeError("Cabeçalho local não preservado durante a simulação")
+    if b"// comentario local que deve permanecer intacto" not in merged_view:
+        raise RuntimeError("Comentário local perdido durante a simulação")
+    if inject_knowledge_ui(merged_view)!=merged_view:
+        raise RuntimeError("Componente duplicado após segunda integração")
     print("OK: tela Conhecimento local preservada na simulação.",flush=True)
     pending={}
     for name in ALL:
