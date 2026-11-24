@@ -77,7 +77,7 @@ def inject_knowledge_ui(original):
     if import_stmt not in text:
         # Colocar após imports já existentes mantém comentários e personalizações
         # no começo do arquivo, inclusive na simulação com cabeçalho local.
-        imports=list(re.finditer(r'(?m)^[ \\t]*import[^\\n]*;[ \\t]*\\r?\\n',text[:func.start()]))
+        imports=list(re.finditer(r'(?m)^[ \t]*import[^\n]*;[ \t]*\r?\n',text[:func.start()]))
         if imports:
             position=imports[-1].end()
         else:
