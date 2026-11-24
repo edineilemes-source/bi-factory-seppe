@@ -4,6 +4,9 @@ on:
     paths:
       - 'scripts/bi_knowledge_official.py'
       - 'scripts/instalar_conhecimento_oficial.py'
+      - 'scripts/instalar_conhecimento_oficial_compat.py'
+      - 'scripts/test_knowledge_compat_installer.py'
+      - 'web/bi_factory/src/OfficialKnowledgeSearch.jsx'
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
@@ -28,9 +31,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Python syntax
-        run: python -m py_compile scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py
+        run: python -m py_compile scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py scripts/instalar_conhecimento_oficial_compat.py
       - name: Pesquisa e importação, testes offline
         run: python scripts/test_knowledge_official.py
+      - name: Preservação de KnowledgeStart local e injeção sem conflito
+        run: python scripts/test_knowledge_compat_installer.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -39,6 +44,9 @@ jobs:
       - name: Dependências do frontend
         working-directory: web/bi_factory
         run: npm ci
+      - name: Validar sintaxe JSX do novo componente isolado
+        working-directory: web/bi_factory
+        run: node -e "const fs=require('fs'); const esbuild=require('esbuild'); esbuild.transformSync(fs.readFileSync('src/OfficialKnowledgeSearch.jsx','utf8'),{loader:'jsx'}); console.log('JSX componente isolado OK');"
       - name: Compilar Conhecimento integrado ao React
         working-directory: web/bi_factory
         run: npm run build
