@@ -224,3 +224,5 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **Risco:** a pesquisa inicial não é busca exaustiva; bloqueios de portal, páginas JS ou PDF sem extensão podem reduzir cobertura, e os resultados relatam essas limitações.
 - **Segurança:** nenhum dado do usuário nem segredo versionado; URLs oficiais com validação de domínio/redirecionamento; somente alterações de código na branch separada; nenhuma migração de dados nem serviço reiniciado.
 - **Próxima etapa:** executar instalador no Codespaces, confirmar API/React, experimentar pesquisas e importações aprovadas, e depois vincular normas selecionadas a medidas da modelagem.
+
+- **CI final confirmado:** GitHub Actions [execução 45416126373](https://github.com/edineilemes-source/bi-factory-seppe/actions/runs/45416126373), commit do código `dd1e17f35232950a9ee6d3502985b8cf86ba5402`: sintaxe Python, cinco testes offline, `npm ci` e build React, todos PASS. Sem teste de navegação/HTTP a partir do Codespaces nesta entrega.
