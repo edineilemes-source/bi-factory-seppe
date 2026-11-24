@@ -1,0 +1,42 @@
+name: Pesquisa de Conhecimento Oficial
+on:
+  push:
+    paths:
+      - 'scripts/bi_knowledge_official.py'
+      - 'scripts/test_knowledge_official.py'
+      - 'scripts/serve_bi_factory_api.py'
+      - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - '.github/workflows/bi-knowledge-official.yml'
+  pull_request:
+    paths:
+      - 'scripts/bi_knowledge_official.py'
+      - 'scripts/test_knowledge_official.py'
+      - 'scripts/serve_bi_factory_api.py'
+      - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - '.github/workflows/bi-knowledge-official.yml'
+permissions:
+  contents: read
+jobs:
+  knowledge-and-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python syntax
+        run: python -m py_compile scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py
+      - name: Pesquisa e importação, testes offline
+        run: python scripts/test_knowledge_official.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/bi_factory/package-lock.json
+      - name: Dependências do frontend
+        working-directory: web/bi_factory
+        run: npm ci
+      - name: Compilar Conhecimento integrado ao React
+        working-directory: web/bi_factory
+        run: npm run build
