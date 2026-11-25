@@ -175,7 +175,7 @@ export default function OfficialKnowledgeSearch({project}){
     <button type="button" disabled={busy} onClick={()=>setSelected(foundPdfs.slice(0,10).map(x=>x.id))}>
      Marcar os PDFs encontrados (até 10)
     </button>
-   </div>
+   </div>}
    {!!result.warnings?.length&&<details>
     <summary>Fontes indisponíveis ou com restrições ({result.warnings.length})</summary>
     {result.warnings.map((message,index)=><p key={index} className="hint">{message}</p>)}
@@ -189,7 +189,7 @@ export default function OfficialKnowledgeSearch({project}){
     <p className="hint">Estas páginas podem ser importantes, mas não são arquivos PDF já baixados.
      Se desejar guardar uma página como referência, marque-a e incorpore ao acervo.</p>
     <div style={{display:"grid",gap:8,marginTop:10}}>{renderItems(foundLinks)}</div>
-   </details>
+   </details>}
    {result.sources.length===0&&<p>Não foram encontrados documentos nessas fontes.
     Consulte as advertências de conexão ou experimente outro termo.</p>}
    {selected.length>0&&<div className="actions">
@@ -197,7 +197,7 @@ export default function OfficialKnowledgeSearch({project}){
      {selectedPdfCount>0?"Baixar e incorporar "+selectedPdfCount+" PDF(s)":"Incorporar "+selectedReferenceCount+" referência(s)"}
      {selectedPdfCount>0&&selectedReferenceCount>0?" e "+selectedReferenceCount+" referência(s)":""}
     </button>
-   </div>
+   </div>}
    {lastDownload&&<p className="hint">Download automático:
     {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.existing} já existente(s).
     Confira a Biblioteca abaixo.</p>}
