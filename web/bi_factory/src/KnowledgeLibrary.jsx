@@ -42,11 +42,26 @@ export default function KnowledgeLibrary({project,revision=0}){
  const live=documents.filter(x=>!x.deleted_at);
  const removed=documents.filter(x=>x.deleted_at);
  const pdfs=live.filter(x=>x.type==="document"&&x.sha256&&x.file_available);
+ const references=live.filter(x=>!(x.type==="document"&&x.sha256&&x.file_available));
+ const orderedDocuments=[...pdfs,...references];
  const infoText="O botão Ler e indexar extrai trechos verificáveis (página, documento e URL). "+
   "Não é treinamento permanente de um modelo de IA; a Modelagem consulta esse índice do projeto.";
  return <section className="card" style={{padding:20,marginTop:16,display:"grid",gap:13}}>
-  <h2 style={{margin:0}}>Biblioteca de documentos do projeto</h2>
-  <p className="hint">Arquivos aprovados ficam aqui, acessíveis para conferência antes da leitura. Você pode abrir o PDF, excluir do acervo ou selecionar os que deseja indexar.</p>
+  <h2 style={{margin:0}}>PDFs baixados no projeto ({pdfs.length})</h2>
+  <p className="hint" style={{margin:0}}>Os PDFs listados aqui já estão gravados no projeto. Clique em <strong>Abrir PDF</strong> para visualizá-los ou em <strong>Baixar PDF</strong> para salvar uma cópia no seu computador. São {references.length} referência(s) sem arquivo PDF local.</p>
+  {pdfs.length>0&&<div style={{display:"grid",gap:9}}>
+   {pdfs.map(doc=><div key={doc.id} style={{display:"grid",gap:6,padding:13,border:"1px solid #bedbc7",borderRadius:9}}>
+    <strong>PDF ARMAZENADO · {doc.title}</strong>
+    <div className="hint">{describeSize(doc.size_bytes)} · {doc.source}</div>
+    <div className="actions">
+     <a href={api+"/documents/"+encodeURIComponent(doc.id)+"/view"} target="_blank"
+      rel="noopener noreferrer">Abrir PDF</a>
+     <a href={api+"/documents/"+encodeURIComponent(doc.id)+"/download"}>Baixar PDF para meu computador</a>
+    </div>
+   </div>)}
+  </div>}
+  {pdfs.length===0&&<p>Nenhum PDF armazenado ainda. Pesquise um tema, selecione os resultados marcados como PDF e clique em incorporar.</p>}
+  <h3 style={{margin:"10px 0 0"}}>Gerenciar acervo e leitura</h3>
   {error&&<p role="alert" style={{color:"#b22"}}>{error}</p>}
   {notice&&<p role="status">{notice}</p>}
   <div className="actions">
@@ -66,7 +81,7 @@ export default function KnowledgeLibrary({project,revision=0}){
   <p className="hint">{infoText}</p>
   {live.length===0?<p>O acervo ainda está vazio. Selecione e incorpore documentos nos resultados da pesquisa oficial acima.</p>:
    <div style={{display:"grid",gap:9}}>
-    {live.map(doc=><div key={doc.id} style={{border:"1px solid #dce5ef",borderRadius:9,padding:13,display:"grid",gap:7}}>
+    {orderedDocuments.map(doc=><div key={doc.id} style={{border:"1px solid #dce5ef",borderRadius:9,padding:13,display:"grid",gap:7}}>
      <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"start"}}>
       <label style={{display:"flex",gap:8,alignItems:"start",minWidth:0,flex:1}}>
        {doc.type==="document"&&doc.sha256&&doc.file_available?<input type="checkbox" disabled={busy}
@@ -75,7 +90,7 @@ export default function KnowledgeLibrary({project,revision=0}){
        <strong>{doc.title}</strong>
       </label>
      </div>
-     <div className="hint">{[doc.source,doc.category,doc.validity_note,describeSize(doc.size_bytes),doc.read_status].filter(Boolean).join(" · ")}</div>
+     <div className="hint">{doc.type==="document"&&doc.file_available?"PDF armazenado": "Somente referência — sem PDF armazenado"} · {[doc.source,doc.category,doc.validity_note,describeSize(doc.size_bytes),doc.read_status].filter(Boolean).join(" · ")}</div>
      {doc.subject&&<div className="hint">Assunto da pesquisa: {doc.subject}</div>}
      {doc.type==="document"&&<div className="hint">{doc.file_available?"PDF original disponível no repositório do projeto":"PDF indisponível neste ambiente — confira o original no órgão; leitura desabilitada"}</div>}
      <div className="actions">
