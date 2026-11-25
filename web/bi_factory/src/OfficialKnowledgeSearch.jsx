@@ -100,14 +100,14 @@ export default function OfficialKnowledgeSearch({project}){
    project_id:id,discovery_id:result.id,source_ids:selected
   });
   setLibraryVersion(v=>v+1);setSelected([]);
-  setNotice(saved.imported.length+" documento(s)/referência(s) adicionados ao acervo."+
-   (saved.failed.length?" Não foi possível incorporar "+saved.failed.length+" item(ns).":""));
+  setNotice(saved.imported.length+" documento(s)/referência(s) incorporados. Os PDFs válidos aparecem na biblioteca, acima."+
+   (saved.failed.length?" Falhas: "+saved.failed.map(x=>x.title+": "+x.error).join("; "):""));
  });
  if(!id)return null;
- const normative=(result?.sources||[]).filter(item=>
-  item.category==="legislacao"||item.category==="normas");
- const other=(result?.sources||[]).filter(item=>
-  item.category!=="legislacao"&&item.category!=="normas");
+ const foundPdfs=(result?.sources||[]).filter(item=>item.downloadable);
+ const foundLinks=(result?.sources||[]).filter(item=>!item.downloadable);
+ const selectedPdfCount=selected.filter(sourceId=>foundPdfs.some(doc=>doc.id===sourceId)).length;
+ const selectedReferenceCount=selected.length-selectedPdfCount;
  const renderItems=items=>items.map(item=><DocumentRow key={item.id} entry={item}
   busy={busy} selected={selected.includes(item.id)}
   onChange={checked=>choose(item.id,checked)}/>);
@@ -162,31 +162,42 @@ export default function OfficialKnowledgeSearch({project}){
      onClick={doSearch}>{busy?"Pesquisando…":"Pesquisar documentos"}</button>
    </div>
   </div>
+  <KnowledgeLibrary project={project} revision={libraryVersion}/>
   {result&&<>
    <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
-    <h3 style={{margin:0}}>Resultados — {result.sources.length} referências</h3>
+    <h3 style={{margin:0}}>Pesquisa concluída — {foundPdfs.length} PDF(s) e {foundLinks.length} outra(s) referência(s)</h3>
     <span className="hint">{selected.length} de 10 marcados</span>
    </div>
-   <p className="hint" style={{margin:0}}>As normas aparecem primeiro. Uma referência não significa PDF armazenado:
-    a cópia é baixada apenas quando o órgão oferece um PDF válido.</p>
+   <p className="hint" style={{margin:0}}>Abaixo estão os PDFs encontrados nos portais oficiais.
+    Marque os documentos desejados e clique em <strong>Baixar e incorporar selecionados</strong>.
+    Quando armazenados, eles aparecem na biblioteca acima.</p>
+   {foundPdfs.length>0&&<div className="actions">
+    <button type="button" disabled={busy} onClick={()=>setSelected(foundPdfs.slice(0,10).map(x=>x.id))}>
+     Marcar os PDFs encontrados (até 10)
+    </button>
+   </div>
    {!!result.warnings?.length&&<details>
     <summary>Fontes indisponíveis ou com restrições ({result.warnings.length})</summary>
     {result.warnings.map((message,index)=><p key={index} className="hint">{message}</p>)}
    </details>}
-   {normative.length>0&&<>
-    <h4 style={{margin:"4px 0 0"}}>Leis, portarias, resoluções e normas ({normative.length})</h4>
-    <div style={{display:"grid",gap:8}}>{renderItems(normative)}</div>
+   {foundPdfs.length>0&&<>
+    <h4 style={{margin:"4px 0 0"}}>Arquivos PDF encontrados nos sites ({foundPdfs.length})</h4>
+    <div style={{display:"grid",gap:8}}>{renderItems(foundPdfs)}</div>
    </>}
-   {other.length>0&&<>
-    <h4 style={{margin:"4px 0 0"}}>Manuais e outras fontes ({other.length})</h4>
-    <div style={{display:"grid",gap:8}}>{renderItems(other)}</div>
-   </>}
+   {foundLinks.length>0&&<details>
+    <summary>Outras normas e referências de sites — sem PDF direto ({foundLinks.length})</summary>
+    <p className="hint">Estas páginas podem ser importantes, mas não são arquivos PDF já baixados.
+     Se desejar guardar uma página como referência, marque-a e incorpore ao acervo.</p>
+    <div style={{display:"grid",gap:8,marginTop:10}}>{renderItems(foundLinks)}</div>
+   </details>
    {result.sources.length===0&&<p>Não foram encontrados documentos nessas fontes.
     Consulte as advertências de conexão ou experimente outro termo.</p>}
    {selected.length>0&&<div className="actions">
     <button disabled={busy} onClick={addSelected}>
-     Adicionar {selected.length} selecionado(s) ao acervo</button>
-   </div>}
+     {selectedPdfCount>0?"Baixar e incorporar "+selectedPdfCount+" PDF(s)":"Incorporar "+selectedReferenceCount+" referência(s)"}
+     {selectedPdfCount>0&&selectedReferenceCount>0?" e "+selectedReferenceCount+" referência(s)":""}
+    </button>
+   </div>
    {lastDownload&&<p className="hint">Download automático:
     {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.existing} já existente(s).
     Confira a Biblioteca abaixo.</p>}
@@ -202,6 +213,5 @@ export default function OfficialKnowledgeSearch({project}){
      })}>{item.topic} · {item.count||0} referências</button>)}
    </div>
   </details>}
-  <KnowledgeLibrary project={project} revision={libraryVersion}/>
  </section>;
 }
