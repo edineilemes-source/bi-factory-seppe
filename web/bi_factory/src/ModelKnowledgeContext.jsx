@@ -9,6 +9,7 @@ export default function ModelKnowledgeContext({projectId,fields=[]}){
  const [matches,setMatches]=useState({});
  const [selected,setSelected]=useState(null);
  const [error,setError]=useState("");
+ const [interpretation,setInterpretation]=useState(null);
  const [busy,setBusy]=useState(false);
  const candidates=useMemo(()=>[...new Map((fields||[]).map(f=>{
   const name=String(f.original_name||f.technical_name||"").trim();
@@ -24,7 +25,7 @@ export default function ModelKnowledgeContext({projectId,fields=[]}){
    const data=await res.json().catch(()=>({}));
    if(!res.ok)throw Error(data.error||"Não foi possível consultar o acervo do projeto");
    setMatches(old=>({...old,[value]:data}));
-   if(!quiet)setSelected(value);
+   if(!quiet){setSelected(value);setInterpretation(null)}
   }catch(e){setError(e.message)}
   finally{if(!quiet)setBusy(false)}
  };
@@ -70,6 +71,28 @@ export default function ModelKnowledgeContext({projectId,fields=[]}){
   </div>
   {current&&<div style={{display:"grid",gap:8}}>
    <strong>{selected}: {current.matches?.length||0} evidência(s)</strong>
+   {!!current.matches?.length&&<div className="actions">
+    <button disabled={busy} onClick={async()=>{
+     setBusy(true);setError("");setInterpretation(null);
+     try{
+      const r=await fetch(base+"/interpret",{method:"POST",
+       headers:{"Content-Type":"application/json"},cache:"no-store",
+       body:JSON.stringify({project_id:projectId,question:selected})});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok)throw Error(data.error||"Interpretação indisponível");
+      setInterpretation(data);
+     }catch(e){setError(e.message)}finally{setBusy(false)}
+    }}>Pedir interpretação à IA local (opcional)</button>
+   </div>}
+   {interpretation&&<div style={{padding:12,border:"1px solid #cfdae5",borderRadius:8}}>
+    <strong>{interpretation.status}</strong>
+    {interpretation.interpretation&&<>
+     <p>{interpretation.interpretation.explicacao}</p>
+     <p className="hint">Classificação sugerida: {interpretation.interpretation.tipo_sugerido}</p>
+     {interpretation.interpretation.formula_sugerida&&<p>Fórmula sugerida, não aprovada: <code>{interpretation.interpretation.formula_sugerida}</code></p>}
+     <p className="hint">Lacunas: {interpretation.interpretation.lacunas||"a conferir"}</p>
+    </>}
+   </div>}
    {!current.matches?.length?<p>Não existe trecho indexado para este campo. Vá a Conhecimento, abra o PDF e use Ler e indexar.</p>:
     current.matches.map((m,i)=><div key={m.document_id+"-"+m.page+"-"+i}
      style={{borderLeft:"3px solid #6e9bb1",padding:"8px 12px",background:"#f6f8fa"}}>
