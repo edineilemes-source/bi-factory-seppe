@@ -107,6 +107,18 @@ class LibraryTests(unittest.TestCase):
     with self.assertRaises(ValueError):library.read_selected({
       "project_id":self.pid,"document_ids":["bad"]},lambda a:b"")
     with self.assertRaises(ValueError):library.query_concepts(self.pid,"")
+ def test_real_pypdf_read_without_text_reports_ocr_pending(self):
+    from io import BytesIO
+    from pypdf import PdfWriter
+    writer=PdfWriter()
+    writer.add_blank_page(width=280,height=220)
+    buffer=BytesIO()
+    writer.write(buffer)
+    pages,stats=library.extract_pdf(buffer.getvalue())
+    self.assertEqual(pages,[])
+    self.assertEqual(stats["page_count"],1)
+    self.assertEqual(stats["pages_with_text"],0)
+    self.assertFalse(stats["truncated"])
  def test_thot_link_not_assumed_pdf_and_capag_seed_present(self):
     capag=[s for s in official.SEEDS if "CAPAG" in s[0]]
     self.assertTrue(capag)
