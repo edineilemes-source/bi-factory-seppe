@@ -86,7 +86,15 @@ def list_library(project_id):
     documents=[]
     for d in items:
         if d.get("type") in ("document","official_reference"):
-            documents.append({k:v for k,v in d.items() if k!="relative_path"})
+            row={k:v for k,v in d.items() if k!="relative_path"}
+            row["file_available"]=False
+            if d.get("type")=="document" and d.get("sha256") and not d.get("deleted_at"):
+                try:
+                    local,_=_files(project_id,d)
+                    row["file_available"]=local.is_file()
+                except ValueError:
+                    pass
+            documents.append(row)
     return {"project_id":project_id,"documents":documents,
             "total":sum(1 for d in documents if not d.get("deleted_at")),
             "indexed":sum(1 for d in documents if d.get("read_at") and not d.get("deleted_at"))}
@@ -125,9 +133,15 @@ def restore_document(project_id,document_id):
 
 def extract_pdf(raw):
     """pypdf (BSD-3-Clause), texto embutido; nunca aplica OCR sem autorização."""
-    try:from pypdf import PdfReader
+    try:
+        from pypdf import PdfReader
     except ImportError:
-        raise ValueError("Leitura não disponível: instale pypdf (BSD-3-Clause)") from None
+        import sys
+        installed=projects.ROOT/".git"/"knowledge-deps"
+        if str(installed) not in sys.path:sys.path.insert(0,str(installed))
+        try:from pypdf import PdfReader
+        except ImportError:
+            raise ValueError("Leitura não disponível: instale pypdf (BSD-3-Clause)") from None
     try:
         reader=PdfReader(BytesIO(raw),strict=False)
         if reader.is_encrypted:
