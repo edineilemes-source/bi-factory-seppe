@@ -227,6 +227,9 @@ class Handler(visual_editor_server.Handler):
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
                     result = knowledge_official.discover_for_project(data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "interpret":
+                    if data.get("project_id")!=parts[2]:raise ValueError("Projeto inconsistente")
+                    result=knowledge_library.interpret_for_model(data)
                 elif method == "POST" and len(parts) == 4 and parts[3] == "read-documents":
                     if data.get("project_id")!=parts[2]:raise ValueError("Projeto inconsistente")
                     result=knowledge_library.read_selected(data)
