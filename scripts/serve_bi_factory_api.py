@@ -11,6 +11,7 @@ import json
 import bi_factory_analytics_adapter as analytics
 import bi_factory_projects as projects
 import bi_knowledge_official as knowledge_official
+import bi_knowledge_multisource as knowledge_multisource
 import bi_knowledge_library as knowledge_library
 from urllib.parse import urlsplit,parse_qs
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
@@ -179,6 +180,9 @@ class Handler(visual_editor_server.Handler):
                     result = projects.get(parts[2])
                 elif len(parts) == 4 and parts[3] == "knowledge":
                     result = projects.summary(parts[2])
+                elif len(parts) == 4 and parts[3] == "knowledge-sources":
+                    projects.get(parts[2])
+                    result = knowledge_multisource.catalog()
                 elif len(parts) == 4 and parts[3] == "library":
                     result = knowledge_library.list_library(parts[2])
                 elif len(parts) == 4 and parts[3] == "concepts":
