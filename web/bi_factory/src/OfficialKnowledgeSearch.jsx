@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from "react";
+import KnowledgeLibrary from "./KnowledgeLibrary.jsx";
 
 /* Módulo independente: pode ser agregado à tela Conhecimento existente
  * sem substituir campos personalizados nem o cadastro de projetos.
@@ -11,7 +12,7 @@ const CATEGORIES=[
  ["metodos","Referências técnicas"]
 ];
 const TOPICS=["Receita","Despesa","Empenho","Liquidação","Pagamento",
- "Balanço","Prestação de contas","RREO","RGF","DCA","PCASP"];
+ "Balanço","Prestação de contas","RREO","RGF","DCA","PCASP","CAPAG","Poupança corrente"];
 async function knowledgeApi(url,data){
  const r=await fetch(url,{method:data?"POST":"GET",
   headers:data?{"Content-Type":"application/json"}:undefined,
@@ -32,11 +33,11 @@ export default function OfficialKnowledgeSearch({project}){
  const [result,setResult]=useState(null);
  const [selected,setSelected]=useState([]);
  const [previous,setPrevious]=useState([]);
- const [archived,setArchived]=useState([]);
+ const [libraryVersion,setLibraryVersion]=useState(0);
  useEffect(()=>{
   setTopic(project?.theme||"");
   setScope(project?.scope||"Brasil");
-  setResult(null);setSelected([]);setPrevious([]);setArchived([]);
+  setResult(null);setSelected([]);setPrevious([]);
  },[id]);
  useEffect(()=>{
   if(!id)return;
@@ -44,7 +45,7 @@ export default function OfficialKnowledgeSearch({project}){
   knowledgeApi(endpoint+"/knowledge").then(data=>{
    if(live){
     setPrevious((data.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,12));
-    setArchived((data.items||[]).filter(x=>["document","official_reference"].includes(x.type)&&x.source_url).reverse());
+
    }
   }).catch(()=>{});
   return()=>{live=false};
@@ -55,7 +56,7 @@ export default function OfficialKnowledgeSearch({project}){
    await callback();
    const all=await knowledgeApi(endpoint+"/knowledge");
    setPrevious((all.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,12));
-   setArchived((all.items||[]).filter(x=>["document","official_reference"].includes(x.type)&&x.source_url).reverse());
+
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  };
@@ -64,7 +65,7 @@ export default function OfficialKnowledgeSearch({project}){
   <div className="eyebrow">BASE DE CONHECIMENTO · PESQUISA OFICIAL</div>
   <h2 style={{margin:0}}>Pesquisar legislação, manuais e PDFs oficiais</h2>
   <p className="hint">Pesquisa nas fontes nacionais cadastradas (Tesouro Nacional, Siconfi e Planalto).
-   A lista mostra a origem antes de incorporar. Nenhum documento é baixado sem sua aprovação.</p>
+   A lista mostra a origem antes de incorporar. Nenhum documento é baixado sem sua aprovação. Depois, confira, descarte ou mande ler os PDFs na Biblioteca.</p>
   {error&&<p role="alert" style={{color:"#a32a2a"}}>{error}</p>}
   {notice&&<p role="status">{notice}</p>}
   <div className="catalogForm" style={{display:"grid",gap:10}}>
@@ -112,18 +113,6 @@ export default function OfficialKnowledgeSearch({project}){
      })}>{row.topic} · {row.created_at?.slice(0,10)} · {row.count||0} referências</button>)}
    </div>
   </details>}
-  {archived.length>0&&<details>
-   <summary>Documentos oficiais já incorporados ({archived.length})</summary>
-   <div style={{display:"grid",gap:8,padding:10}}>
-    {archived.map(doc=><div key={doc.id} style={{border:"1px solid #dce5ef",padding:10,borderRadius:8}}>
-     <a href={doc.source_url} target="_blank" rel="noopener noreferrer">{doc.title}</a>
-     <div className="hint">{doc.source} · {doc.status}{doc.validity_note?" · "+doc.validity_note:""}</div>
-     {doc.relative_path&&<div><a href={endpoint+"/documents/"+encodeURIComponent(doc.id)+"/download"}>
-      Baixar PDF preservado no projeto</a></div>}
-     {doc.sha256&&<div className="hint">SHA-256: {doc.sha256.slice(0,16)}…</div>}
-    </div>)}
-   </div>
-  </details>}
   {result&&<>
    <h3 style={{margin:"8px 0 0"}}>Resultados encontrados ({result.sources.length})</h3>
    <p className="hint">{result.provider} · {result.ai_status} · {result.scope_note}</p>
@@ -140,7 +129,8 @@ export default function OfficialKnowledgeSearch({project}){
       project_id:id,discovery_id:result.id,source_ids:selected
      });
      setSelected([]);
-     setNotice(response.imported.length+" documentos/referências incorporados ao projeto."+
+     setLibraryVersion(n=>n+1);
+     setNotice(response.imported.length+" documentos/referências incorporados. Confira-os na Biblioteca abaixo."+
       (response.failed.length?" Falhas: "+
        response.failed.map(x=>x.title+": "+x.error).join("; "):""));
     })}>Aprovar e incorporar ({selected.length})</button>
@@ -165,5 +155,6 @@ export default function OfficialKnowledgeSearch({project}){
      </label>)}
    </div>
   </>}
+  <KnowledgeLibrary project={project} revision={libraryVersion}/>
  </section>;
 }
