@@ -265,3 +265,11 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **Verificação e governança:** PDF só é mostrado como armazenado após receber bytes `%PDF-` válidos, salvar em `storage/working/projects/<id>/originals/<SHA256>.pdf` e registrar URL, tópico e tamanho. Sem novo `git push` de dados. Documentos previamente excluídos não são reimportados automaticamente. O usuário pode abrir, excluir/restaurar e, separadamente, acionar a leitura/indexação.
 - **Ressalvas:** portais com JavaScript, bloqueios, autenticação ou arquivo inexistente podem impedir recuperação; resposta lista falhas e não marca HTML como PDF. Primeira implantação real no Codespaces ainda pendente, bem como verificação de download dos documentos CAPAG do portal a partir da rede do Codespaces.
 - **Instalador:** `scripts/instalar_download_automatico_conhecimento.py` (via `git fetch`/ `git show` da branch), altera apenas motor de pesquisa, API, interface de pesquisa e seus testes; faz backup/rollback e testes; não altera dados STN, catálogo de produtos, editor visual nem a porta 8507.
+
+
+## 2026-11-25 — Pesquisa normativa multifontes (PR #27)
+- Objetivo: busca por tema/número da norma, fontes oficiais marcadas por padrão, seleção direta de até 10 documentos e normas antes dos manuais.
+- Arquivos: scripts/bi_knowledge_federated.py, scripts/bi_knowledge_official.py, scripts/test_knowledge_federated.py, web/bi_factory/src/OfficialKnowledgeSearch.jsx, web/bi_factory/src/KnowledgeStart.jsx e scripts/instalar_pesquisa_multifontes.py.
+- CAPAG: Portaria Normativa MF 1.583/2023 em fonte DOU e lista oficial de alterações no Tesouro. LexML consultado via SRU quando disponível.
+- Testes: GitHub Actions bem-sucedidos na branch; instalador local ainda não executado no Codespaces. Dados e layouts não alterados.
+- Limite: cobertura de fontes cadastradas, sem garantia de exaustividade ou vigência automática.
