@@ -281,3 +281,10 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Correção: inserir somente import e componente OfficialKnowledgeSearch após a abertura da raiz JSX da função KnowledgeStart, preservando campos locais. Se a pesquisa já existir, não inserir novamente. Telas não reconhecidas continuam protegidas por erro sem alteração.
 - Testes: scripts/test_instalar_pesquisa_multifontes.py contém cenários de tela personalizada, fragmento JSX, idempotência e formato não reconhecido, integrados ao workflow e ao instalador.
 - Pendência: confirmar execução corrigida no Codespaces; Actions valida código versionado, não arquivos não commitados.
+
+
+### 2026-11-25 — PDFs comprovadamente gravados, mas pouco visíveis
+- Usuário apresentou dois documentos disponíveis na biblioteca do projeto pmcg-financas-publicas: Portaria MF 1.583/2023 (2,75 MB) e Manual de Análise Fiscal 2026 (2,42 MB), ambos com link /view, /download e hash SHA-256. São arquivos internos ao Codespaces, não cópias no computador do usuário.
+- Interface ajustada: KnowledgeLibrary destaca PDFs localmente armazenados, com Abrir/Baixar no topo; referências sem arquivo são identificadas; resultados da pesquisa separam candidatos PDF e páginas sem PDF direto. Botão de incorporação explica a ação; leitura e indexação esclarecidas como etapa diferente.
+- Instalador atualizado para incluir KnowledgeLibrary, reconhecer versão multifontes anterior e não falhar com sua cópia local antiga do próprio instalador. Não houve sincronização ou exclusão do acervo.
+- Testes remotos: GitHub Actions de compilação e conhecimento passaram para commit 5fe6b1886f, testes do último ajuste de texto pendentes de verificação. Executar novamente no Codespaces para disponibilizar esta revisão.
