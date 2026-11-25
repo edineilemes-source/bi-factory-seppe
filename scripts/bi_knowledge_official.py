@@ -62,6 +62,14 @@ SEEDS = (
   "Presidência da República / Planalto", "legislacao", "gestao fiscal prestacao contas rreo rgf transparencia receitas despesas"),
  ("Manual completo do Siconfi · PDF", "https://manualsiconfi.tesouro.gov.br/manual_completo.pdf",
   "Tesouro Nacional / Siconfi", "manuais", "siconfi declaracao contas anuais dca manual"),
+ ("Manual de Análise Fiscal 2026 — CAPAG, Receita e Despesa",
+  "https://cdn.tesouro.gov.br/sistemas-internos/apex/producao/sistemas/thot/arquivos/publicacoes/54134_1693346/Manual%20de%20an%C3%A1lise%20fiscal%20-%20Vers%C3%A3o%20Final%202026.pdf",
+  "Tesouro Nacional / Manual oficial 2026", "manuais",
+  "capag capacidade pagamento poupanca corrente endividamento liquidez receitas despesas 2026"),
+ ("Manual de Análise Fiscal 2026 — publicação",
+  "https://www.tesourotransparente.gov.br/publicacoes/manual-de-analise-fiscal-de-estados-e-municipios/2026/114?ano_selecionado=2026",
+  "Tesouro Nacional / Tesouro Transparente", "manuais",
+  "capag capacidade pagamento poupanca corrente endividamento liquidez manual 2026"),
  ("CAPAG · metodologia vigente e indicadores", "https://www.tesourotransparente.gov.br/temas/estados-e-municipios/capacidade-de-pagamento-capag",
   "Tesouro Nacional / Tesouro Transparente", "normas",
   "capag capacidade pagamento municipios endividamento poupanca corrente liquidez relativa"),
@@ -139,6 +147,9 @@ class ExtractLinks(HTMLParser):
         if tag=="a":
             self.href=att.get("href")
             self.label=[]
+        if tag in ("iframe","embed"):
+            src=att.get("src")
+            if src:self.links.append((src,"download PDF iframe"))
         if tag=="title":
             self.title_mode=True
 
@@ -230,6 +241,9 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
         raise ValueError("Selecione os tipos de documentos")
     projects.get(project_id)
     query_terms=terms(topic+" "+(scope or ""))
+    focused_capag=("capag" in normalize(topic) or
+                   "capacidade de pagamento" in normalize(topic) or
+                   "poupanca corrente" in normalize(topic))
     if ai_terms is None: extra,ai_status=optional_local_ai_terms(topic)
     else:extra,ai_status=ai_terms,"IA: termos auxiliares informados no teste"
     query_terms=list(dict.fromkeys(query_terms+extra))[:28]
@@ -237,6 +251,12 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
     warnings=[]
     attempts=0
     for title,url,source,kind,context in SEEDS:
+        # CAPAG: fontes específicas. Evita lotar a página com RGF/DCA
+        # de outros assuntos e anos, embora eles sejam portais oficiais.
+        if focused_capag and not any(
+          x in normalize(title+" "+url) for x in
+          ("capag","capacidade-de-pagamento","manual-de-analise-fiscal")):
+            continue
         if (kind not in categories and "sites_oficiais" not in categories and
             not (kind=="manuais" and "normas" in categories)):
             continue
@@ -261,6 +281,9 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
                 item=candidate(label,absolute,source,kind,url,"",query_terms)
                 if not item:continue
                 if item["category"] not in categories and "sites_oficiais" not in categories:
+                    continue
+                if focused_capag and not any(term in normalize(label+" "+absolute)
+                   for term in ("capag","capacidade de pagamento","analise fiscal","poupanca corrente")):
                     continue
                 if item["score"]==0 and not item["downloadable"]:continue
                 old=seen.get(item["id"])
@@ -374,3 +397,139 @@ def approve_for_project(payload):
             failed.append({"title":item["title"],"error":str(error)[:180]})
     return {"ok":not failed,"imported":imported,"failed":failed,
             "note":"PDFs aprovados ficam em storage/working/projects/<projeto>/originals. Não são enviados automaticamente ao Git remoto."}
+
+
+MAX_AUTO_FILES=5
+MAX_AUTO_PAGES=4
+
+def _real_pdf(url, origin, fetch=read_official):
+    """Locate actual PDF bytes in an official portal, not just a .pdf-looking URL.
+
+    Follows HTML download links and iframe sources on official domains only,
+    bounded to three pages. No JS execution, cookies, sign-in, or crawling
+    arbitrary external sites.
+    """
+    queue=[url]
+    visited=set()
+    pages=0
+    while queue and pages<3:
+        current=queue.pop(0)
+        if current in visited or not allowed_url(current):continue
+        visited.add(current);pages+=1
+        raw,final,ctype=fetch(current,MAX_DOCUMENT)
+        if raw.lstrip().startswith(b"%PDF-"):
+            return raw,final,ctype
+        if len(raw)>MAX_HTML or b"<" not in raw[:500]:
+            continue
+        page=ExtractLinks()
+        page.feed(raw.decode("utf-8","replace"))
+        # Iframes often contain the actual download, especially on THOT.
+        # The extended parser collects iframe src alongside anchor links.
+        links=list(page.links)
+        for href,label in links[:200]:
+            absolute=urljoin(final,href).split("#")[0]
+            if not allowed_url(absolute) or absolute in visited:continue
+            hint=normalize(label+" "+absolute)
+            if (absolute.lower().split("?")[0].endswith(".pdf") or
+                "download" in hint or "baixar" in hint or
+                "publicacao/" in absolute or "publicacao-anexo/" in absolute):
+                queue.append(absolute)
+                if len(queue)>10:break
+    return None,None,None
+
+def auto_download_for_project(payload,fetch=read_official):
+    """One click: fetch and archive real PDFs; never require manual site visits.
+
+    Only sources already found by a project-scoped discovery are eligible.
+    The user may inspect/delete PDFs afterward. Existing files are untouched.
+    """
+    if not isinstance(payload,dict):raise ValueError("Solicitação inválida")
+    pid=payload.get("project_id")
+    projects.get(pid)
+    discovery_id=payload.get("discovery_id","")
+    if not isinstance(discovery_id,str) or not re.fullmatch(r"[0-9a-f]{32}",discovery_id):
+        raise ValueError("Pesquisa inválida")
+    number=payload.get("max_files",MAX_AUTO_FILES)
+    if type(number)!=int or not 1<=number<=MAX_AUTO_FILES:
+        raise ValueError("Máximo de cinco PDFs por rodada")
+    path=projects.DIR/pid/"discoveries"/(discovery_id+".json")
+    found=projects._read(path,None)
+    if not isinstance(found,dict) or found.get("project_id")!=pid:
+        raise ValueError("Pesquisa não encontrada neste projeto")
+    topic=normalize(found.get("topic",""))
+    capag=any(t in topic for t in ("capag","capacidade de pagamento","poupanca corrente"))
+    sources=found.get("sources",[])
+    if not isinstance(sources,list):raise ValueError("Resultado inválido")
+    documents=[]
+    pages=0
+    examined=0
+    failures=[]
+    for item in sources:
+        if len(documents)>=number:break
+        url=item.get("url","")
+        if not allowed_url(url):continue
+        label=normalize(item.get("title","")+" "+url)
+        if capag and not any(t in label for t in
+          ("capag","analise fiscal","capacidade de pagamento","poupanca")):
+            continue
+        direct=item.get("downloadable") is True
+        if not direct and pages>=MAX_AUTO_PAGES:continue
+        if not direct:
+            pages+=1
+        examined+=1
+        try:
+            raw,final,mime=_real_pdf(url,item.get("origin",url),fetch=fetch)
+            if not raw:
+                # HTML remains a reference; cannot pretend it is downloaded.
+                continue
+            digest=hashlib.sha256(raw).hexdigest()
+            entry=None
+            with projects.LOCK:
+                knowledge=projects._sources_path(pid)
+                existing=projects._read(knowledge,[])
+                seen=next((e for e in existing if
+                   not e.get("deleted_at") and e.get("type")=="document" and
+                   (e.get("sha256")==digest or e.get("source_url")==final)),None)
+                if seen:
+                    documents.append({"title":seen.get("title"),"status":"já armazenado",
+                        "id":seen["id"]})
+                    continue
+                target=projects.DIR/pid/"originals"/(digest+".pdf")
+                target.parent.mkdir(parents=True,exist_ok=True)
+                if not target.exists():
+                    fd,tmp=tempfile.mkstemp(prefix=".auto-official-",dir=target.parent)
+                    try:
+                        with os.fdopen(fd,"wb") as writer:
+                            writer.write(raw)
+                            writer.flush()
+                            os.fsync(writer.fileno())
+                        os.chmod(tmp,0o600)
+                        os.replace(tmp,target)
+                    finally:
+                        if os.path.exists(tmp):os.unlink(tmp)
+                entry={"id":str(uuid4()),"type":"document",
+                    "title":item.get("title","Documento oficial")[:210],
+                    "source":item.get("source","Fonte oficial"),
+                    "source_url":final,"source_page":url,
+                    "category":item.get("category","manuais"),
+                    "status":"PDF original armazenado — download automático",
+                    "filename":target.name,
+                    "relative_path":str(Path("storage/working/projects")/pid/"originals"/target.name),
+                    "sha256":digest,"size_bytes":len(raw),
+                    "subject":found.get("topic"),"scope":found.get("scope"),
+                    "discovered_at":found.get("searched_at"),"approved_at":now(),
+                    "validity_note":item.get("validity_note"),
+                    "discovery_id":discovery_id,"import_method":"automatic_official"}
+                existing.append(entry)
+                projects._write(knowledge,existing)
+            documents.append({"title":entry["title"],"status":"baixado",
+                "id":entry["id"],"size_bytes":len(raw)})
+        except (ValueError,OSError,urllib.error.URLError) as err:
+            failures.append({"title":item.get("title","Fonte oficial"),
+                "error":str(err)[:140]})
+    return {"project_id":pid,"discovery_id":discovery_id,
+        "downloaded":sum(x["status"]=="baixado" for x in documents),
+        "existing":sum(x["status"]=="já armazenado" for x in documents),
+        "documents":documents,"examined":examined,
+        "failed":failures[:5],
+        "note":"Arquivos efetivos na Biblioteca do projeto. Abra e exclua os que não servirão; leitura pela IA continua opcional."}
