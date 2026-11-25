@@ -144,7 +144,7 @@ def summary(project_id):
     rows = _read(path, [])
     if not isinstance(rows, list):
         raise ValueError("Catálogo de conhecimento inválido")
-    return {"project": project, "items": rows}
+    return {"project": project, "items": [item for item in rows if not item.get("deleted_at")]}
 
 def research(payload):
     if not isinstance(payload, dict):
