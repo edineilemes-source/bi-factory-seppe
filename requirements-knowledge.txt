@@ -1,0 +1,3 @@
+# pypdf: BSD-3-Clause (https://github.com/py-pdf/pypdf)
+# Extração de texto embutido em PDFs, sem OCR e sem envio a serviços externos.
+pypdf>=5.1,<7
