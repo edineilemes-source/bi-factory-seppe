@@ -236,6 +236,10 @@ class Handler(visual_editor_server.Handler):
                 elif method == "POST" and len(parts) == 6 and parts[3] == "documents" and parts[5]=="restore":
                     if data.get("project_id")!=parts[2]:raise ValueError("Projeto inconsistente")
                     result=knowledge_library.restore_document(parts[2],parts[4])
+                elif method == "POST" and len(parts) == 4 and parts[3] == "auto-download":
+                    if data.get("project_id") != parts[2]:
+                        raise ValueError("Projeto inconsistente")
+                    result=knowledge_official.auto_download_for_project(data)
                 elif method == "POST" and len(parts) == 4 and parts[3] == "approve":
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
