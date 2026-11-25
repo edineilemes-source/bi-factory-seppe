@@ -44,7 +44,7 @@ export default function KnowledgeLibrary({project,revision=0}){
  const pdfs=live.filter(x=>x.type==="document"&&x.sha256&&x.file_available);
  const references=live.filter(x=>!(x.type==="document"&&x.sha256&&x.file_available));
  const orderedDocuments=[...pdfs,...references];
- const infoText="O botão Ler e indexar extrai trechos verificáveis (página, documento e URL). "+
+ const infoText="Ler e indexar é uma etapa posterior ao download. O número no botão indica PDFs selecionados para leitura, não arquivos baixados. A leitura extrai trechos verificáveis (página, documento e URL). "+
   "Não é treinamento permanente de um modelo de IA; a Modelagem consulta esse índice do projeto.";
  return <section className="card" style={{padding:20,marginTop:16,display:"grid",gap:13}}>
   <h2 style={{margin:0}}>PDFs baixados no projeto ({pdfs.length})</h2>
