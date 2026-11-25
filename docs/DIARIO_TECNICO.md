@@ -288,3 +288,12 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - Interface ajustada: KnowledgeLibrary destaca PDFs localmente armazenados, com Abrir/Baixar no topo; referências sem arquivo são identificadas; resultados da pesquisa separam candidatos PDF e páginas sem PDF direto. Botão de incorporação explica a ação; leitura e indexação esclarecidas como etapa diferente.
 - Instalador atualizado para incluir KnowledgeLibrary, reconhecer versão multifontes anterior e não falhar com sua cópia local antiga do próprio instalador. Não houve sincronização ou exclusão do acervo.
 - Testes remotos: GitHub Actions de compilação e conhecimento passaram para commit 5fe6b1886f, testes do último ajuste de texto pendentes de verificação. Executar novamente no Codespaces para disponibilizar esta revisão.
+
+
+### 2026-11-25 — Refazer pesquisa após exclusão: corrigir PDF preso na Lixeira
+- Evidência Codespaces relatada pelo usuário: após remover 10 documentos, a biblioteca exibia 0 PDFs e a pesquisa antiga seguia mostrando resultados.
+- Causa comprovada no backend: approve_for_project considerava registros com deleted_at como 'já consta no acervo', de modo que a aprovação de uma nova pesquisa não recuperava o PDF.
+- Correção: aprovação explícita separa documentos ativos e excluídos; se o PDF da nova pesquisa tem o mesmo SHA-256 de um excluído, restaura da Lixeira com mesmo ID; páginas de referência também podem ser recuperadas. Se conteúdo do PDF mudou mantendo URL, cria uma versão ativa com novo hash, conservando a excluída no histórico. download automático só restaura itens excluídos com restore_deleted=true enviado por ação de nova pesquisa do usuário.
+- UI: alteração do tema, das fontes ou abrangência invalida os resultados antigos; exclusão notifica a pesquisa, e o acervo vazio exibe botão Refazer pesquisa para recuperar PDFs.
+- Testes: scripts/test_knowledge_research_again.py (regressão de exclusão/restauração, autorização de auto-restauração e versão alterada); executado pelo CI. Instalador scripts/instalar_pesquisa_multifontes.py inclui teste e reconhece versões remotas anteriores para atualizar sem sobrescrever personalizações locais.
+- Dados: nenhuma exclusão ou migração automática; itens da Lixeira permanecem recuperáveis. Aplicação no Codespaces ainda exige execução do instalador e validação local.
