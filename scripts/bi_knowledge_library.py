@@ -107,7 +107,7 @@ def delete_document(project_id,document_id):
         doc["deleted_at"]=now()
         doc["status"]="Removido do acervo (recuperável)"
         # Se mesmo hash é compartilhado por outro documento ativo, não mover.
-        active_shared=any(x is not doc and x.get("sha256")==doc["sha256"]
+        active_shared=any(x is not doc and x.get("sha256")==doc.get("sha256")
             and not x.get("deleted_at") for x in items)
         if original is not None and original.is_file() and not active_shared:
             trash.parent.mkdir(parents=True,exist_ok=True)
@@ -206,8 +206,9 @@ def read_selected(payload,extractor=None):
             raise ValueError("Versão de índice documental não suportada")
         path,items=_records(pid)
         for doc,entry in prepared:
-            _,_,current=_find(pid,doc["id"])
-            if current.get("sha256")!=doc["sha256"]:
+            current=next((x for x in items if x.get("id")==doc["id"]
+                          and x.get("type")=="document" and not x.get("deleted_at")),None)
+            if current is None or current.get("sha256")!=doc["sha256"]:
                 raise ValueError("Documento mudou durante a leitura; reenvie")
             index["documents"][doc["id"]]=entry
             current["read_at"]=entry["indexed_at"]
