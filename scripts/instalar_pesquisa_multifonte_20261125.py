@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Instala pesquisa por assunto em portais oficiais na BI Factory SEPPE.
 
-Mantém a branch local, produtos, layouts, PDF e índices; compara apenas
-quatro arquivos de código, preserva mudanças locais via merge de 3 vias,
+Mantém a branch local, produtos, layouts, PDF e índices; compara os arquivos envolvidos, preserva mudanças locais via merge de 3 vias,
 faz backup/rollback e testa antes de reiniciar a API 8505 conhecida.
 """
 from __future__ import annotations
@@ -19,16 +18,15 @@ import urllib.request
 import json
 
 ROOT=Path("/workspaces/bi-factory-seppe")
-BASE="origin/feat/conhecimento-multifonte-automatico-capag-20261125"
-TARGET="origin/feat/conhecimento-pesquisa-multifonte-pronta-20261125"
+BASE="origin/feat/conhecimento-download-automatico-capag-20261125"
+TARGET="origin/feat/conhecimento-pesquisa-entrega-20261125"
 FILES=(
  "scripts/bi_knowledge_official.py",
  "scripts/serve_bi_factory_api.py",
  "web/bi_factory/src/OfficialKnowledgeSearch.jsx",
 )
 NEW_FILES=("scripts/bi_knowledge_multisource.py",
- "scripts/test_knowledge_multisource.py",
- "scripts/instalar_pesquisa_multifonte_20261125.py")
+ "scripts/test_knowledge_multisource.py")
 WEB=ROOT/"web/bi_factory"
 
 def git_content(ref,name):
@@ -134,7 +132,7 @@ def main():
             else:dest.write_bytes(old)
         raise
     if backup.exists():print("BACKUP:",backup)
-    print("Código e testes concluídos. Ativando download automático na API.",flush=True)
+    print("Código e testes concluídos. Ativando pesquisa multifonte na API.",flush=True)
     if port_open(8505):
         processes=api_processes()
         if len(processes)!=1:
