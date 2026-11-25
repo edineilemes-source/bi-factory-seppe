@@ -35,6 +35,8 @@ NEW=(
  "web/bi_factory/src/KnowledgeLibrary.jsx",
  "web/bi_factory/src/ModelKnowledgeContext.jsx",
  "requirements-knowledge.txt",
+ "scripts/test_instalar_biblioteca_modelagem.py",
+ "scripts/instalar_biblioteca_ia_modelagem.py",
 )
 WEB=ROOT/"web/bi_factory"
 MAX_NEW=700_000
@@ -193,6 +195,7 @@ def deploy():
         run([sys.executable,"scripts/test_knowledge_official.py"])
         run([sys.executable,"scripts/test_knowledge_library.py"])
         run([sys.executable,"scripts/test_knowledge_compat_installer.py"])
+        run([sys.executable,"scripts/test_instalar_biblioteca_modelagem.py"])
         if not (WEB/"node_modules/.bin/vite").exists():
             run(["npm","ci"],WEB)
         run(["npm","run","build"],WEB)
