@@ -312,3 +312,7 @@ Branch isolada feat/conhecimento-busca-multifontes-simples-20261125, PR #27 (ras
 
 ### Correção da instalação em tela Conhecimento personalizada — 25/11/2026
 Codespaces informou erro 'Tela local personalizada desconhecida; preservada integralmente.' sem gravar arquivos. O instalador na branch feat/conhecimento-busca-multifontes-simples-20261125 passou a integrar por inserção mínima na função KnowledgeStart, sem depender dos três títulos/contêineres antigos. Testes adicionados ao GitHub Actions. Código remoto corrigido; implantação e teste ao vivo no Codespaces pendentes. Não sobrescrever KnowledgeStart local com a versão do GitHub.
+
+
+### 2026-11-25 — Visibilidade dos PDFs da CAPAG
+Evidência da interface local: PDF da Portaria Normativa MF nº 1.583/2023 (2,75 MB) e Manual de Análise Fiscal 2026 (2,42 MB) constam como arquivos originais preservados, com URLs /view e /download. Problema de UX: PDFs da biblioteca apareciam abaixo de referências de sites e dos resultados da pesquisa; segunda tela antiga gerava ruído. Nova revisão ordena PDFs do acervo no topo com links diretos, separa candidatos PDF de páginas de referência e deixa clara a diferença entre armazenar e indexar. Instalador atualiza o arquivo KnowledgeLibrary sem substituir dados. Alterações somente no GitHub até confirmação do instalador no Codespaces.
