@@ -11,6 +11,8 @@ import json
 import bi_factory_analytics_adapter as analytics
 import bi_factory_projects as projects
 import bi_knowledge_official as knowledge_official
+import bi_knowledge_library as knowledge_library
+from urllib.parse import urlsplit,parse_qs
 from bi_factory_catalog import OPERATIONS, read as catalog_read, COMPONENTS as SHARED_COMPONENTS
 from http.server import ThreadingHTTPServer
 import sys
@@ -177,6 +179,12 @@ class Handler(visual_editor_server.Handler):
                     result = projects.get(parts[2])
                 elif len(parts) == 4 and parts[3] == "knowledge":
                     result = projects.summary(parts[2])
+                elif len(parts) == 4 and parts[3] == "library":
+                    result = knowledge_library.list_library(parts[2])
+                elif len(parts) == 4 and parts[3] == "concepts":
+                    q=parse_qs(urlsplit(self.path).query)
+                    result=knowledge_library.query_concepts(parts[2],
+                        q.get("query",[""])[0],q.get("limit",[8])[0])
                 elif len(parts) == 5 and parts[3] == "discovery":
                     projects.get(parts[2])
                     identifier=parts[4]
@@ -186,23 +194,14 @@ class Handler(visual_editor_server.Handler):
                     result=projects._read(target,None)
                     if result is None or result.get("project_id") != parts[2]:
                         raise ValueError("Pesquisa não encontrada neste projeto")
-                elif len(parts) == 6 and parts[3] == "documents" and parts[5] == "download":
-                    projects.get(parts[2])
-                    doc_id=parts[4]
-                    rows=projects.summary(parts[2])["items"]
-                    document=next((x for x in rows
-                        if x.get("id")==doc_id and x.get("type")=="document"
-                        and x.get("sha256") and x.get("source_url")),None)
-                    if document is None:raise ValueError("Documento oficial não encontrado")
-                    target=projects.DIR / parts[2] / "originals" / (document["sha256"]+".pdf")
-                    if not target.is_file() or target.stat().st_size>knowledge_official.MAX_DOCUMENT:
-                        raise ValueError("PDF original não disponível")
-                    data=target.read_bytes()
-                    if not data.startswith(b"%PDF-"):raise ValueError("PDF original inválido")
+                elif len(parts) == 6 and parts[3] == "documents" and parts[5] in ("download","view"):
+                    data,document=knowledge_library.read_pdf_bytes(parts[2],parts[4])
                     self.send_response(200)
                     self.send_header("Content-Type","application/pdf")
-                    self.send_header("Content-Disposition",'attachment; filename="documento-oficial.pdf"')
+                    disposition="inline" if parts[5]=="view" else "attachment"
+                    self.send_header("Content-Disposition",disposition+'; filename="documento-oficial.pdf"')
                     self.send_header("X-Content-Type-Options","nosniff")
+                    self.send_header("Content-Security-Policy","default-src 'none'; sandbox")
                     self.send_header("Cache-Control","private, no-store")
                     self.send_header("Content-Length",str(len(data)))
                     self.end_headers()
@@ -228,6 +227,12 @@ class Handler(visual_editor_server.Handler):
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
                     result = knowledge_official.discover_for_project(data)
+                elif method == "POST" and len(parts) == 4 and parts[3] == "read-documents":
+                    if data.get("project_id")!=parts[2]:raise ValueError("Projeto inconsistente")
+                    result=knowledge_library.read_selected(data)
+                elif method == "POST" and len(parts) == 6 and parts[3] == "documents" and parts[5]=="restore":
+                    if data.get("project_id")!=parts[2]:raise ValueError("Projeto inconsistente")
+                    result=knowledge_library.restore_document(parts[2],parts[4])
                 elif method == "POST" and len(parts) == 4 and parts[3] == "approve":
                     if data.get("project_id") != parts[2]:
                         raise ValueError("Projeto inconsistente")
@@ -238,6 +243,12 @@ class Handler(visual_editor_server.Handler):
                     result = projects.upload(data)
                 else:
                     self._analytics_send({"error": "Operação não encontrada"}, 404)
+                    return True
+            elif method=="DELETE":
+                if len(parts)==5 and parts[3]=="documents":
+                    result=knowledge_library.delete_document(parts[2],parts[4])
+                else:
+                    self._analytics_send({"error":"Documento inexistente"},404)
                     return True
             else:
                 self._analytics_send({"error": "Método não permitido"}, 405)
@@ -381,6 +392,11 @@ class Handler(visual_editor_server.Handler):
             self._route("PATCH")
         else:
             self.send_error(404, "Rota não encontrada")
+
+    def do_DELETE(self) -> None:
+        if self._projects_dispatch("DELETE"):
+            return
+        self.send_error(404,"Rota não encontrada")
 
     def do_PUT(self) -> None:
         if self.path.startswith("/api/products/"):
