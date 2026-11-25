@@ -494,6 +494,16 @@ def auto_download_for_project(payload,fetch=read_official):
                     documents.append({"title":seen.get("title"),"status":"já armazenado",
                         "id":seen["id"]})
                     continue
+                # Exclusão é uma decisão do usuário: nova pesquisa não deve
+                # reimportar automaticamente documento que ele descartou.
+                discarded=next((e for e in existing if
+                    e.get("deleted_at") and e.get("type")=="document" and
+                    (e.get("sha256")==digest or e.get("source_url")==final)),None)
+                if discarded:
+                    documents.append({"title":discarded.get("title"),
+                        "status":"descartado anteriormente; restaure na lixeira",
+                        "id":discarded["id"]})
+                    continue
                 target=projects.DIR/pid/"originals"/(digest+".pdf")
                 target.parent.mkdir(parents=True,exist_ok=True)
                 if not target.exists():
