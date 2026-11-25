@@ -273,3 +273,11 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - CAPAG: Portaria Normativa MF 1.583/2023 em fonte DOU e lista oficial de alterações no Tesouro. LexML consultado via SRU quando disponível.
 - Testes: GitHub Actions bem-sucedidos na branch; instalador local ainda não executado no Codespaces. Dados e layouts não alterados.
 - Limite: cobertura de fontes cadastradas, sem garantia de exaustividade ou vigência automática.
+
+
+### 2026-11-25 — Correção do instalador para KnowledgeStart local personalizado
+- Evidência Codespaces, branch local teste/cadastro-filtros-20261113: o instalador abortou antes de qualquer escrita com a mensagem 'Tela local personalizada desconhecida; preservada integralmente.'. A simulação exibiu 'PREPARADO' para cinco arquivos, sem gravação.
+- Causa: adapt_parent exigia três marcadores textuais específicos da página KnowledgeStart versionada, ausentes na tela local.
+- Correção: inserir somente import e componente OfficialKnowledgeSearch após a abertura da raiz JSX da função KnowledgeStart, preservando campos locais. Se a pesquisa já existir, não inserir novamente. Telas não reconhecidas continuam protegidas por erro sem alteração.
+- Testes: scripts/test_instalar_pesquisa_multifontes.py contém cenários de tela personalizada, fragmento JSX, idempotência e formato não reconhecido, integrados ao workflow e ao instalador.
+- Pendência: confirmar execução corrigida no Codespaces; Actions valida código versionado, não arquivos não commitados.
