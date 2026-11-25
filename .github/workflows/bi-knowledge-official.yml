@@ -6,6 +6,7 @@ on:
       - 'scripts/bi_knowledge_federated.py'
       - 'scripts/instalar_pesquisa_multifontes.py'
       - 'scripts/test_knowledge_federated.py'
+      - 'scripts/test_knowledge_research_again.py'
       - 'scripts/test_instalar_pesquisa_multifontes.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
@@ -30,6 +31,7 @@ on:
       - 'scripts/bi_knowledge_official.py'
       - 'scripts/bi_knowledge_federated.py'
       - 'scripts/test_knowledge_federated.py'
+      - 'scripts/test_knowledge_research_again.py'
       - 'scripts/test_instalar_pesquisa_multifontes.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
@@ -65,6 +67,8 @@ jobs:
         run: python scripts/test_knowledge_official.py
       - name: Fontes federadas e portaria CAPAG — testes offline
         run: python scripts/test_knowledge_federated.py
+      - name: Excluir, refazer pesquisa e reincorporar PDFs da lixeira
+        run: python scripts/test_knowledge_research_again.py
       - name: Teste de compatibilidade com tela personalizada do Codespaces
         run: python scripts/test_instalar_pesquisa_multifontes.py
       - name: Biblioteca de PDFs, lixeira e conceitos da Modelagem
