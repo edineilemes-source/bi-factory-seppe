@@ -83,7 +83,9 @@ class ReSearchAfterDeletionTests(unittest.TestCase):
 
     def test_auto_search_requires_explicit_restoration(self):
         discovery_id="d"*32
-        self.save_discovery(discovery_id)
+        saved=self.save_discovery(discovery_id)
+        saved["sources"]=[self.pdf_item]
+        projects._write(projects.DIR/self.pid/"discoveries"/(discovery_id+".json"),saved)
         fetched=lambda url,limit:(self.pdf,url,"application/pdf")
         command={"project_id":self.pid,"discovery_id":discovery_id,"max_files":3}
         original=official.auto_download_for_project(command,fetch=fetched)
