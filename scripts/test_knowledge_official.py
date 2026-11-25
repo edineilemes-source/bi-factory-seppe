@@ -92,6 +92,79 @@ class OfficialKnowledgeTests(unittest.TestCase):
             official.approve_for_project({"project_id":pid,"discovery_id":saved["id"],
                                           "source_ids":["unknown"]})
 
+    def test_capag_search_filters_unrelated_siconfi_and_has_current_manual(self):
+        def fake_fetch(url,limit):
+            return b"<html><body><a href='https://siconfi.tesouro.gov.br/rgf2026.pdf'>RGF</a></body></html>",url,"text/html"
+        result=official.discover(self.pid,"CAPAG",
+            ["legislacao","normas","manuais","sites_oficiais"],"Campo Grande",
+            fetch=fake_fetch,ai_terms=[])
+        titles=[entry["title"] for entry in result["sources"]]
+        self.assertTrue(any("Manual de Análise Fiscal 2026" in x for x in titles))
+        self.assertTrue(all("DCA" not in x and "RGF" not in x for x in titles))
+        self.assertTrue(any(entry["downloadable"] for entry in result["sources"]))
+
+    def test_auto_downloads_only_actual_pdf_from_official_site(self):
+        pdf=b"%PDF-1.4\n1 0 obj\n<</Type/Catalog>>\nendobj\n%%EOF"
+        url="https://cdn.tesouro.gov.br/manuais/capag-2026.pdf"
+        page="https://www.tesourotransparente.gov.br/capag"
+        found={"id":"e"*32,"project_id":self.pid,"topic":"CAPAG",
+            "scope":"Campo Grande, MS","searched_at":official.now(),
+            "sources":[official.candidate("CAPAG Manual de Análise Fiscal 2026",url,
+                 "Tesouro Nacional","manuais",page,"capag",["capag"])]}
+        projects._write(projects.DIR/self.pid/"discoveries"/(found["id"]+".json"),found)
+        self.assertFalse((projects.DIR/self.pid/"originals").exists())
+        def provider(u,limit):
+            self.assertEqual(u,url)
+            return pdf,u,"application/pdf"
+        command={"project_id":self.pid,"discovery_id":found["id"],"max_files":5}
+        result=official.auto_download_for_project(command,fetch=provider)
+        self.assertEqual(result["downloaded"],1)
+        self.assertEqual(result["failed"],[])
+        item=projects.summary(self.pid)["items"][0]
+        self.assertEqual(item["sha256"],hashlib.sha256(pdf).hexdigest())
+        self.assertEqual(item["source_url"],url)
+        self.assertEqual(item["import_method"],"automatic_official")
+        self.assertEqual((projects.DIR/self.pid/"originals"/item["filename"]).read_bytes(),pdf)
+        retry=official.auto_download_for_project(command,fetch=provider)
+        self.assertEqual(retry["downloaded"],0)
+        self.assertEqual(retry["existing"],1)
+        self.assertEqual(len(projects.summary(self.pid)["items"]),1)
+
+    def test_auto_follows_official_download_links_not_html_placeholder(self):
+        raw=b"%PDF-1.7\nPage 1\n%%EOF"
+        start="https://www.tesourotransparente.gov.br/publicacoes/capag"
+        wrapper="https://thot-arquivos.tesouro.gov.br/publicacao/54134"
+        final="https://cdn.tesouro.gov.br/capag/Manual2026.pdf"
+        item=official.candidate("CAPAG Manual",start,"STN","manuais",start,
+            "capag",["capag"])
+        found={"id":"a"*32,"project_id":self.pid,"topic":"CAPAG",
+            "searched_at":official.now(),"sources":[item]}
+        projects._write(projects.DIR/self.pid/"discoveries"/(found["id"]+".json"),found)
+        def provider(url,limit):
+            if url==start:return (b'<a href="'+wrapper.encode()+b'">Download</a>',url,"text/html")
+            if url==wrapper:return (b'<iframe src="'+final.encode()+b'"></iframe>',url,"text/html")
+            if url==final:return (raw,url,"application/pdf")
+            raise AssertionError(url)
+        result=official.auto_download_for_project({
+            "project_id":self.pid,"discovery_id":found["id"],"max_files":5},fetch=provider)
+        self.assertEqual(result["downloaded"],1)
+        self.assertEqual(projects.summary(self.pid)["items"][0]["source_url"],final)
+
+    def test_auto_html_is_not_saved_as_pdf_and_rejects_other_projects(self):
+        url="https://www.tesourotransparente.gov.br/capag"
+        item=official.candidate("CAPAG",url,"STN","normas",url,"capag",["capag"])
+        found={"id":"b"*32,"project_id":self.pid,"topic":"CAPAG",
+            "searched_at":official.now(),"sources":[item]}
+        projects._write(projects.DIR/self.pid/"discoveries"/(found["id"]+".json"),found)
+        data={"project_id":self.pid,"discovery_id":found["id"],"max_files":3}
+        response=official.auto_download_for_project(data,
+            fetch=lambda u,l:(b"<html>Sem PDF</html>",u,"text/html"))
+        self.assertEqual(response["downloaded"],0)
+        self.assertFalse((projects.DIR/self.pid/"originals").exists())
+        self.assertEqual(projects.summary(self.pid)["items"],[])
+        with self.assertRaises(ValueError):
+            official.auto_download_for_project({**data,"discovery_id":"f"*32})
+
     def test_wrong_bytes_not_saved(self):
         url="https://siconfi.tesouro.gov.br/arquivo.pdf"
         cand=official.candidate("Manual",url,"Tesouro","manuais",url,"siconfi",["siconfi"])
