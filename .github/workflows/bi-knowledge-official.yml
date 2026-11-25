@@ -11,6 +11,7 @@ on:
       - 'web/bi_factory/src/DataWorkspace.jsx'
       - 'requirements-knowledge.txt'
       - 'scripts/instalar_biblioteca_ia_modelagem.py'
+      - 'scripts/test_instalar_biblioteca_modelagem.py'
       - 'scripts/instalar_conhecimento_oficial.py'
       - 'scripts/instalar_conhecimento_oficial_compat.py'
       - 'scripts/test_knowledge_compat_installer.py'
@@ -30,6 +31,7 @@ on:
       - 'web/bi_factory/src/DataWorkspace.jsx'
       - 'requirements-knowledge.txt'
       - 'scripts/instalar_biblioteca_ia_modelagem.py'
+      - 'scripts/test_instalar_biblioteca_modelagem.py'
       - 'scripts/instalar_conhecimento_oficial.py'
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
@@ -54,6 +56,8 @@ jobs:
         run: python scripts/test_knowledge_official.py
       - name: Biblioteca de PDFs, lixeira e conceitos da Modelagem
         run: python scripts/test_knowledge_library.py
+      - name: Preservação da Modelagem local e integração idempotente
+        run: python scripts/test_instalar_biblioteca_modelagem.py
       - name: Preservação de KnowledgeStart local e injeção sem conflito
         run: python scripts/test_knowledge_compat_installer.py
       - uses: actions/setup-node@v4
