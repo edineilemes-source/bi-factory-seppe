@@ -200,7 +200,7 @@ export default function OfficialKnowledgeSearch({project}){
    </div>}
    {lastDownload&&<p className="hint">Download automático:
     {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.existing} já existente(s).
-    Confira a Biblioteca abaixo.</p>}
+    Confira os arquivos na biblioteca acima.</p>}
   </>}
   {previous.length>0&&<details>
    <summary>Pesquisas anteriores ({previous.length})</summary>
