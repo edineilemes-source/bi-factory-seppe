@@ -43,6 +43,20 @@ class ModelInstallerTests(unittest.TestCase):
     with self.assertRaisesRegex(RuntimeError,"Modelagem"):
         deploy.insert_model_component(original)
 
+ def test_subprocess_sees_isolated_pypdf_target(self):
+    # Reproduz a falha real do Codespaces: pip --target não altera sys.path.
+    import os
+    import sys
+    from unittest.mock import patch
+    with patch.object(deploy.subprocess,"run") as executed:
+        deploy.run([sys.executable,"-c","import pypdf"])
+    kwargs=executed.call_args.kwargs
+    self.assertTrue(kwargs["check"])
+    self.assertEqual(kwargs["cwd"],deploy.ROOT)
+    self.assertEqual(kwargs["env"]["PYTHONPATH"].split(os.pathsep)[0],
+                     str(deploy.ROOT/".git"/"knowledge-deps"))
+    self.assertEqual(executed.call_args.args[0][1:],["-c","import pypdf"])
+
  def test_repository_current_file_is_already_integrated(self):
     path=HERE.parent/"web/bi_factory/src/DataWorkspace.jsx"
     raw=path.read_bytes()
