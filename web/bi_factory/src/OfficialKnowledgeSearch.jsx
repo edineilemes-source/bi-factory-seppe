@@ -74,8 +74,13 @@ export default function OfficialKnowledgeSearch({project}){
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  };
+ const invalidate=message=>{
+  setResult(null);setSelected([]);setLastDownload(null);
+  setNotice(message||"Critérios modificados. Clique em Pesquisar documentos para obter novos resultados.");
+ };
  const toggle=(value,active,update)=>{
   update(old=>active?[...new Set([...old,value])]:old.filter(x=>x!==value));
+  invalidate();
  };
  const choose=(sourceId,checked)=>{
   setSelected(old=>checked?(old.length>=10?old:[...old,sourceId]):old.filter(x=>x!==sourceId));
@@ -86,13 +91,16 @@ export default function OfficialKnowledgeSearch({project}){
   });
   setResult(data);setSelected([]);setLastDownload(null);
   if(autoDownload){
-   const saved=await api(base+"/auto-download",{project_id:id,discovery_id:data.id,max_files:5});
+   const saved=await api(base+"/auto-download",{
+    project_id:id,discovery_id:data.id,max_files:5,restore_deleted:true
+   });
    setLastDownload(saved);setLibraryVersion(v=>v+1);
-   setNotice("Pesquisa concluída: "+data.sources.length+" referências. "+
-    saved.downloaded+" PDF(s) incorporado(s) automaticamente. Os demais resultados estão abaixo.");
+   setNotice("Nova pesquisa concluída: "+data.sources.length+" referências. "+
+    saved.downloaded+" PDF(s) baixado(s) e "+(saved.restored||0)+
+    " restaurado(s) por sua solicitação. Confira os PDFs na biblioteca.");
   }else{
-   setNotice("Pesquisa concluída: "+data.sources.length+
-    " referências. Marque os arquivos desejados e clique em Adicionar selecionados.");
+   setNotice("Nova pesquisa concluída: "+data.sources.length+
+    " referências. Marque os PDFs e clique em Baixar e incorporar selecionados.");
   }
  });
  const addSelected=()=>run(async()=>{
@@ -100,7 +108,9 @@ export default function OfficialKnowledgeSearch({project}){
    project_id:id,discovery_id:result.id,source_ids:selected
   });
   setLibraryVersion(v=>v+1);setSelected([]);
-  setNotice(saved.imported.length+" documento(s)/referência(s) incorporados. Os PDFs válidos aparecem na biblioteca, acima."+
+  const restored=saved.imported.filter(x=>x.status==="restaurado da lixeira").length;
+  setNotice(saved.imported.length+" documento(s)/referência(s) no acervo ("+restored+
+   " recuperado(s) da lixeira). Os PDFs estão na biblioteca acima."+
    (saved.failed.length?" Falhas: "+saved.failed.map(x=>x.title+": "+x.error).join("; "):""));
  });
  if(!id)return null;
@@ -120,7 +130,9 @@ export default function OfficialKnowledgeSearch({project}){
   {notice&&<p role="status">{notice}</p>}
   <div className="catalogForm" style={{display:"grid",gap:12}}>
    <label>Tema ou número da norma
-    <input autoFocus value={topic} list="conhecimento-temas" onChange={e=>setTopic(e.target.value)}
+    <input autoFocus value={topic} list="conhecimento-temas" onChange={e=>{
+     setTopic(e.target.value);invalidate("Tema modificado. Pesquise novamente para atualizar os documentos.");
+    }}
      onKeyDown={e=>{if(e.key==="Enter"&&!busy&&topic.trim().length>=3&&groups.length)doSearch()}}
      placeholder="Ex.: CAPAG, Portaria 1.583/2023, Lei 4.320, RREO"/>
    </label>
@@ -140,7 +152,9 @@ export default function OfficialKnowledgeSearch({project}){
    <details>
     <summary>Mais filtros (opcional)</summary>
     <div style={{display:"grid",gap:12,padding:12}}>
-     <label>Abrangência<input value={scope} onChange={e=>setScope(e.target.value)}
+     <label>Abrangência<input value={scope} onChange={e=>{
+      setScope(e.target.value);invalidate();
+     }}
       placeholder="Brasil, MS, Campo Grande"/></label>
      <strong>Tipos de documento</strong>
      <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
@@ -159,10 +173,13 @@ export default function OfficialKnowledgeSearch({project}){
    </details>
    <div className="actions">
     <button disabled={busy||topic.trim().length<3||groups.length===0||categories.length===0}
-     onClick={doSearch}>{busy?"Pesquisando…":"Pesquisar documentos"}</button>
+     onClick={doSearch}>{busy?"Pesquisando…":result?"Refazer pesquisa":"Pesquisar documentos"}</button>
    </div>
   </div>
-  <KnowledgeLibrary project={project} revision={libraryVersion}/>
+  <KnowledgeLibrary project={project} revision={libraryVersion}
+   onResearchAgain={doSearch}
+   researchEnabled={!busy&&topic.trim().length>=3&&groups.length>0&&categories.length>0}
+   onDocumentDeleted={()=>invalidate("Documento removido. Clique em Refazer pesquisa para consultar as fontes novamente e reincorporar o que desejar.")}/>
   {result&&<>
    <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
     <h3 style={{margin:0}}>Pesquisa concluída — {foundPdfs.length} PDF(s) e {foundLinks.length} outra(s) referência(s)</h3>
@@ -199,7 +216,7 @@ export default function OfficialKnowledgeSearch({project}){
     </button>
    </div>}
    {lastDownload&&<p className="hint">Download automático:
-    {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.existing} já existente(s).
+    {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.restored||0} restaurado(s); {lastDownload.existing} já existente(s).
     Confira os arquivos na biblioteca acima.</p>}
   </>}
   {previous.length>0&&<details>
