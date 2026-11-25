@@ -8,6 +8,7 @@ BASE="origin/feat/conhecimento-download-automatico-capag-20261125"
 TARGET="origin/feat/conhecimento-busca-multifontes-simples-20261125"
 UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledgeSearch.jsx"]
 ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
+      "scripts/test_instalar_pesquisa_multifontes.py",
       "scripts/instalar_pesquisa_multifontes.py"]
 PARENT="web/bi_factory/src/KnowledgeStart.jsx"
 
@@ -117,6 +118,7 @@ def main():
              "scripts/serve_bi_factory_api.py")
         test(sys.executable,"scripts/test_knowledge_official.py")
         test(sys.executable,"scripts/test_knowledge_federated.py")
+        test(sys.executable,"scripts/test_instalar_pesquisa_multifontes.py")
         web=ROOT/"web/bi_factory"
         if not (web/"node_modules/.bin/vite").exists():test("npm","ci",cwd=web)
         test("npm","run","build",cwd=web)
