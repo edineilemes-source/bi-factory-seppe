@@ -392,10 +392,45 @@ def approve_for_project(payload):
             with projects.LOCK:
                 knowledge=projects._sources_path(pid)
                 existing=projects._read(knowledge,[])
-                if any(e.get("source_url")==url or (digest and e.get("sha256")==digest)
-                       for e in existing if e.get("type") in ("document","official_reference")):
-                    imported.append({"title":item["title"],"status":"já consta no acervo"})
+                # Registros na lixeira NÃO são itens ativos. Uma nova aprovação
+                # explícita significa que o usuário deseja incorporá-los outra vez.
+                # O hash prevalece para PDFs: se a URL mudou de conteúdo,
+                # preservamos a versão excluída e registramos a nova.
+                active=next((e for e in existing if
+                    not e.get("deleted_at") and e.get("type") in
+                    ("document","official_reference") and (
+                        (digest and e.get("sha256")==digest) or
+                        (not digest and e.get("source_url")==url) or
+                        (digest and e.get("source_url")==url and e.get("sha256")==digest))),None)
+                if active:
+                    imported.append({"title":item["title"],"status":"já consta no acervo",
+                        "item":active})
                     continue
+                discarded=next((e for e in existing if
+                    e.get("deleted_at") and e.get("type") in
+                    ("document","official_reference") and
+                    ((digest and e.get("sha256")==digest) or
+                     (not digest and e.get("source_url")==url))),None)
+                if discarded:
+                    # Recupera o mesmo arquivo da lixeira (mantém ID, hash e índice),
+                    # sem criar cópia duplicada. Se a cópia física da lixeira sumiu,
+                    # o PDF já obtido será inserido como novo registro abaixo.
+                    import bi_knowledge_library as library
+                    try:
+                        library.restore_document(pid,discarded["id"])
+                    except ValueError as restore_error:
+                        if not digest or "Cópia de recuperação não encontrada" not in str(restore_error):
+                            raise
+                    else:
+                        reloaded=projects._read(knowledge,[])
+                        revived=next(x for x in reloaded if x["id"]==discarded["id"])
+                        revived["reapproved_at"]=now()
+                        revived["discovery_id"]=discovery_id
+                        revived["subject"]=discovery.get("topic")
+                        projects._write(knowledge,reloaded)
+                        imported.append({"title":item["title"],"status":"restaurado da lixeira",
+                            "item":revived})
+                        continue
                 target=None
                 if data is not None:
                     target=projects.DIR/pid/"originals"/(digest+ext)
@@ -483,6 +518,11 @@ def auto_download_for_project(payload,fetch=read_official):
     if not isinstance(discovery_id,str) or not re.fullmatch(r"[0-9a-f]{32}",discovery_id):
         raise ValueError("Pesquisa inválida")
     number=payload.get("max_files",MAX_AUTO_FILES)
+    # Nunca desfaz exclusões em atualização automática silenciosa. A reimportação
+    # exige uma nova pesquisa acompanhada de ação explícita do usuário.
+    restore_deleted=payload.get("restore_deleted",False)
+    if type(restore_deleted)!=bool:
+        raise ValueError("Opção de restaurar itens excluídos inválida")
     if type(number)!=int or not 1<=number<=MAX_AUTO_FILES:
         raise ValueError("Máximo de cinco PDFs por rodada")
     path=projects.DIR/pid/"discoveries"/(discovery_id+".json")
@@ -527,16 +567,28 @@ def auto_download_for_project(payload,fetch=read_official):
                     documents.append({"title":seen.get("title"),"status":"já armazenado",
                         "id":seen["id"]})
                     continue
-                # Exclusão é uma decisão do usuário: nova pesquisa não deve
-                # reimportar automaticamente documento que ele descartou.
+                # Busca agendada não restaura itens removidos. Nova pesquisa
+                # explicitamente solicitada pode restaurar PDFs com o MESMO SHA.
                 discarded=next((e for e in existing if
                     e.get("deleted_at") and e.get("type")=="document" and
-                    (e.get("sha256")==digest or e.get("source_url")==final)),None)
+                    e.get("sha256")==digest),None)
                 if discarded:
-                    documents.append({"title":discarded.get("title"),
-                        "status":"descartado anteriormente; restaure na lixeira",
-                        "id":discarded["id"]})
-                    continue
+                    if restore_deleted:
+                        import bi_knowledge_library as library
+                        try:
+                            library.restore_document(pid,discarded["id"])
+                        except ValueError as restore_error:
+                            if "Cópia de recuperação não encontrada" not in str(restore_error):
+                                raise
+                        else:
+                            documents.append({"title":discarded.get("title"),
+                                "status":"restaurado", "id":discarded["id"]})
+                            continue
+                    else:
+                        documents.append({"title":discarded.get("title"),
+                            "status":"descartado anteriormente; restaure na lixeira",
+                            "id":discarded["id"]})
+                        continue
                 target=projects.DIR/pid/"originals"/(digest+".pdf")
                 target.parent.mkdir(parents=True,exist_ok=True)
                 if not target.exists():
@@ -573,6 +625,7 @@ def auto_download_for_project(payload,fetch=read_official):
     return {"project_id":pid,"discovery_id":discovery_id,
         "downloaded":sum(x["status"]=="baixado" for x in documents),
         "existing":sum(x["status"]=="já armazenado" for x in documents),
+        "restored":sum(x["status"]=="restaurado" for x in documents),
         "documents":documents,"examined":examined,
         "failed":failures[:5],
         "note":"Arquivos efetivos na Biblioteca do projeto. Abra e exclua os que não servirão; leitura pela IA continua opcional."}
