@@ -308,3 +308,7 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 
 ## Atualização 2026-11-25 — Pesquisa de Conhecimento
 Branch isolada feat/conhecimento-busca-multifontes-simples-20261125, PR #27 (rascunho). Pesquisa por tema com fontes selecionáveis (Tesouro/Siconfi, DOU/Planalto, LexML, MS/TCE e DIOGRANDE), normas priorizadas e incorporação por seleção. Inclui Portaria MF 1.583/2023 no DOU. Tela antiga recolhida. Instalador seguro em scripts/instalar_pesquisa_multifontes.py. Ações de CI verdes; Codespaces NÃO implantado nem testado ao vivo. Fonte oficial indisponível pode limitar os resultados. Nenhuma migração de dados.
+
+
+### Correção da instalação em tela Conhecimento personalizada — 25/11/2026
+Codespaces informou erro 'Tela local personalizada desconhecida; preservada integralmente.' sem gravar arquivos. O instalador na branch feat/conhecimento-busca-multifontes-simples-20261125 passou a integrar por inserção mínima na função KnowledgeStart, sem depender dos três títulos/contêineres antigos. Testes adicionados ao GitHub Actions. Código remoto corrigido; implantação e teste ao vivo no Codespaces pendentes. Não sobrescrever KnowledgeStart local com a versão do GitHub.
