@@ -35,12 +35,24 @@ export default function OfficialKnowledgeSearch({project}){
  const [previous,setPrevious]=useState([]);
  const [libraryVersion,setLibraryVersion]=useState(0);
  const [autoDownload,setAutoDownload]=useState(false);
+ const [portals,setPortals]=useState([]);
+ const [selectedPortals,setSelectedPortals]=useState([]);
+ const [resultType,setResultType]=useState("all");
  const [lastDownload,setLastDownload]=useState(null);
  useEffect(()=>{
   setTopic(project?.theme||"");
   setScope(project?.scope||"Brasil");
   setResult(null);setSelected([]);setPrevious([]);setLastDownload(null);
+  setPortals([]);setSelectedPortals([]);setResultType("all");
  },[id]);
+ useEffect(()=>{
+  if(!id)return;
+  let live=true;
+  knowledgeApi(endpoint+"/knowledge-sources").then(data=>{
+   if(live){setPortals(data.portals||[]);setSelectedPortals(data.default_ids||[]);}
+  }).catch(e=>{if(live)setError("Fontes oficiais não disponíveis. Verifique a API: "+e.message)});
+  return()=>{live=false};
+ },[endpoint,id]);
  useEffect(()=>{
   if(!id)return;
   let live=true;
@@ -62,15 +74,19 @@ export default function OfficialKnowledgeSearch({project}){
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  };
+ const visibleResults=(result?.sources||[]).filter(item=>resultType==="all"||
+  (resultType==="pdf"&&item.downloadable)||
+  (resultType==="normas"&&["legislacao","normas"].includes(item.category)));
+ const groupNames=[...new Set(portals.map(p=>p.group))];
  if(!id)return null;
  return <section className="card" style={{padding:20,marginBottom:16,display:"grid",gap:12}}>
   <div className="eyebrow">BASE DE CONHECIMENTO · PESQUISA OFICIAL</div>
-  <h2 style={{margin:0}}>Pesquisar legislação, manuais e PDFs oficiais</h2>
-  <p className="hint">Informe o assunto. O sistema procura nos portais oficiais, baixa os PDFs relevantes e os coloca na Biblioteca automaticamente. Depois, abra, confira e exclua o que não servir. Não precisa visitar cada site.</p>
+  <h2 style={{margin:0}}>Pesquisar normas, legislação e documentos oficiais</h2>
+  <p className="hint">Informe o tema, marque os portais oficiais e pesquise. Escolha nos resultados os documentos que serão incorporados à Biblioteca e indexados para a Modelagem.</p>
   {error&&<p role="alert" style={{color:"#a32a2a"}}>{error}</p>}
   {notice&&<p role="status">{notice}</p>}
   <div className="catalogForm" style={{display:"grid",gap:10}}>
-   <label>Tema ou assunto
+   <label><strong>1. Tema ou assunto</strong>
     <input value={topic} onChange={e=>setTopic(e.target.value)}
      placeholder="Ex.: liquidação da despesa, balanço ou prestação de contas" />
    </label>
@@ -83,8 +99,29 @@ export default function OfficialKnowledgeSearch({project}){
     <input value={scope} onChange={e=>setScope(e.target.value)}
      placeholder="Brasil · STN, Siconfi, Campo Grande, MS"/>
    </label>
+   <fieldset style={{padding:12,border:"1px solid #dce5ef",borderRadius:8}}>
+    <legend><strong>2. Sites oficiais para pesquisar</strong></legend>
+    <div className="actions" style={{marginBottom:8}}>
+     <button type="button" disabled={busy||!portals.length} onClick={()=>setSelectedPortals(portals.map(p=>p.id))}>Marcar todos</button>
+     <button type="button" disabled={busy} onClick={()=>setSelectedPortals([])}>Limpar seleção</button>
+     <span className="hint">{selectedPortals.length} de {portals.length} portais</span>
+    </div>
+    {groupNames.map(group=><div key={group} style={{marginBottom:12}}>
+     <strong style={{display:"block",marginBottom:6}}>{group}</strong>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(235px,1fr))",gap:8}}>
+      {portals.filter(p=>p.group===group).map(p=><label key={p.id}
+       style={{display:"flex",gap:9,alignItems:"start",padding:9,border:"1px solid #dce5ef",borderRadius:7}}>
+       <input type="checkbox" checked={selectedPortals.includes(p.id)} disabled={busy}
+        onChange={e=>setSelectedPortals(old=>e.target.checked?[...old,p.id]:old.filter(x=>x!==p.id))}/>
+       <span>{p.label}<small style={{display:"block"}}><a href={p.url} target="_blank" rel="noopener noreferrer"
+        onClick={e=>e.stopPropagation()}>Abrir site oficial</a></small></span>
+      </label>)}
+     </div>
+    </div>)}
+    {!portals.length&&<p className="hint">Carregando portais oficiais…</p>}
+   </fieldset>
    <fieldset style={{padding:10,border:"1px solid #dce5ef",borderRadius:8}}>
-    <legend>Tipos de documento</legend>
+    <legend><strong>3. Tipos de documento</strong> — prioridade para legislação e normas</legend>
     <div style={{display:"flex",flexWrap:"wrap",gap:14}}>
      {CATEGORIES.map(([key,label])=><label key={key} style={{display:"flex",alignItems:"center",gap:6}}>
       <input type="checkbox" checked={types.includes(key)}
@@ -95,13 +132,13 @@ export default function OfficialKnowledgeSearch({project}){
    <label style={{display:"flex",alignItems:"center",gap:8}}>
     <input type="checkbox" checked={autoDownload} disabled={busy}
      onChange={e=>setAutoDownload(e.target.checked)}/>
-    <strong>Baixar automaticamente os PDFs oficiais encontrados (até 5 por pesquisa)</strong>
+    Baixar automaticamente até 5 PDFs encontrados (opcional; confira os resultados antes de usar)
    </label>
    <div className="actions">
-    <button disabled={busy||topic.trim().length<3||!types.length}
+    <button disabled={busy||topic.trim().length<3||!types.length||!selectedPortals.length}
      onClick={()=>action(async()=>{
       const data=await knowledgeApi(endpoint+"/discover",{
-       project_id:id,topic:topic.trim(),categories:types,scope
+       project_id:id,topic:topic.trim(),categories:types,scope,portals:selectedPortals
       });
       setResult(data);setSelected([]);setLastDownload(null);
       if(autoDownload){
@@ -116,7 +153,7 @@ export default function OfficialKnowledgeSearch({project}){
        setNotice("Pesquisa concluída: "+data.sources.length+
         " fontes. Você pode baixar os PDFs encontrados com um clique, sem entrar nos sites.");
       }
-     })}>{busy?"Processando…":"Pesquisar fontes oficiais"}</button>
+     })}>{busy?"Consultando portais…":"Pesquisar documentos nos portais selecionados"}</button>
    </div>
   </div>
   {previous.length>0&&<details>
@@ -130,11 +167,25 @@ export default function OfficialKnowledgeSearch({project}){
    </div>
   </details>}
   {result&&<>
-   <h3 style={{margin:"8px 0 0"}}>Resultados encontrados ({result.sources.length})</h3>
+   <h3 style={{margin:"8px 0 0"}}>4. Resultados encontrados ({result.sources.length})</h3>
    <p className="hint">{result.provider} · {result.ai_status} · {result.scope_note}</p>
    {!!result.warnings?.length&&<details><summary>Fontes indisponíveis ({result.warnings.length})</summary>
     <ul>{result.warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
    </details>}
+   <div className="actions" style={{gap:8}}>
+    <button type="button" aria-pressed={resultType==="all"} onClick={()=>setResultType("all")}>Todos</button>
+    <button type="button" aria-pressed={resultType==="normas"} onClick={()=>setResultType("normas")}>Leis e normas</button>
+    <button type="button" aria-pressed={resultType==="pdf"} onClick={()=>setResultType("pdf")}>PDFs</button>
+    <span className="hint">{visibleResults.length} exibidos</span>
+   </div>
+   <details><summary>Verificar os sites consultados</summary>
+    <div style={{display:"grid",gap:6,padding:10}}>
+     {(result.portal_report||[]).map(p=><div key={p.id}>
+      <strong>{p.label}</strong>: {p.status==="CONSULTADO"?"consultado":p.status==="INDISPONIVEL"?"indisponível":"sem página elegível"} ·
+      {p.results} referência(s) · {p.pages} página(s) consultada(s)
+     </div>)}
+    </div>
+   </details>
    <div className="actions">
     <button type="button" disabled={busy}
      onClick={()=>action(async()=>{
@@ -146,7 +197,7 @@ export default function OfficialKnowledgeSearch({project}){
        " já estavam armazenados. Confira na Biblioteca abaixo.");
      })}>Baixar PDFs automaticamente desta pesquisa</button>
     <button type="button" disabled={busy} onClick={()=>
-     setSelected(result.sources.filter(s=>s.downloadable).slice(0,10).map(s=>s.id))}>
+     setSelected(visibleResults.filter(s=>s.downloadable).slice(0,10).map(s=>s.id))}>
      Selecionar PDFs</button>
     <button type="button" disabled={busy} onClick={()=>setSelected([])}>Limpar</button>
     <button disabled={busy||!selected.length} onClick={()=>action(async()=>{
@@ -168,8 +219,8 @@ export default function OfficialKnowledgeSearch({project}){
      {lastDownload.failed.map((item,i)=><p key={i}>{item.title}: {item.error}</p>)}</details>}
    </div>}
    <div style={{display:"grid",gap:8}}>
-    {result.sources.length===0?<p>Não houve resultados nessas fontes. Experimente outra expressão.</p>:
-     result.sources.map(s=><label key={s.id}
+    {visibleResults.length===0?<p>Nenhum documento encontrado neste filtro. Selecione outros portais ou amplie o tema.</p>:
+     visibleResults.map(s=><label key={s.id}
       style={{display:"grid",gridTemplateColumns:"auto 1fr",gap:10,
        padding:12,borderRadius:8,border:"1px solid #dce5ef",alignItems:"start"}}>
       <input type="checkbox" disabled={busy} checked={selected.includes(s.id)}
