@@ -6,7 +6,9 @@ import json,os,signal,socket,subprocess,sys,tempfile,time,urllib.request
 ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/feat/conhecimento-download-automatico-capag-20261125"
 TARGET="origin/feat/conhecimento-busca-multifontes-simples-20261125"
-UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledgeSearch.jsx"]
+PREVIOUS="2546251b475e65d536534672452b0e35967fe453"
+UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledgeSearch.jsx",
+         "web/bi_factory/src/KnowledgeLibrary.jsx"]
 ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
       "scripts/test_instalar_pesquisa_multifontes.py",
       "scripts/instalar_pesquisa_multifontes.py"]
@@ -22,6 +24,10 @@ def remote(ref,path):
 
 def combine(path,local,old,new):
     if local in (old,new):return new
+    # Reconhece a versão multifontes instalada na rodada anterior, evitando
+    # conflito de merge entre duas alterações legítimas do mesmo componente.
+    previous=remote(PREVIOUS,path)
+    if local==previous:return new
     with tempfile.TemporaryDirectory() as directory:
         paths=[Path(directory)/x for x in ("local","base","alvo")]
         for p,data in zip(paths,(local,old,new)):p.write_bytes(data)
@@ -92,7 +98,11 @@ def main():
             new=adapt_parent(local)
         elif name in ADDS:
             new=remote(TARGET,name)
-            if local is not None and local!=new:
+            # O instalador é executado diretamente do GitHub. Se já há
+            # uma cópia local antiga, preserva-a em vez de falhar ao atualizar.
+            if name=="scripts/instalar_pesquisa_multifontes.py" and local is not None:
+                new=local
+            elif local is not None and local!=new:
                 raise RuntimeError("Arquivo novo já existe diferente: "+name)
         else:
             if local is None:raise RuntimeError("Arquivo-base ausente: "+name)
