@@ -7,10 +7,18 @@ ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/feat/conhecimento-download-automatico-capag-20261125"
 TARGET="origin/feat/conhecimento-busca-multifontes-simples-20261125"
 PREVIOUS="2546251b475e65d536534672452b0e35967fe453"
+KNOWN_PREVIOUS_REFS=(
+ "5fe6b1886f2e67a088d3ce57db4b580dd75db749",
+ "10b8e1f7e56cde9f3709aedfa9797f521d448aa8",
+ "0fb7e7a1aa9760f9e1524ee5f4d909a1116c34c7",
+ "639023be0129d1920722b2160afb2ceba40f1b2c",
+ "b6b062e9e441439e3f745620a2a6ff770e8299cf",
+)
 UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledgeSearch.jsx",
          "web/bi_factory/src/KnowledgeLibrary.jsx"]
 ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
       "scripts/test_instalar_pesquisa_multifontes.py",
+      "scripts/test_knowledge_research_again.py",
       "scripts/instalar_pesquisa_multifontes.py"]
 PARENT="web/bi_factory/src/KnowledgeStart.jsx"
 
@@ -28,6 +36,11 @@ def combine(path,local,old,new):
     # conflito de merge entre duas alterações legítimas do mesmo componente.
     previous=remote(PREVIOUS,path)
     if local==previous:return new
+    for older_ref in KNOWN_PREVIOUS_REFS:
+        try:
+            if local==remote(older_ref,path):return new
+        except RuntimeError:
+            continue
     with tempfile.TemporaryDirectory() as directory:
         paths=[Path(directory)/x for x in ("local","base","alvo")]
         for p,data in zip(paths,(local,old,new)):p.write_bytes(data)
@@ -128,6 +141,7 @@ def main():
              "scripts/serve_bi_factory_api.py")
         test(sys.executable,"scripts/test_knowledge_official.py")
         test(sys.executable,"scripts/test_knowledge_federated.py")
+        test(sys.executable,"scripts/test_knowledge_research_again.py")
         test(sys.executable,"scripts/test_instalar_pesquisa_multifontes.py")
         web=ROOT/"web/bi_factory"
         if not (web/"node_modules/.bin/vite").exists():test("npm","ci",cwd=web)
