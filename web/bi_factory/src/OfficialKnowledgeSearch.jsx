@@ -34,10 +34,12 @@ export default function OfficialKnowledgeSearch({project}){
  const [selected,setSelected]=useState([]);
  const [previous,setPrevious]=useState([]);
  const [libraryVersion,setLibraryVersion]=useState(0);
+ const [autoDownload,setAutoDownload]=useState(true);
+ const [lastDownload,setLastDownload]=useState(null);
  useEffect(()=>{
   setTopic(project?.theme||"");
   setScope(project?.scope||"Brasil");
-  setResult(null);setSelected([]);setPrevious([]);
+  setResult(null);setSelected([]);setPrevious([]);setLastDownload(null);
  },[id]);
  useEffect(()=>{
   if(!id)return;
@@ -64,8 +66,7 @@ export default function OfficialKnowledgeSearch({project}){
  return <section className="card" style={{padding:20,marginBottom:16,display:"grid",gap:12}}>
   <div className="eyebrow">BASE DE CONHECIMENTO · PESQUISA OFICIAL</div>
   <h2 style={{margin:0}}>Pesquisar legislação, manuais e PDFs oficiais</h2>
-  <p className="hint">Pesquisa nas fontes nacionais cadastradas (Tesouro Nacional, Siconfi e Planalto).
-   A lista mostra a origem antes de incorporar. Nenhum documento é baixado sem sua aprovação. Depois, confira, descarte ou mande ler os PDFs na Biblioteca.</p>
+  <p className="hint">Informe o assunto. O sistema procura nos portais oficiais, baixa os PDFs relevantes e os coloca na Biblioteca automaticamente. Depois, abra, confira e exclua o que não servir. Não precisa visitar cada site.</p>
   {error&&<p role="alert" style={{color:"#a32a2a"}}>{error}</p>}
   {notice&&<p role="status">{notice}</p>}
   <div className="catalogForm" style={{display:"grid",gap:10}}>
@@ -91,15 +92,30 @@ export default function OfficialKnowledgeSearch({project}){
      </label>)}
     </div>
    </fieldset>
+   <label style={{display:"flex",alignItems:"center",gap:8}}>
+    <input type="checkbox" checked={autoDownload} disabled={busy}
+     onChange={e=>setAutoDownload(e.target.checked)}/>
+    <strong>Baixar automaticamente os PDFs oficiais encontrados (até 5 por pesquisa)</strong>
+   </label>
    <div className="actions">
     <button disabled={busy||topic.trim().length<3||!types.length}
      onClick={()=>action(async()=>{
       const data=await knowledgeApi(endpoint+"/discover",{
        project_id:id,topic:topic.trim(),categories:types,scope
       });
-      setResult(data);setSelected([]);
-      setNotice("Pesquisa concluída: "+data.sources.length+
-       " referências apresentadas. Confira os links e escolha o que incorporar.");
+      setResult(data);setSelected([]);setLastDownload(null);
+      if(autoDownload){
+       const saved=await knowledgeApi(endpoint+"/auto-download",{
+        project_id:id,discovery_id:data.id,max_files:5
+       });
+       setLastDownload(saved);setLibraryVersion(n=>n+1);
+       setNotice("Pesquisa concluída. "+saved.downloaded+" PDF(s) baixado(s) automaticamente, "+
+        saved.existing+" já existentes. Veja os arquivos na Biblioteca abaixo, abra-os e exclua o que não servir."+
+        (saved.failed.length?" "+saved.failed.length+" fonte(s) falharam; confira os detalhes.":""));
+      }else{
+       setNotice("Pesquisa concluída: "+data.sources.length+
+        " fontes. Você pode baixar os PDFs encontrados com um clique, sem entrar nos sites.");
+      }
      })}>{busy?"Processando…":"Pesquisar fontes oficiais"}</button>
    </div>
   </div>
@@ -109,7 +125,7 @@ export default function OfficialKnowledgeSearch({project}){
     {previous.map(row=><button key={row.id} type="button" disabled={busy}
      style={{textAlign:"left"}} onClick={()=>action(async()=>{
       const data=await knowledgeApi(endpoint+"/discovery/"+encodeURIComponent(row.id));
-      setResult(data);setSelected([]);setNotice("Pesquisa anterior recuperada.");
+      setResult(data);setSelected([]);setLastDownload(null);setNotice("Pesquisa anterior recuperada. Use Baixar PDFs automaticamente para incorporar as cópias.");
      })}>{row.topic} · {row.created_at?.slice(0,10)} · {row.count||0} referências</button>)}
    </div>
   </details>}
@@ -120,6 +136,15 @@ export default function OfficialKnowledgeSearch({project}){
     <ul>{result.warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
    </details>}
    <div className="actions">
+    <button type="button" disabled={busy}
+     onClick={()=>action(async()=>{
+      const downloaded=await knowledgeApi(endpoint+"/auto-download",{
+       project_id:id,discovery_id:result.id,max_files:5
+      });
+      setLastDownload(downloaded);setLibraryVersion(n=>n+1);
+      setNotice(downloaded.downloaded+" novos PDFs baixados, "+downloaded.existing+
+       " já estavam armazenados. Confira na Biblioteca abaixo.");
+     })}>Baixar PDFs automaticamente desta pesquisa</button>
     <button type="button" disabled={busy} onClick={()=>
      setSelected(result.sources.filter(s=>s.downloadable).slice(0,10).map(s=>s.id))}>
      Selecionar PDFs</button>
@@ -135,6 +160,13 @@ export default function OfficialKnowledgeSearch({project}){
        response.failed.map(x=>x.title+": "+x.error).join("; "):""));
     })}>Aprovar e incorporar ({selected.length})</button>
    </div>
+   {lastDownload&&<div style={{border:"1px solid #dce5ef",padding:12,borderRadius:8}}>
+    <strong>Download automático: {lastDownload.downloaded} novo(s) PDF(s)</strong>
+    <div className="hint">{lastDownload.existing} já existente(s) · {lastDownload.examined} fonte(s) consultada(s). Os documentos aparecem na Biblioteca, abaixo.</div>
+    {(lastDownload.documents||[]).map((doc,i)=><div key={i}>{doc.title} — {doc.status}</div>)}
+    {!!lastDownload.failed?.length&&<details><summary>Falhas no download ({lastDownload.failed.length})</summary>
+     {lastDownload.failed.map((item,i)=><p key={i}>{item.title}: {item.error}</p>)}</details>}
+   </div>}
    <div style={{display:"grid",gap:8}}>
     {result.sources.length===0?<p>Não houve resultados nessas fontes. Experimente outra expressão.</p>:
      result.sources.map(s=><label key={s.id}
