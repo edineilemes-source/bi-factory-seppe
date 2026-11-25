@@ -21,7 +21,7 @@ import json
 
 ROOT=Path("/workspaces/bi-factory-seppe")
 BASE="origin/fix/conhecimento-installer-autoteste-preservacao-20261124"
-TARGET="origin/feat/conhecimento-biblioteca-leitura-modelagem-20261125"
+TARGET="origin/fix/biblioteca-pypdf-isolado-codespaces-20261125"
 UPDATED=(
  "scripts/bi_knowledge_official.py",
  "scripts/bi_factory_projects.py",
@@ -39,6 +39,7 @@ NEW=(
  "scripts/instalar_biblioteca_ia_modelagem.py",
 )
 WEB=ROOT/"web/bi_factory"
+DEPS=ROOT/".git"/"knowledge-deps"
 MAX_NEW=700_000
 
 def fetch_git(ref,name):
@@ -100,8 +101,16 @@ def validate_local_change(name,updated):
             raise RuntimeError("Integração incompleta em "+name+": "+term)
 
 def run(cmd,cwd=ROOT):
+    """Expose isolated Python dependencies to child tests, not global Python.
+
+    pip --target does not add DEPS to sys.path by itself. The runtime
+    library already supports this directory; subprocess tests must use it too.
+    """
+    env=os.environ.copy()
+    present=env.get("PYTHONPATH","")
+    env["PYTHONPATH"]=str(DEPS)+(os.pathsep+present if present else "")
     print("TESTANDO:",' '.join(cmd),flush=True)
-    subprocess.run(cmd,cwd=cwd,check=True)
+    subprocess.run(cmd,cwd=cwd,check=True,env=env)
 
 def listening(port):
     try:
@@ -184,11 +193,12 @@ def deploy():
             print("ATUALIZADO:",name,flush=True)
         # Only local OSS dependency; no global Python changes or model downloads.
         import importlib.util
-        if importlib.util.find_spec("pypdf") is None:
-            deps=ROOT/".git"/"knowledge-deps"
-            deps.mkdir(parents=True,exist_ok=True)
+        if importlib.util.find_spec("pypdf") is None and not (DEPS/"pypdf"/"__init__.py").is_file():
+            DEPS.mkdir(parents=True,exist_ok=True)
             run([sys.executable,"-m","pip","install","--no-deps",
-                 "--target",str(deps),"-r","requirements-knowledge.txt"])
+                 "--target",str(DEPS),"-r","requirements-knowledge.txt"])
+        # Exercises the same process imports used by the isolated tests.
+        run([sys.executable,"-c","import pypdf; print('pypdf OK:',pypdf.__version__)"])
         run([sys.executable,"-m","py_compile",
              "scripts/bi_knowledge_official.py","scripts/bi_knowledge_library.py",
              "scripts/bi_factory_projects.py","scripts/serve_bi_factory_api.py"])
