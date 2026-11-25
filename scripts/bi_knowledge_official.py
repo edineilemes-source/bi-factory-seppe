@@ -32,6 +32,8 @@ STOP = set("a as o os um uma e de da do das dos em para por que com sobre na no 
            " regras documentos leis normas manuais tudo assunto brasileiro federal municipal".split())
 CONTEXT = {
  "empenho": ("despesa", "orcamentaria", "mcasp", "lei 4320"),
+ "capag": ("capacidade de pagamento", "poupanca corrente", "liquidez relativa", "endividamento"),
+ "poupanca": ("corrente", "capag", "despesa receita corrente"),
  "liquidacao": ("despesa", "mcasp", "lei 4320"),
  "receita": ("orcamentaria", "mcasp", "rreo"),
  "despesa": ("orcamentaria", "mcasp", "rreo"),
@@ -60,6 +62,12 @@ SEEDS = (
   "Presidência da República / Planalto", "legislacao", "gestao fiscal prestacao contas rreo rgf transparencia receitas despesas"),
  ("Manual completo do Siconfi · PDF", "https://manualsiconfi.tesouro.gov.br/manual_completo.pdf",
   "Tesouro Nacional / Siconfi", "manuais", "siconfi declaracao contas anuais dca manual"),
+ ("CAPAG · metodologia vigente e indicadores", "https://www.tesourotransparente.gov.br/temas/estados-e-municipios/capacidade-de-pagamento-capag",
+  "Tesouro Nacional / Tesouro Transparente", "normas",
+  "capag capacidade pagamento municipios endividamento poupanca corrente liquidez relativa"),
+ ("CAPAG · metodologia da Portaria Normativa 1.583/2023", "https://www.gov.br/tesouronacional/pt-br/noticias/ministerio-da-fazenda-altera-metodologia-para-calculo-da-analise-da-capacidade-de-pagamento-capag",
+  "Tesouro Nacional", "legislacao",
+  "capag capacidade pagamento portaria 1583 2023 indicador endividamento poupanca corrente"),
 )
 _OFFICIAL_KEYWORDS = ("manual","mcas","mdf","prestacao","contas","rreo","rgf","dca",
  "empenho","liquidacao","receita","despesa","orcament","balanc","portaria","norma",
@@ -171,9 +179,10 @@ def candidate(title,url,source,kind,origin,context,query_terms):
     if not title:return None
     lower_label=normalize(title)
     host=urlsplit(url).hostname or ""
-    ispdf=(urlsplit(url).path.lower().endswith(".pdf")
-           or (host=="thot-arquivos.tesouro.gov.br"
-               and any(word in lower_label for word in ("manual","portaria","sintese"))))
+    # Endereços THOT /publicacao-anexo/<id> frequentemente entregam
+    # página HTML. Só afirmar PDF quando o caminho termina em .pdf.
+    # Confirmação definitiva dos bytes ocorre durante a incorporação.
+    ispdf=urlsplit(url).path.lower().endswith(".pdf")
     version=None
     if "manual-de-demonstrativos-fiscais" in origin:
         if "16ª" in title or "16a" in lower_label:
@@ -249,7 +258,7 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
                 if not allowed_url(absolute) or not label:continue
                 norm=normalize(label+" "+absolute)
                 if not any(word in norm for word in _OFFICIAL_KEYWORDS):continue
-                item=candidate(label,absolute,source,kind,url,context,query_terms)
+                item=candidate(label,absolute,source,kind,url,"",query_terms)
                 if not item:continue
                 if item["category"] not in categories and "sites_oficiais" not in categories:
                     continue
@@ -321,7 +330,7 @@ def approve_for_project(payload):
             if item["downloadable"]:
                 data,final,mime=read_official(url,MAX_DOCUMENT,"application/pdf")
                 if not data.startswith(b"%PDF-"):
-                    raise ValueError("Arquivo recebido não é PDF; não foi gravado")
+                    raise ValueError("O portal retornou HTML ou outro formato, não um PDF. Consulte o link oficial; nada foi gravado.")
                 ext=".pdf"
             digest=hashlib.sha256(data).hexdigest() if data is not None else None
             with projects.LOCK:
