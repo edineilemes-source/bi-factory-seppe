@@ -129,6 +129,15 @@ class OfficialKnowledgeTests(unittest.TestCase):
         self.assertEqual(retry["downloaded"],0)
         self.assertEqual(retry["existing"],1)
         self.assertEqual(len(projects.summary(self.pid)["items"]),1)
+        # Se o usuário descarta o PDF, uma nova pesquisa automática não
+        # pode contrariar essa escolha nem recriá-lo no acervo ativo.
+        record=projects._read(projects.DIR/self.pid/"knowledge.json",[])
+        record[0]["deleted_at"]=official.now()
+        projects._write(projects.DIR/self.pid/"knowledge.json",record)
+        discarded=official.auto_download_for_project(command,fetch=provider)
+        self.assertEqual(discarded["downloaded"],0)
+        self.assertIn("descartado anteriormente",discarded["documents"][0]["status"])
+        self.assertEqual(len(projects._read(projects.DIR/self.pid/"knowledge.json",[])),1)
 
     def test_auto_follows_official_download_links_not_html_placeholder(self):
         raw=b"%PDF-1.7\nPage 1\n%%EOF"
