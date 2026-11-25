@@ -57,7 +57,7 @@ def _records(project_id):
 def _find(project_id,document_id,include_deleted=False):
     path,items=_records(project_id)
     did=_uuid(document_id)
-    doc=next((d for d in items if d.get("id")==did and d.get("type")=="document"),None)
+    doc=next((d for d in items if d.get("id")==did and d.get("type") in ("document","official_reference")),None)
     if doc is None or (doc.get("deleted_at") and not include_deleted):
         raise ValueError("Documento não encontrado no acervo do projeto")
     return path,items,doc
@@ -71,6 +71,7 @@ def _files(project_id,doc):
     return root/"originals"/(sha+ext),root/"trash"/(sha+ext)
 def read_pdf_bytes(project_id,doc_id):
     _,_,doc=_find(project_id,doc_id)
+    if doc.get("type")!="document":raise ValueError("Esta referência é uma página oficial, não um PDF")
     original,_=_files(project_id,doc)
     if not original.is_file():raise ValueError("Arquivo original não localizado no repositório")
     if original.stat().st_size>SIZE_LIMIT:raise ValueError("PDF acima de 25 MB")
@@ -94,13 +95,13 @@ def delete_document(project_id,document_id):
     """Lixeira recuperável; a cópia física é movida só sem outros consumidores."""
     with _LOCK:
         path,items,doc=_find(project_id,document_id)
-        original,trash=_files(project_id,doc)
+        original,trash=_files(project_id,doc) if doc.get("type")=="document" else (None,None)
         doc["deleted_at"]=now()
         doc["status"]="Removido do acervo (recuperável)"
         # Se mesmo hash é compartilhado por outro documento ativo, não mover.
         active_shared=any(x is not doc and x.get("sha256")==doc["sha256"]
             and not x.get("deleted_at") for x in items)
-        if original.is_file() and not active_shared:
+        if original is not None and original.is_file() and not active_shared:
             trash.parent.mkdir(parents=True,exist_ok=True)
             if trash.exists():raise ValueError("Lixeira já contém esse hash: intervenção necessária")
             os.replace(original,trash)
@@ -112,13 +113,13 @@ def restore_document(project_id,document_id):
     with _LOCK:
         path,items,doc=_find(project_id,document_id,True)
         if not doc.get("deleted_at"):return {"ok":True,"already_active":True}
-        original,trash=_files(project_id,doc)
-        if not original.exists():
+        original,trash=_files(project_id,doc) if doc.get("type")=="document" else (None,None)
+        if original is not None and not original.exists():
             if not trash.is_file():raise ValueError("Cópia de recuperação não encontrada")
             original.parent.mkdir(parents=True,exist_ok=True)
             os.replace(trash,original)
         doc.pop("deleted_at",None)
-        doc["status"]="PDF original armazenado — restaurado"
+        doc["status"]="PDF original armazenado — restaurado" if doc.get("type")=="document" else "Referência oficial restaurada"
         projects._write(path,items)
         return {"ok":True,"document_id":doc["id"],"restored":True}
 
