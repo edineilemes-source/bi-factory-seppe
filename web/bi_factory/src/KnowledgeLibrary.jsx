@@ -41,7 +41,7 @@ export default function KnowledgeLibrary({project,revision=0}){
  };
  const live=documents.filter(x=>!x.deleted_at);
  const removed=documents.filter(x=>x.deleted_at);
- const pdfs=live.filter(x=>x.type==="document"&&x.sha256);
+ const pdfs=live.filter(x=>x.type==="document"&&x.sha256&&x.file_available);
  const infoText="O botão Ler e indexar extrai trechos verificáveis (página, documento e URL). "+
   "Não é treinamento permanente de um modelo de IA; a Modelagem consulta esse índice do projeto.";
  return <section className="card" style={{padding:20,marginTop:16,display:"grid",gap:13}}>
@@ -69,7 +69,7 @@ export default function KnowledgeLibrary({project,revision=0}){
     {live.map(doc=><div key={doc.id} style={{border:"1px solid #dce5ef",borderRadius:9,padding:13,display:"grid",gap:7}}>
      <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"start"}}>
       <label style={{display:"flex",gap:8,alignItems:"start",minWidth:0,flex:1}}>
-       {doc.type==="document"&&doc.sha256?<input type="checkbox" disabled={busy}
+       {doc.type==="document"&&doc.sha256&&doc.file_available?<input type="checkbox" disabled={busy}
         aria-label={"Selecionar para leitura "+doc.title} checked={selected.includes(doc.id)}
         onChange={e=>setSelected(old=>e.target.checked?old.length>=6?old:[...old,doc.id]:old.filter(x=>x!==doc.id))}/>:null}
        <strong>{doc.title}</strong>
@@ -77,8 +77,9 @@ export default function KnowledgeLibrary({project,revision=0}){
      </div>
      <div className="hint">{[doc.source,doc.category,doc.validity_note,describeSize(doc.size_bytes),doc.read_status].filter(Boolean).join(" · ")}</div>
      {doc.subject&&<div className="hint">Assunto da pesquisa: {doc.subject}</div>}
+     {doc.type==="document"&&<div className="hint">{doc.file_available?"PDF original disponível no repositório do projeto":"PDF indisponível neste ambiente — confira o original no órgão; leitura desabilitada"}</div>}
      <div className="actions">
-      {doc.type==="document"&&doc.sha256&&<>
+      {doc.type==="document"&&doc.sha256&&doc.file_available&&<>
        <a href={api+"/documents/"+encodeURIComponent(doc.id)+"/view"} target="_blank"
         rel="noopener noreferrer">Abrir PDF para conferir</a>
        <a href={api+"/documents/"+encodeURIComponent(doc.id)+"/download"}>
