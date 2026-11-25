@@ -1,0 +1,33 @@
+name: Validação Pesquisa Multifonte SEPPE
+on:
+  push:
+    branches:
+      - feat/conhecimento-pesquisa-multifonte-validacao-20261125
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  search-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax and official document search
+        run: |
+          python -m py_compile scripts/bi_knowledge_multisource.py scripts/bi_knowledge_official.py scripts/serve_bi_factory_api.py
+          python scripts/test_knowledge_official.py
+          python scripts/test_knowledge_multisource.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/bi_factory/package-lock.json
+      - name: Install frontend
+        run: npm ci
+        working-directory: web/bi_factory
+      - name: Build integrated frontend
+        run: npm run build
+        working-directory: web/bi_factory
