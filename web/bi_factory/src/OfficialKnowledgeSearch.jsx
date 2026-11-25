@@ -34,7 +34,7 @@ export default function OfficialKnowledgeSearch({project}){
  const [selected,setSelected]=useState([]);
  const [previous,setPrevious]=useState([]);
  const [libraryVersion,setLibraryVersion]=useState(0);
- const [autoDownload,setAutoDownload]=useState(true);
+ const [autoDownload,setAutoDownload]=useState(false);
  const [lastDownload,setLastDownload]=useState(null);
  useEffect(()=>{
   setTopic(project?.theme||"");
