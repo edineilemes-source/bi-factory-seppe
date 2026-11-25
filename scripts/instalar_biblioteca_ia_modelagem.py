@@ -85,10 +85,10 @@ def insert_model_component(local):
 def validate_local_change(name,updated):
     c=updated.decode("utf-8")
     checks={
-      "scripts/bi_knowledge_official.py":("capag","not a PDF","downloadable"),
+      "scripts/bi_knowledge_official.py":("CAPAG ·","O portal retornou","downloadable"),
       "scripts/bi_factory_projects.py":('not item.get("deleted_at")',),
       "scripts/serve_bi_factory_api.py":("bi_knowledge_library","read-documents",
-                 "do_DELETE","concepts","/interpret"),
+                 "do_DELETE","concepts",'parts[3] == "interpret"'),
       "web/bi_factory/src/OfficialKnowledgeSearch.jsx":("KnowledgeLibrary","CAPAG"),
       DATAWORKSPACE:("ModelKnowledgeContext","projectId={projectId}"),
     }
