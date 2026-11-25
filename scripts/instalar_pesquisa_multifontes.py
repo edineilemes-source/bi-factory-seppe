@@ -30,27 +30,40 @@ def combine(path,local,old,new):
     return result.stdout
 
 def adapt_parent(raw):
+    """Insere a pesquisa sem sobrescrever a tela KnowledgeStart personalizada.
+
+    O layout conhecido pode ter a busca antiga recolhida. Para layouts locais
+    diferentes, só injeta import e componente no início da raiz JSX.
+    O restante do arquivo é preservado byte a byte (salvo pelas inserções).
+    """
+    import re
     s=raw.decode("utf-8")
-    old='  <div className="card catalogForm" style={{padding:20}}>\n   <h2>1. O que você deseja conhecer?</h2>'
-    upload='  <div className="card catalogForm" style={{padding:20}}>\n   <h2>3. Incluir documentos próprios</h2>'
-    history='  <div className="card" style={{padding:20}}>\n   <h2>4. Acervo de conhecimento do projeto</h2>'
-    if "BI_KNOWLEDGE_OFFICIAL_SLOT" in s and "Pesquisa antiga (opcional)" in s:return raw
-    if not all(x in s for x in (old,upload,history)):
-        raise RuntimeError("Tela local personalizada desconhecida; preservada integralmente.")
-    if "BI_KNOWLEDGE_OFFICIAL_SLOT" not in s:
-        line='import React,{useEffect,useState} from "react";'
-        if "import OfficialKnowledgeSearch" not in s:
-            if line not in s:raise RuntimeError("Import JSX não reconhecido")
-            s=s.replace(line,line+'\nimport OfficialKnowledgeSearch from "./OfficialKnowledgeSearch.jsx";',1)
-        s=s.replace(old,'  {/* BI_KNOWLEDGE_OFFICIAL_SLOT */}\n'
-            '  <OfficialKnowledgeSearch project={project}/>\n'+old,1)
-    if "Pesquisa antiga (opcional)" not in s:
-        s=s.replace(old,'  <details><summary>Pesquisa antiga (opcional)</summary>\n'+old,1)
-        s=s.replace(upload,'  </details>\n  <details><summary>Enviar documento próprio (opcional)</summary>\n'+upload,1)
-        s=s.replace(history,'  </details>\n  <details><summary>Histórico antigo do acervo (opcional)</summary>\n'+history,1)
-        end='\n </div>;\n}'
-        if end not in s:raise RuntimeError("Fim da tela JSX não reconhecido")
-        s=s.replace(end,'\n  </details>'+end,1)
+    # A instalação anterior pode ter colocado a pesquisa na tela local.
+    # Atualizar somente o módulo importado, jamais inseri-lo duas vezes.
+    if ("BI_KNOWLEDGE_OFFICIAL_SLOT" in s or
+        re.search(r"<OfficialKnowledgeSearch\b", s)):
+        return raw
+    func=re.search(r"\bfunction\s+KnowledgeStart\s*\(",s)
+    if not func:
+        raise RuntimeError("Função KnowledgeStart local não encontrada; arquivo preservado.")
+    tail=s[func.end():]
+    root=re.search(r"\breturn\s*\(?\s*<(?:div|main|section)\b[^>]*>",tail)
+    if not root:
+        root=re.search(r"\breturn\s*\(?\s*<>",tail)
+    if not root:
+        raise RuntimeError("Raiz JSX da tela Conhecimento não reconhecida; arquivo preservado.")
+    at=func.end()+root.end()
+    import_line='import OfficialKnowledgeSearch from "./OfficialKnowledgeSearch.jsx";\n'
+    if 'import OfficialKnowledgeSearch from' not in s:
+        imports=list(re.finditer(r'(?m)^[ \t]*import[^\n]*;[ \t]*\r?\n',s[:func.start()]))
+        position=imports[-1].end() if imports else 0
+        s=s[:position]+import_line+s[position:]
+        if position<=at:at+=len(import_line)
+    slot=('\n  {/* BI_KNOWLEDGE_OFFICIAL_SLOT: pesquisa por tema, preserva tela local */}\n'
+          '  <OfficialKnowledgeSearch project={project}/>\n')
+    s=s[:at]+slot+s[at:]
+    if s.count("BI_KNOWLEDGE_OFFICIAL_SLOT")!=1:
+        raise RuntimeError("Integração duplicada; tela original preservada")
     return s.encode("utf-8")
 
 def test(*args,cwd=ROOT):
