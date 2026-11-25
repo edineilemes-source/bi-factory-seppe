@@ -9,6 +9,10 @@ from xml.etree import ElementTree
 
 SOURCE_GROUPS = ("tesouro", "federal", "lexml", "ms", "campo_grande")
 EXTRA_SEEDS = (
+ ("CAPAG — Portaria Normativa MF nº 1.583/2023 (cópia PDF do DOU)",
+  "https://legislacaofinanceira.fazenda.sp.gov.br/Federal/PORTARIA%20NORMATIVA%20MF%20N%C2%BA%201.583-2023.pdf",
+  "Governo de São Paulo / reprodução oficial do DOU", "legislacao",
+  "capag capacidade pagamento portaria 1583 original pdf poupanca corrente liquidez"),
  ("CAPAG — Portaria Normativa MF nº 1.583/2023 (texto do Diário Oficial da União)",
   "https://www.in.gov.br/en/web/dou/-/portaria-normativa-mf-n-1.583-de-13-de-dezembro-de-2023-530597625",
   "Diário Oficial da União / Ministério da Fazenda", "legislacao",
