@@ -128,9 +128,9 @@ def deploy():
         raise RuntimeError("Abra o Codespaces do bi-factory-seppe antes de executar")
     # Check a realistic local edit without touching a single actual file.
     old=fetch_git(BASE,DATAWORKSPACE)
-    synthetic=b"// comentário local preservado\n"+old
+    synthetic="// comentário local preservado\n".encode("utf-8")+old
     changed=insert_model_component(synthetic)
-    if not changed.startswith(b"// comentário local preservado\n"):
+    if not changed.startswith("// comentário local preservado\n".encode("utf-8")):
         raise RuntimeError("Pré-teste: cabeçalho local não preservado")
     if insert_model_component(changed)!=changed:
         raise RuntimeError("Pré-teste: duplicação da integração da Modelagem")
