@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from "react";
+import ModelKnowledgeContext from "./ModelKnowledgeContext.jsx";
 
 /* React presentation only. All interpretation, persistence and tests live in core/*. */
 const KEY="bi-factory-last-analysis-id";
@@ -155,9 +156,10 @@ export default function DataWorkspace({area,projectName,projectId}){
           </>:<p>Decisão registrada: {statusLabel(q.status)}</p>}
         </div>)}
         <h3>Pesquisa e documentos normativos</h3>
-        <p>Pesquisa jurídica assistida por IA e upload de normas ainda não fazem parte do motor recuperado. Precisam de implementação específica, com fontes oficiais, citação e controle de vigência.</p>
+        <p>O módulo Conhecimento do projeto disponibiliza biblioteca de PDFs oficiais e consulta de trechos por página. Na Modelagem, as evidências documentais são apresentadas com fonte para revisão antes de criar medidas.</p>
       </>}
       {area==="Modelagem"&&<>
+        <ModelKnowledgeContext projectId={projectId} fields={fields}/>
         <h3>Pipeline de modelagem recuperado</h3>
         <table><thead><tr><th>Etapa</th><th>Estado desta análise</th></tr></thead><tbody>
           {PIPELINE.map(([label,key])=><tr key={label}><td>{label}</td><td>{key===null?"Perfil disponível":key==="semantic"?unresolved.length?"Perguntas pendentes":"Análise semântica registrada":key==="quality"?snapshot.quality?"Relatório preliminar disponível":"Não iniciado":statusLabel(p[key])}</td></tr>)}
