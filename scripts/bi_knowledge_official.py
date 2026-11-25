@@ -309,7 +309,8 @@ def discover_for_project(payload):
     categories=payload.get("categories",["legislacao","normas","manuais"])
     scope=payload.get("scope","")
     if not isinstance(scope,str) or len(scope)>200:raise ValueError("Abrangência inválida")
-    data=discover(pid,topic,categories,scope)
+    import bi_knowledge_multisource as multi
+    data=multi.gather(pid,topic,categories,scope,portals=payload.get("portals"))
     identity=uuid4().hex
     data["id"]=identity
     data["project_id"]=pid
