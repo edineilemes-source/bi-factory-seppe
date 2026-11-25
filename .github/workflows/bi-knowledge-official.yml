@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
       - 'scripts/bi_factory_projects.py'
@@ -23,6 +24,7 @@ on:
   pull_request:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
       - 'scripts/bi_factory_projects.py'
@@ -51,7 +53,7 @@ jobs:
       - name: Dependência local para extrair PDFs (pypdf BSD-3)
         run: python -m pip install -r requirements-knowledge.txt
       - name: Python syntax
-        run: python -m py_compile scripts/bi_knowledge_official.py scripts/bi_knowledge_library.py scripts/bi_factory_projects.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py scripts/instalar_conhecimento_oficial_compat.py scripts/instalar_biblioteca_ia_modelagem.py
+        run: python -m py_compile scripts/bi_knowledge_official.py scripts/bi_knowledge_library.py scripts/bi_factory_projects.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py scripts/instalar_conhecimento_oficial_compat.py scripts/instalar_biblioteca_ia_modelagem.py scripts/instalar_download_automatico_conhecimento.py
       - name: Pesquisa e importação, testes offline
         run: python scripts/test_knowledge_official.py
       - name: Biblioteca de PDFs, lixeira e conceitos da Modelagem
