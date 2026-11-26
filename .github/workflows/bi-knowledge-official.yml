@@ -8,6 +8,7 @@ on:
       - 'scripts/test_knowledge_federated.py'
       - 'scripts/test_knowledge_research_again.py'
       - 'scripts/test_instalar_pesquisa_multifontes.py'
+      - 'scripts/test_conhecimento_pagina_unica.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
@@ -25,6 +26,7 @@ on:
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - 'web/bi_factory/src/main.jsx'
       - '.github/workflows/bi-knowledge-official.yml'
   pull_request:
     paths:
@@ -33,6 +35,7 @@ on:
       - 'scripts/test_knowledge_federated.py'
       - 'scripts/test_knowledge_research_again.py'
       - 'scripts/test_instalar_pesquisa_multifontes.py'
+      - 'scripts/test_conhecimento_pagina_unica.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
@@ -47,6 +50,7 @@ on:
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - 'web/bi_factory/src/main.jsx'
       - '.github/workflows/bi-knowledge-official.yml'
 permissions:
   contents: read
@@ -71,6 +75,8 @@ jobs:
         run: python scripts/test_knowledge_research_again.py
       - name: Teste de compatibilidade com tela personalizada do Codespaces
         run: python scripts/test_instalar_pesquisa_multifontes.py
+      - name: Página única — roteamento React e compatibilidade com Codespaces
+        run: python scripts/test_conhecimento_pagina_unica.py
       - name: Biblioteca de PDFs, lixeira e conceitos da Modelagem
         run: python scripts/test_knowledge_library.py
       - name: Preservação da Modelagem local e integração idempotente
