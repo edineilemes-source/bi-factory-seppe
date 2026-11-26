@@ -187,12 +187,24 @@ def main():
                 print("AJUSTE LOCAL PRESERVADOR: "+name,flush=True)
         elif name in ADDS:
             new=remote(TARGET,name)
-            # O instalador é executado diretamente do GitHub. Se já há
-            # uma cópia local antiga, preserva-a em vez de falhar ao atualizar.
+            # O instalador é executado diretamente do GitHub. Mantenha a
+            # cópia instalada do script, mesmo quando vier de outra versão.
             if name=="scripts/instalar_pesquisa_multifontes.py" and local is not None:
                 new=local
             elif local is not None and local!=new:
-                raise RuntimeError("Arquivo novo já existe diferente: "+name)
+                # Testes e módulos da entrega anterior já podem estar presentes.
+                # Atualize apenas versões historicamente reconhecidas; arquivos
+                # locais personalizados permanecem protegidos.
+                recognized=False
+                for prior_ref in (PREVIOUS,)+KNOWN_PREVIOUS_REFS:
+                    try:
+                        if local==remote(prior_ref,name):
+                            recognized=True
+                            break
+                    except RuntimeError:
+                        continue
+                if not recognized:
+                    raise RuntimeError("Arquivo local diferente, preservado: "+name)
         else:
             if local is None:raise RuntimeError("Arquivo-base ausente: "+name)
             new=combine(name,local,remote(BASE,name),remote(TARGET,name))
