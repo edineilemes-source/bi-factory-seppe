@@ -63,6 +63,36 @@ class LocalUICompatibilityTests(unittest.TestCase):
         self.assertEqual(result.count('import OfficialKnowledgeSearch from'),1)
         self.assertEqual(result.count("<OfficialKnowledgeSearch project="),1)
 
+    def test_self_update_replaces_old_local_installer_before_running_tests(self):
+        from unittest.mock import patch
+        old_installer=b"def adapt_parent(raw): return raw\n"
+        new_installer=module_path.read_bytes()
+        self.assertNotIn(b"def adapt_library(",old_installer)
+        self.assertIn(b"def adapt_library(",new_installer)
+        self.assertIn(b"KNOWN_PREVIOUS_REFS",new_installer)
+        with patch.object(installer,"remote",return_value=new_installer) as get:
+            selected=installer.prepare_added("scripts/instalar_pesquisa_multifontes.py",
+                                              old_installer)
+        self.assertEqual(selected,new_installer)
+        get.assert_called_once_with(installer.TARGET,
+                                    "scripts/instalar_pesquisa_multifontes.py")
+
+    def test_self_update_is_idempotent(self):
+        from unittest.mock import patch
+        current=module_path.read_bytes()
+        with patch.object(installer,"remote",return_value=current):
+            self.assertEqual(installer.prepare_added(
+                "scripts/instalar_pesquisa_multifontes.py",current),current)
+
+    def test_unknown_custom_added_file_is_preserved(self):
+        from unittest.mock import patch
+        from tempfile import TemporaryDirectory
+        local=b"arquivo personalizado\n"
+        with patch.object(installer,"remote",side_effect=lambda ref,p: (
+            b"nova versao\n" if ref==installer.TARGET else b"versao antiga\n")):
+            with self.assertRaisesRegex(RuntimeError,"preservado"):
+                installer.prepare_added("scripts/test_knowledge_federated.py",local)
+
     def test_previous_known_library_replaced_without_conflict(self):
         from unittest.mock import patch
         local=b"biblioteca etapa anterior"
