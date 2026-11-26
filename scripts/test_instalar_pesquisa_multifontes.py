@@ -63,6 +63,52 @@ class LocalUICompatibilityTests(unittest.TestCase):
         self.assertEqual(result.count('import OfficialKnowledgeSearch from'),1)
         self.assertEqual(result.count("<OfficialKnowledgeSearch project="),1)
 
+    def test_previous_known_library_replaced_without_conflict(self):
+        from unittest.mock import patch
+        local=b"biblioteca etapa anterior"
+        old=b"biblioteca original"
+        new=b"biblioteca consolidada"
+        known="f7a8e40112a81ed1fde7b7a7e0e63b9eb11a8e3b"
+        self.assertIn(known,installer.KNOWN_PREVIOUS_REFS)
+        def fake_remote(ref,path):
+            return local if ref==known else old
+        with patch.object(installer,"remote",side_effect=fake_remote):
+            result=installer.combine(installer.LIBRARY,local,old,new)
+        self.assertEqual(result,new)
+
+    def test_local_library_recolhimento_preserves_custom_fields(self):
+        original=(
+            'import React from "react";\n'
+            'function KnowledgeLibrary({project}) {\n'
+            ' const removed=[];\n'
+            ' return <section>\n'
+            '  <h2>PDFs baixados no projeto</h2>\n'
+            '  <h3 style={{margin:"10px 0 0"}}>Gerenciar acervo e leitura</h3>\n'
+            '  <label>Meu campo personalizado<input /></label>\n'
+            '  <button>Indexar documentos</button>\n'
+            '  {removed.length>0&&<details><summary>Lixeira</summary></details>}\n'
+            ' </section>;\n'
+            '}\n'
+        ).encode("utf-8")
+        output=installer.adapt_library(original)
+        self.assertEqual(output.count(b"Gerenciar documentos, leitura e"),1)
+        self.assertIn(b"Meu campo personalizado",output)
+        self.assertIn(b"Indexar documentos",output)
+        self.assertIn(b"PDFs baixados no projeto",output)
+        self.assertEqual(installer.adapt_library(output),output)
+        self.assertEqual(output.count(b"<details>"),2)
+        self.assertIn(b"  {removed.length>0&&<details>",output)
+
+    def test_original_target_library_is_idempotent(self):
+        target=(SCRIPTS.parent/"web/bi_factory/src/KnowledgeLibrary.jsx").read_bytes()
+        self.assertEqual(installer.adapt_library(target),target)
+
+    def test_unknown_local_library_is_not_overwritten(self):
+        original=b"export default function KnowledgeLibrary(){return null;}\n"
+        with self.assertRaisesRegex(RuntimeError,"preservada integralmente"):
+            installer.adapt_library(original)
+        self.assertEqual(original,b"export default function KnowledgeLibrary(){return null;}\n")
+
     def test_unknown_component_fails_before_writing(self):
         original=b'const KnowledgePage=()=>null;'
         with self.assertRaisesRegex(RuntimeError,"KnowledgeStart"):
