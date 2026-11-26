@@ -20,7 +20,8 @@ ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
       "scripts/test_instalar_pesquisa_multifontes.py",
       "scripts/test_knowledge_research_again.py",
       "scripts/instalar_pesquisa_multifontes.py"]
-PARENT="web/bi_factory/src/KnowledgeStart.jsx"
+PARENT="web/bi_factory/src/KnowledgeStart.jsx"  # somente legado, não alterado
+MAIN="web/bi_factory/src/main.jsx"
 
 def command(*args,cwd=ROOT):
     return subprocess.run(args,cwd=cwd,check=True)
@@ -86,6 +87,39 @@ def adapt_parent(raw):
         raise RuntimeError("Integração duplicada; tela original preservada")
     return s.encode("utf-8")
 
+
+def adapt_main(raw):
+    """Substitui apenas o ponto de montagem do Conhecimento na navegação React.
+
+    KnowledgeStart.jsx local permanece byte a byte; apenas a rota deixa de
+    montar a antiga página que duplicava a pesquisa oficial. Não toca na
+    modelagem, editor, produtos, projetos ou acervo.
+    """
+    import re
+    source=raw.decode("utf-8")
+    old_mounts=list(re.finditer(r"<KnowledgeStart\b",source))
+    new_mounts=list(re.finditer(r"<OfficialKnowledgeSearch\b",source))
+    if new_mounts and not old_mounts:
+        return raw
+    if len(old_mounts)!=1 or new_mounts:
+        raise RuntimeError("Montagem do Conhecimento não reconhecida ou duplicada; main.jsx preservado.")
+    old_import=re.compile(
+        r'(?m)^([ \t]*)import[ \t]+KnowledgeStart[ \t]+from[ \t]+'
+        r"""(["'])\./KnowledgeStart(?:\.jsx)?\2;?[ \t]*$""")
+    imports=list(old_import.finditer(source))
+    if len(imports)!=1:
+        raise RuntimeError("Import de KnowledgeStart não identificado de modo seguro; main.jsx preservado.")
+    # Mantém a assinatura JSX, props e lógica do roteador. Apenas troca o
+    # componente apontado pela seção Conhecimento, sem reescrever outras rotas.
+    first=imports[0]
+    new_import=first.group(1)+'import OfficialKnowledgeSearch from "./OfficialKnowledgeSearch";'
+    updated=source[:first.start()]+new_import+source[first.end():]
+    updated=updated.replace("<KnowledgeStart","<OfficialKnowledgeSearch",1)
+    if len(re.findall(r"<OfficialKnowledgeSearch\b",updated))!=1:
+        raise RuntimeError("Integração ambígua: navegação preservada.")
+    return updated.encode("utf-8")
+
+
 def test(*args,cwd=ROOT):
     env=os.environ.copy()
     deps=str(ROOT/".git"/"knowledge-deps")
@@ -101,14 +135,14 @@ def main():
     if not (ROOT/".git").exists():raise RuntimeError("Codespaces BI Factory não encontrado")
     command("git","fetch","origin",BASE.removeprefix("origin/"))
     staged={}
-    for name in UPDATES+ADDS+[PARENT]:
+    for name in UPDATES+ADDS+[MAIN]:
         path=ROOT/name
         if path.is_symlink() or (path.exists() and not path.is_file()):
             raise RuntimeError("Caminho inseguro: "+name)
         local=path.read_bytes() if path.exists() else None
-        if name==PARENT:
-            if local is None:raise RuntimeError("Tela de Conhecimento ausente")
-            new=adapt_parent(local)
+        if name==MAIN:
+            if local is None:raise RuntimeError("Navegação principal ausente")
+            new=adapt_main(local)
         elif name in ADDS:
             new=remote(TARGET,name)
             # O instalador é executado diretamente do GitHub. Se já há
