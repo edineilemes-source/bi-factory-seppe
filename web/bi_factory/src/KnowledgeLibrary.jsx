@@ -71,7 +71,10 @@ export default function KnowledgeLibrary({
     </button>
    </div>}
   </div>}
-  <h3 style={{margin:"10px 0 0"}}>Gerenciar acervo e leitura</h3>
+  <details>
+   <summary>Gerenciar documentos, leitura e indexação (opcional)</summary>
+   <div style={{display:"grid",gap:12,paddingTop:10}}>
+    <h3 style={{margin:"0"}}>Gerenciar acervo e leitura</h3>
   {error&&<p role="alert" style={{color:"#b22"}}>{error}</p>}
   {notice&&<p role="status">{notice}</p>}
   <div className="actions">
@@ -157,6 +160,8 @@ export default function KnowledgeLibrary({
      </blockquote>)}
    </div>}
   </div>
+   </div>
+  </details>
   {removed.length>0&&<details>
    <summary>Lixeira — arquivos removidos ({removed.length})</summary>
    <div style={{display:"grid",gap:6,padding:10}}>
