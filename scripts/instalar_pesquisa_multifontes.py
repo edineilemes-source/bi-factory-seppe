@@ -53,6 +53,28 @@ def combine(path,local,old,new):
     if result.returncode:raise RuntimeError("Conflito: "+path+". Nada foi instalado.")
     return result.stdout
 
+def prepare_added(name,local):
+    """Sincroniza os arquivos da entrega antes dos testes.
+
+    A própria cópia local do instalador PRECISA acompanhar os novos testes.
+    A execução ocorre pelo código recebido via stdin, logo regravar a cópia
+    no disco é seguro; a versão anterior é guardada em .git/backups antes
+    da substituição e restaurada se algum teste falhar.
+    Outros arquivos personalizados continuam protegidos.
+    """
+    new=remote(TARGET,name)
+    if local is None or local==new:return new
+    if name=="scripts/instalar_pesquisa_multifontes.py":
+        print("INSTALADOR LOCAL: versão antiga será atualizada com backup.",flush=True)
+        return new
+    for prior_ref in (PREVIOUS,)+KNOWN_PREVIOUS_REFS:
+        try:
+            if local==remote(prior_ref,name):return new
+        except RuntimeError:
+            continue
+    raise RuntimeError("Arquivo local diferente, preservado: "+name)
+
+
 def adapt_parent(raw):
     """Insere a pesquisa sem sobrescrever a tela KnowledgeStart personalizada.
 
@@ -186,25 +208,7 @@ def main():
                 new=adapt_library(local)
                 print("AJUSTE LOCAL PRESERVADOR: "+name,flush=True)
         elif name in ADDS:
-            new=remote(TARGET,name)
-            # O instalador é executado diretamente do GitHub. Mantenha a
-            # cópia instalada do script, mesmo quando vier de outra versão.
-            if name=="scripts/instalar_pesquisa_multifontes.py" and local is not None:
-                new=local
-            elif local is not None and local!=new:
-                # Testes e módulos da entrega anterior já podem estar presentes.
-                # Atualize apenas versões historicamente reconhecidas; arquivos
-                # locais personalizados permanecem protegidos.
-                recognized=False
-                for prior_ref in (PREVIOUS,)+KNOWN_PREVIOUS_REFS:
-                    try:
-                        if local==remote(prior_ref,name):
-                            recognized=True
-                            break
-                    except RuntimeError:
-                        continue
-                if not recognized:
-                    raise RuntimeError("Arquivo local diferente, preservado: "+name)
+            new=prepare_added(name,local)
         else:
             if local is None:raise RuntimeError("Arquivo-base ausente: "+name)
             new=combine(name,local,remote(BASE,name),remote(TARGET,name))
