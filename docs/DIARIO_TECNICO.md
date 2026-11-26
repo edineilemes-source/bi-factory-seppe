@@ -297,3 +297,12 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - UI: alteração do tema, das fontes ou abrangência invalida os resultados antigos; exclusão notifica a pesquisa, e o acervo vazio exibe botão Refazer pesquisa para recuperar PDFs.
 - Testes: scripts/test_knowledge_research_again.py (regressão de exclusão/restauração, autorização de auto-restauração e versão alterada); executado pelo CI. Instalador scripts/instalar_pesquisa_multifontes.py inclui teste e reconhece versões remotas anteriores para atualizar sem sobrescrever personalizações locais.
 - Dados: nenhuma exclusão ou migração automática; itens da Lixeira permanecem recuperáveis. Aplicação no Codespaces ainda exige execução do instalador e validação local.
+
+
+### 2026-11-26 — Página Conhecimento única e histórico CAPAG sem repetição
+- Evidência relatada no Codespaces: duas telas de Conhecimento, pesquisa antiga ainda visível após a nova, oito ou mais linhas CAPAG no acervo antigo, biblioteca vazia e lixeira com 10 itens.
+- Diagnóstico do GitHub: main.jsx montava KnowledgeStart, que por sua vez montava OfficialKnowledgeSearch e também renderizava o formulário e o histórico legado. Histórico completo de research_result aparecia novamente na página antiga; tais registros não são documentos ativos.
+- Decisão: main.jsx passa a montar OfficialKnowledgeSearch diretamente na seção Conhecimento. KnowledgeStart.jsx não é apagado nem alterado no Codespaces; permanece como cópia legada de código, mas não é montado. O instalador adapt_main altera apenas o import e a tag JSX no main.jsx local, com backup e verificação de montagem única. A instalação não toca em storage, produtos ou lixeira.
+- OfficialKnowledgeSearch: histórico consolidado por assunto (última pesquisa por tema, máximo 5, colapsado); upload manual de documentos preservado em seção opcional; sequência de busca, resultados, biblioteca.
+- KnowledgeLibrary: administração e indexação opcionais recolhidas; arquivos PDF continuam destacados, lixeira recuperável.
+- Testes: scripts/test_conhecimento_pagina_unica.py e workflow Pesquisa de Conhecimento Oficial; compilar React e preservar main.jsx local diferente. Não há confirmação de instalação no Codespaces até o usuário executar o instalador e testar a porta 8506.
