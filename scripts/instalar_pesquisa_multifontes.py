@@ -13,6 +13,7 @@ KNOWN_PREVIOUS_REFS=(
  "0fb7e7a1aa9760f9e1524ee5f4d909a1116c34c7",
  "639023be0129d1920722b2160afb2ceba40f1b2c",
  "b6b062e9e441439e3f745620a2a6ff770e8299cf",
+ "f7a8e40112a81ed1fde7b7a7e0e63b9eb11a8e3b",
 )
 UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledgeSearch.jsx",
          "web/bi_factory/src/KnowledgeLibrary.jsx"]
@@ -23,6 +24,7 @@ ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
       "scripts/instalar_pesquisa_multifontes.py"]
 PARENT="web/bi_factory/src/KnowledgeStart.jsx"  # somente legado, não alterado
 MAIN="web/bi_factory/src/main.jsx"
+LIBRARY="web/bi_factory/src/KnowledgeLibrary.jsx"
 
 def command(*args,cwd=ROOT):
     return subprocess.run(args,cwd=cwd,check=True)
@@ -89,6 +91,34 @@ def adapt_parent(raw):
     return s.encode("utf-8")
 
 
+
+def adapt_library(raw):
+    """Ajuste mínimo do componente local: recolher a área administrativa.
+
+    Resolve a divergência da biblioteca já instalada no Codespaces sem
+    substituir os demais elementos, handlers ou personalizações locais.
+    Não remove PDFs ou registros; opera somente sobre a estrutura JSX.
+    """
+    source=raw.decode("utf-8")
+    collapsed="Gerenciar documentos, leitura e indexação (opcional)"
+    if collapsed in source:
+        return raw
+    start='  <h3 style={{margin:"10px 0 0"}}>Gerenciar acervo e leitura</h3>'
+    end='  {removed.length>0&&<details>'
+    if source.count(start)!=1 or source.count(end)!=1:
+        raise RuntimeError("Biblioteca personalizada sem âncoras seguras; preservada integralmente.")
+    if source.index(start)>=source.index(end):
+        raise RuntimeError("Ordem dos controles da biblioteca desconhecida; preservada integralmente.")
+    source=source.replace(start,'''  <details>
+   <summary>Gerenciar documentos, leitura e indexação (opcional)</summary>
+   <div style={{display:"grid",gap:12,paddingTop:10}}>
+    <h3 style={{margin:"0"}}>Gerenciar acervo e leitura</h3>''',1)
+    source=source.replace(end,'''   </div>
+  </details>
+'''+end,1)
+    return source.encode("utf-8")
+
+
 def adapt_main(raw):
     """Substitui apenas o ponto de montagem do Conhecimento na navegação React.
 
@@ -144,6 +174,17 @@ def main():
         if name==MAIN:
             if local is None:raise RuntimeError("Navegação principal ausente")
             new=adapt_main(local)
+        elif name==LIBRARY:
+            if local is None:raise RuntimeError("Biblioteca de PDFs ausente")
+            # Preferir o alvo completo quando a cópia local for uma versão
+            # oficial reconhecida. Se houver personalizações conflitantes,
+            # alterar só o bloco administrativo e preservar o restante.
+            try:
+                new=combine(name,local,remote(BASE,name),remote(TARGET,name))
+            except RuntimeError as merge_error:
+                if "Conflito:" not in str(merge_error):raise
+                new=adapt_library(local)
+                print("AJUSTE LOCAL PRESERVADOR: "+name,flush=True)
         elif name in ADDS:
             new=remote(TARGET,name)
             # O instalador é executado diretamente do GitHub. Se já há
