@@ -265,3 +265,58 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **Verificação e governança:** PDF só é mostrado como armazenado após receber bytes `%PDF-` válidos, salvar em `storage/working/projects/<id>/originals/<SHA256>.pdf` e registrar URL, tópico e tamanho. Sem novo `git push` de dados. Documentos previamente excluídos não são reimportados automaticamente. O usuário pode abrir, excluir/restaurar e, separadamente, acionar a leitura/indexação.
 - **Ressalvas:** portais com JavaScript, bloqueios, autenticação ou arquivo inexistente podem impedir recuperação; resposta lista falhas e não marca HTML como PDF. Primeira implantação real no Codespaces ainda pendente, bem como verificação de download dos documentos CAPAG do portal a partir da rede do Codespaces.
 - **Instalador:** `scripts/instalar_download_automatico_conhecimento.py` (via `git fetch`/ `git show` da branch), altera apenas motor de pesquisa, API, interface de pesquisa e seus testes; faz backup/rollback e testes; não altera dados STN, catálogo de produtos, editor visual nem a porta 8507.
+
+
+## 2026-11-25 — Pesquisa normativa multifontes (PR #27)
+- Objetivo: busca por tema/número da norma, fontes oficiais marcadas por padrão, seleção direta de até 10 documentos e normas antes dos manuais.
+- Arquivos: scripts/bi_knowledge_federated.py, scripts/bi_knowledge_official.py, scripts/test_knowledge_federated.py, web/bi_factory/src/OfficialKnowledgeSearch.jsx, web/bi_factory/src/KnowledgeStart.jsx e scripts/instalar_pesquisa_multifontes.py.
+- CAPAG: Portaria Normativa MF 1.583/2023 em fonte DOU e lista oficial de alterações no Tesouro. LexML consultado via SRU quando disponível.
+- Testes: GitHub Actions bem-sucedidos na branch; instalador local ainda não executado no Codespaces. Dados e layouts não alterados.
+- Limite: cobertura de fontes cadastradas, sem garantia de exaustividade ou vigência automática.
+
+
+### 2026-11-25 — Correção do instalador para KnowledgeStart local personalizado
+- Evidência Codespaces, branch local teste/cadastro-filtros-20261113: o instalador abortou antes de qualquer escrita com a mensagem 'Tela local personalizada desconhecida; preservada integralmente.'. A simulação exibiu 'PREPARADO' para cinco arquivos, sem gravação.
+- Causa: adapt_parent exigia três marcadores textuais específicos da página KnowledgeStart versionada, ausentes na tela local.
+- Correção: inserir somente import e componente OfficialKnowledgeSearch após a abertura da raiz JSX da função KnowledgeStart, preservando campos locais. Se a pesquisa já existir, não inserir novamente. Telas não reconhecidas continuam protegidas por erro sem alteração.
+- Testes: scripts/test_instalar_pesquisa_multifontes.py contém cenários de tela personalizada, fragmento JSX, idempotência e formato não reconhecido, integrados ao workflow e ao instalador.
+- Pendência: confirmar execução corrigida no Codespaces; Actions valida código versionado, não arquivos não commitados.
+
+
+### 2026-11-25 — PDFs comprovadamente gravados, mas pouco visíveis
+- Usuário apresentou dois documentos disponíveis na biblioteca do projeto pmcg-financas-publicas: Portaria MF 1.583/2023 (2,75 MB) e Manual de Análise Fiscal 2026 (2,42 MB), ambos com link /view, /download e hash SHA-256. São arquivos internos ao Codespaces, não cópias no computador do usuário.
+- Interface ajustada: KnowledgeLibrary destaca PDFs localmente armazenados, com Abrir/Baixar no topo; referências sem arquivo são identificadas; resultados da pesquisa separam candidatos PDF e páginas sem PDF direto. Botão de incorporação explica a ação; leitura e indexação esclarecidas como etapa diferente.
+- Instalador atualizado para incluir KnowledgeLibrary, reconhecer versão multifontes anterior e não falhar com sua cópia local antiga do próprio instalador. Não houve sincronização ou exclusão do acervo.
+- Testes remotos: GitHub Actions de compilação e conhecimento passaram para commit 5fe6b1886f, testes do último ajuste de texto pendentes de verificação. Executar novamente no Codespaces para disponibilizar esta revisão.
+
+
+### 2026-11-25 — Refazer pesquisa após exclusão: corrigir PDF preso na Lixeira
+- Evidência Codespaces relatada pelo usuário: após remover 10 documentos, a biblioteca exibia 0 PDFs e a pesquisa antiga seguia mostrando resultados.
+- Causa comprovada no backend: approve_for_project considerava registros com deleted_at como 'já consta no acervo', de modo que a aprovação de uma nova pesquisa não recuperava o PDF.
+- Correção: aprovação explícita separa documentos ativos e excluídos; se o PDF da nova pesquisa tem o mesmo SHA-256 de um excluído, restaura da Lixeira com mesmo ID; páginas de referência também podem ser recuperadas. Se conteúdo do PDF mudou mantendo URL, cria uma versão ativa com novo hash, conservando a excluída no histórico. download automático só restaura itens excluídos com restore_deleted=true enviado por ação de nova pesquisa do usuário.
+- UI: alteração do tema, das fontes ou abrangência invalida os resultados antigos; exclusão notifica a pesquisa, e o acervo vazio exibe botão Refazer pesquisa para recuperar PDFs.
+- Testes: scripts/test_knowledge_research_again.py (regressão de exclusão/restauração, autorização de auto-restauração e versão alterada); executado pelo CI. Instalador scripts/instalar_pesquisa_multifontes.py inclui teste e reconhece versões remotas anteriores para atualizar sem sobrescrever personalizações locais.
+- Dados: nenhuma exclusão ou migração automática; itens da Lixeira permanecem recuperáveis. Aplicação no Codespaces ainda exige execução do instalador e validação local.
+
+
+### 2026-11-26 — Página Conhecimento única e histórico CAPAG sem repetição
+- Evidência relatada no Codespaces: duas telas de Conhecimento, pesquisa antiga ainda visível após a nova, oito ou mais linhas CAPAG no acervo antigo, biblioteca vazia e lixeira com 10 itens.
+- Diagnóstico do GitHub: main.jsx montava KnowledgeStart, que por sua vez montava OfficialKnowledgeSearch e também renderizava o formulário e o histórico legado. Histórico completo de research_result aparecia novamente na página antiga; tais registros não são documentos ativos.
+- Decisão: main.jsx passa a montar OfficialKnowledgeSearch diretamente na seção Conhecimento. KnowledgeStart.jsx não é apagado nem alterado no Codespaces; permanece como cópia legada de código, mas não é montado. O instalador adapt_main altera apenas o import e a tag JSX no main.jsx local, com backup e verificação de montagem única. A instalação não toca em storage, produtos ou lixeira.
+- OfficialKnowledgeSearch: histórico consolidado por assunto (última pesquisa por tema, máximo 5, colapsado); upload manual de documentos preservado em seção opcional; sequência de busca, resultados, biblioteca.
+- KnowledgeLibrary: administração e indexação opcionais recolhidas; arquivos PDF continuam destacados, lixeira recuperável.
+- Testes: scripts/test_conhecimento_pagina_unica.py e workflow Pesquisa de Conhecimento Oficial; compilar React e preservar main.jsx local diferente. Não há confirmação de instalação no Codespaces até o usuário executar o instalador e testar a porta 8506.
+
+
+### 2026-11-26 — Instalador recusou atualização da Biblioteca no Codespaces
+- Evidência informada pelo usuário (branch local teste/cadastro-filtros-20261113): "JÁ INSTALADO: scripts/bi_knowledge_official.py", "PREPARADO: web/bi_factory/src/OfficialKnowledgeSearch.jsx", "ERRO: Conflito: web/bi_factory/src/KnowledgeLibrary.jsx. Nada foi instalado.". Nenhum arquivo foi modificado nessa tentativa (falha na etapa de preparação).
+- Causa: a versão local da KnowledgeLibrary havia sido instalada em entregas anteriores, mas não correspondia à base antiga usada pelo merge de três vias; o instalador não tinha no catálogo a revisão f7a8e40112a81ed1fde7b7a7e0e63b9eb11a8e3b (biblioteca com botão Refazer pesquisa, antes do recolhimento dos controles).
+- Correção: reconhece explicitamente a revisão f7a8. Se a biblioteca local tiver personalizações que provoquem conflito, adapt_library aplica apenas a abertura/fechamento do bloco colapsável de gerenciamento, sem reescrever os demais elementos. Preserva-se integralmente e aborta com erro se os marcadores seguros não forem encontrados. Adicionada atualização segura de testes e módulos previamente instalados apenas quando iguais a uma revisão GitHub conhecida; cópias personalizadas são preservadas.
+- Regressão: scripts/test_instalar_pesquisa_multifontes.py inclui testes de revisão histórica, personalização, idempotência e recusa de estrutura desconhecida. Workflow GitHub Actions inclui o teste já existente. A instalação/compilação no Codespaces permanece pendente de execução após atualizar o instalador remoto.
+
+
+### 2026-11-26 — Corrigida incompatibilidade entre instalador antigo e novos testes
+- Evidência trazida do terminal Codespaces, branch teste/cadastro-filtros-20261113: após preparar biblioteca, JSX e testes, testes de compatibilidade falharam com quatro AttributeError: scripts/test_instalar_pesquisa_multifontes.py importava scripts/instalar_pesquisa_multifontes.py local que não possuía adapt_library e KNOWN_PREVIOUS_REFS.
+- Causa verificada: a opção anterior de preservar SEMPRE a cópia local do próprio instalador (new=local) criou um desacoplamento entre os testes novos e o instalador antigo, mesmo quando a execução via stdin já estava utilizando a revisão GitHub.
+- Correção: prepare_added sempre instala a versão remota atual do próprio script instalador (além dos testes correspondentes), preservando backup automático em .git/backups e rollback se qualquer teste/compilação falhar. Para módulos e testes diferentes do próprio instalador, mantém-se a política de permitir apenas versões históricas conhecidas ou arquivos novos; não sobrescrever personalizações desconhecidas.
+- Testes de regressão: autoatualização da cópia local antiga, idempotência e recusa de sobrescrita de outro arquivo personalizado em scripts/test_instalar_pesquisa_multifontes.py. Observação: a tentativa anterior foi revertida no bloco de falha de testes; aguarda nova instalação e confirmação do Codespaces. Nenhum banco, PDF ou produto foi alterado.

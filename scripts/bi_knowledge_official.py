@@ -19,14 +19,16 @@ from urllib.parse import urlsplit, urljoin, unquote
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 import urllib.error
 import unicodedata
+from xml.etree import ElementTree
 from uuid import uuid4
 
 import bi_factory_projects as projects
+from bi_knowledge_federated import SOURCE_GROUPS, EXTRA_SEEDS, source_group, lexml_documents, tesouro_search_seed
 
 MAX_DOCUMENT = 25 * 1024 * 1024
 MAX_HTML = 1_500_000
-MAX_RESULTS = 36
-MAX_REQUESTS = 7
+MAX_RESULTS = 75
+MAX_REQUESTS = 12
 HOST_SUFFIXES = (".gov.br", ".leg.br")
 STOP = set("a as o os um uma e de da do das dos em para por que com sobre na no nas nos seu sua"
            " regras documentos leis normas manuais tudo assunto brasileiro federal municipal".split())
@@ -233,13 +235,16 @@ def optional_local_ai_terms(topic):
     except (OSError,ValueError,KeyError,TypeError,urllib.error.URLError):
         return [],"IA local indisponível; pesquisa oficial realizada sem IA"
 
-def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None):
+def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None,sources=None):
     if not isinstance(topic,str) or not 3<=len(topic.strip())<=180:
         raise ValueError("Informe um tema de 3 a 180 caracteres")
     if (not isinstance(categories,list) or not categories or
         set(categories)-_VALID_CATEGORY):
         raise ValueError("Selecione os tipos de documentos")
     projects.get(project_id)
+    selected_groups=set(SOURCE_GROUPS if sources is None else sources)
+    if not selected_groups or selected_groups-set(SOURCE_GROUPS):
+        raise ValueError('Selecione uma fonte oficial válida')
     query_terms=terms(topic+" "+(scope or ""))
     focused_capag=("capag" in normalize(topic) or
                    "capacidade de pagamento" in normalize(topic) or
@@ -250,7 +255,18 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
     seen={}
     warnings=[]
     attempts=0
-    for title,url,source,kind,context in SEEDS:
+    seeded=list(SEEDS)+list(EXTRA_SEEDS)+[tesouro_search_seed(topic)]
+    # Primeiro uma página por base; depois prioriza relevância entre as restantes.
+    seeded.sort(key=lambda e:(-score(e[0],e[1],e[4],query_terms),e[0]))
+    first=[];remaining=[];visited_groups=set()
+    for entry in seeded:
+        group=source_group(entry[1])
+        if group not in visited_groups:
+            visited_groups.add(group);first.append(entry)
+        else:remaining.append(entry)
+    for title,url,source,kind,context in first+remaining:
+        group=source_group(url)
+        if group not in selected_groups:continue
         # CAPAG: fontes específicas. Evita lotar a página com RGF/DCA
         # de outros assuntos e anos, embora eles sejam portais oficiais.
         if focused_capag and not any(
@@ -261,7 +277,8 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
             not (kind=="manuais" and "normas" in categories)):
             continue
         original=candidate(title,url,source,kind,url,context,query_terms)
-        if original and (kind in categories or "sites_oficiais" in categories):
+        if original and original["score"]>0 and (kind in categories or "sites_oficiais" in categories):
+            original["source_group"]=group
             seen[original["id"]]=original
         if urlsplit(url).path.lower().endswith(".pdf") or attempts>=MAX_REQUESTS:
             continue
@@ -285,19 +302,35 @@ def discover(project_id,topic,categories,scope,fetch=read_official,ai_terms=None
                 if focused_capag and not any(term in normalize(label+" "+absolute)
                    for term in ("capag","capacidade de pagamento","analise fiscal","poupanca corrente")):
                     continue
-                if item["score"]==0 and not item["downloadable"]:continue
+                if item["score"]==0:continue
+                item["source_group"]=group
                 old=seen.get(item["id"])
                 if not old or item["score"]>old["score"]:
                     seen[item["id"]]=item
         except (OSError,ValueError,UnicodeError,urllib.error.URLError) as error:
             warnings.append(source+": "+str(error)[:90])
-    # The listing pages are important sources even if no PDF is parseable.
+    # LexML: consulta federada real; indisponibilidade não interrompe as demais fontes.
+    if "lexml" in selected_groups:
+        try:
+            for title,url,source,kind,origin,context in lexml_documents(
+                topic,fetch,allowed_url,MAX_HTML):
+                item=candidate(title,url,source,kind,origin,context,query_terms)
+                if item and item["score"]>0 and (
+                    item["category"] in categories or "sites_oficiais" in categories):
+                    item["source_group"]="lexml"
+                    seen[item["id"]]=item
+        except (OSError,ValueError,UnicodeError,ElementTree.ParseError,urllib.error.URLError) as error:
+            warnings.append("LexML: "+str(error)[:120])
+    # Atos normativos antes de manuais; dentro de cada grupo, por relevância.
+    priority={"legislacao":0,"normas":1,"manuais":2,"metodos":3,"sites_oficiais":4}
     rows=sorted(seen.values(),key=lambda item:(
-        -item["score"],not item["downloadable"],item["title"]))
+        priority.get(item["category"],5),-item["score"],
+        not item["downloadable"],item["title"]))
     return {"topic":topic.strip(),"scope":scope,"sources":rows[:MAX_RESULTS],
             "provider":"Portais oficiais brasileiros",
             "ai_status":ai_status,
-            "warnings":list(dict.fromkeys(warnings))[:6],
+            "warnings":list(dict.fromkeys(warnings))[:12],
+            "source_groups":sorted(selected_groups),
             "scope_note":"Pesquisa inicial em portais oficiais selecionados; não equivale a uma busca exaustiva da legislação nacional.",
             "searched_at":now()}
 
@@ -309,7 +342,7 @@ def discover_for_project(payload):
     categories=payload.get("categories",["legislacao","normas","manuais"])
     scope=payload.get("scope","")
     if not isinstance(scope,str) or len(scope)>200:raise ValueError("Abrangência inválida")
-    data=discover(pid,topic,categories,scope)
+    data=discover(pid,topic,categories,scope,sources=payload.get("sources"))
     identity=uuid4().hex
     data["id"]=identity
     data["project_id"]=pid
@@ -359,10 +392,45 @@ def approve_for_project(payload):
             with projects.LOCK:
                 knowledge=projects._sources_path(pid)
                 existing=projects._read(knowledge,[])
-                if any(e.get("source_url")==url or (digest and e.get("sha256")==digest)
-                       for e in existing if e.get("type") in ("document","official_reference")):
-                    imported.append({"title":item["title"],"status":"já consta no acervo"})
+                # Registros na lixeira NÃO são itens ativos. Uma nova aprovação
+                # explícita significa que o usuário deseja incorporá-los outra vez.
+                # O hash prevalece para PDFs: se a URL mudou de conteúdo,
+                # preservamos a versão excluída e registramos a nova.
+                active=next((e for e in existing if
+                    not e.get("deleted_at") and e.get("type") in
+                    ("document","official_reference") and (
+                        (digest and e.get("sha256")==digest) or
+                        (not digest and e.get("source_url")==url) or
+                        (digest and e.get("source_url")==url and e.get("sha256")==digest))),None)
+                if active:
+                    imported.append({"title":item["title"],"status":"já consta no acervo",
+                        "item":active})
                     continue
+                discarded=next((e for e in existing if
+                    e.get("deleted_at") and e.get("type") in
+                    ("document","official_reference") and
+                    ((digest and e.get("sha256")==digest) or
+                     (not digest and e.get("source_url")==url))),None)
+                if discarded:
+                    # Recupera o mesmo arquivo da lixeira (mantém ID, hash e índice),
+                    # sem criar cópia duplicada. Se a cópia física da lixeira sumiu,
+                    # o PDF já obtido será inserido como novo registro abaixo.
+                    import bi_knowledge_library as library
+                    try:
+                        library.restore_document(pid,discarded["id"])
+                    except ValueError as restore_error:
+                        if not digest or "Cópia de recuperação não encontrada" not in str(restore_error):
+                            raise
+                    else:
+                        reloaded=projects._read(knowledge,[])
+                        revived=next(x for x in reloaded if x["id"]==discarded["id"])
+                        revived["reapproved_at"]=now()
+                        revived["discovery_id"]=discovery_id
+                        revived["subject"]=discovery.get("topic")
+                        projects._write(knowledge,reloaded)
+                        imported.append({"title":item["title"],"status":"restaurado da lixeira",
+                            "item":revived})
+                        continue
                 target=None
                 if data is not None:
                     target=projects.DIR/pid/"originals"/(digest+ext)
@@ -450,6 +518,11 @@ def auto_download_for_project(payload,fetch=read_official):
     if not isinstance(discovery_id,str) or not re.fullmatch(r"[0-9a-f]{32}",discovery_id):
         raise ValueError("Pesquisa inválida")
     number=payload.get("max_files",MAX_AUTO_FILES)
+    # Nunca desfaz exclusões em atualização automática silenciosa. A reimportação
+    # exige uma nova pesquisa acompanhada de ação explícita do usuário.
+    restore_deleted=payload.get("restore_deleted",False)
+    if type(restore_deleted)!=bool:
+        raise ValueError("Opção de restaurar itens excluídos inválida")
     if type(number)!=int or not 1<=number<=MAX_AUTO_FILES:
         raise ValueError("Máximo de cinco PDFs por rodada")
     path=projects.DIR/pid/"discoveries"/(discovery_id+".json")
@@ -494,16 +567,28 @@ def auto_download_for_project(payload,fetch=read_official):
                     documents.append({"title":seen.get("title"),"status":"já armazenado",
                         "id":seen["id"]})
                     continue
-                # Exclusão é uma decisão do usuário: nova pesquisa não deve
-                # reimportar automaticamente documento que ele descartou.
+                # Busca agendada não restaura itens removidos. Nova pesquisa
+                # explicitamente solicitada pode restaurar PDFs com o MESMO SHA.
                 discarded=next((e for e in existing if
                     e.get("deleted_at") and e.get("type")=="document" and
-                    (e.get("sha256")==digest or e.get("source_url")==final)),None)
+                    e.get("sha256")==digest),None)
                 if discarded:
-                    documents.append({"title":discarded.get("title"),
-                        "status":"descartado anteriormente; restaure na lixeira",
-                        "id":discarded["id"]})
-                    continue
+                    if restore_deleted:
+                        import bi_knowledge_library as library
+                        try:
+                            library.restore_document(pid,discarded["id"])
+                        except ValueError as restore_error:
+                            if "Cópia de recuperação não encontrada" not in str(restore_error):
+                                raise
+                        else:
+                            documents.append({"title":discarded.get("title"),
+                                "status":"restaurado", "id":discarded["id"]})
+                            continue
+                    else:
+                        documents.append({"title":discarded.get("title"),
+                            "status":"descartado anteriormente; restaure na lixeira",
+                            "id":discarded["id"]})
+                        continue
                 target=projects.DIR/pid/"originals"/(digest+".pdf")
                 target.parent.mkdir(parents=True,exist_ok=True)
                 if not target.exists():
@@ -540,6 +625,7 @@ def auto_download_for_project(payload,fetch=read_official):
     return {"project_id":pid,"discovery_id":discovery_id,
         "downloaded":sum(x["status"]=="baixado" for x in documents),
         "existing":sum(x["status"]=="já armazenado" for x in documents),
+        "restored":sum(x["status"]=="restaurado" for x in documents),
         "documents":documents,"examined":examined,
         "failed":failures[:5],
         "note":"Arquivos efetivos na Biblioteca do projeto. Abra e exclua os que não servirão; leitura pela IA continua opcional."}

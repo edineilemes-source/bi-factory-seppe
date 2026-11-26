@@ -304,3 +304,31 @@ Autorizacao especifica recebida; agente e monitor e984357 instalados. Nove teste
 - **Verificação e governança:** PDF só é mostrado como armazenado após receber bytes `%PDF-` válidos, salvar em `storage/working/projects/<id>/originals/<SHA256>.pdf` e registrar URL, tópico e tamanho. Sem novo `git push` de dados. Documentos previamente excluídos não são reimportados automaticamente. O usuário pode abrir, excluir/restaurar e, separadamente, acionar a leitura/indexação.
 - **Ressalvas:** portais com JavaScript, bloqueios, autenticação ou arquivo inexistente podem impedir recuperação; resposta lista falhas e não marca HTML como PDF. Primeira implantação real no Codespaces ainda pendente, bem como verificação de download dos documentos CAPAG do portal a partir da rede do Codespaces.
 - **Instalador:** `scripts/instalar_download_automatico_conhecimento.py` (via `git fetch`/ `git show` da branch), altera apenas motor de pesquisa, API, interface de pesquisa e seus testes; faz backup/rollback e testes; não altera dados STN, catálogo de produtos, editor visual nem a porta 8507.
+
+
+## Atualização 2026-11-25 — Pesquisa de Conhecimento
+Branch isolada feat/conhecimento-busca-multifontes-simples-20261125, PR #27 (rascunho). Pesquisa por tema com fontes selecionáveis (Tesouro/Siconfi, DOU/Planalto, LexML, MS/TCE e DIOGRANDE), normas priorizadas e incorporação por seleção. Inclui Portaria MF 1.583/2023 no DOU. Tela antiga recolhida. Instalador seguro em scripts/instalar_pesquisa_multifontes.py. Ações de CI verdes; Codespaces NÃO implantado nem testado ao vivo. Fonte oficial indisponível pode limitar os resultados. Nenhuma migração de dados.
+
+
+### Correção da instalação em tela Conhecimento personalizada — 25/11/2026
+Codespaces informou erro 'Tela local personalizada desconhecida; preservada integralmente.' sem gravar arquivos. O instalador na branch feat/conhecimento-busca-multifontes-simples-20261125 passou a integrar por inserção mínima na função KnowledgeStart, sem depender dos três títulos/contêineres antigos. Testes adicionados ao GitHub Actions. Código remoto corrigido; implantação e teste ao vivo no Codespaces pendentes. Não sobrescrever KnowledgeStart local com a versão do GitHub.
+
+
+### 2026-11-25 — Visibilidade dos PDFs da CAPAG
+Evidência da interface local: PDF da Portaria Normativa MF nº 1.583/2023 (2,75 MB) e Manual de Análise Fiscal 2026 (2,42 MB) constam como arquivos originais preservados, com URLs /view e /download. Problema de UX: PDFs da biblioteca apareciam abaixo de referências de sites e dos resultados da pesquisa; segunda tela antiga gerava ruído. Nova revisão ordena PDFs do acervo no topo com links diretos, separa candidatos PDF de páginas de referência e deixa clara a diferença entre armazenar e indexar. Instalador atualiza o arquivo KnowledgeLibrary sem substituir dados. Alterações somente no GitHub até confirmação do instalador no Codespaces.
+
+
+### 2026-11-25 — Correção de nova pesquisa depois da Lixeira
+Usuário informou 0 PDFs ativos e 10 itens na Lixeira após apagar os documentos, com resultados antigos ainda visíveis. Código de aprovação usava deduplicação incluindo deleted_at, causando falsa indicação 'já consta no acervo'. Na branch feat/conhecimento-busca-multifontes-simples-20261125 corrigiu-se: aprovar novamente recupera PDF de SHA idêntico do trash sem duplicar; nova versão de PDF na mesma URL cria novo documento e preserva histórico; auto-download só recupera excluídos com solicitação explícita. UI agora invalida resultados ao mudar tema/fonte ou excluir item e oferece Refazer pesquisa em acervo vazio. Teste de regressão scripts/test_knowledge_research_again.py integrado ao CI e ao instalador. Nenhuma migração destrutiva; instalação local pendente.
+
+
+### 2026-11-26 — Conhecimento: somente uma tela na navegação
+Motivo: navegação React montava KnowledgeStart (cadastro antigo), e este montava OfficialKnowledgeSearch (pesquisa nova) seguido do histórico legado. Usuário relatou duplicação da página e pesquisas CAPAG repetidas. Código remoto corrigido em feat/conhecimento-busca-multifontes-simples-20261125: main.jsx monta diretamente OfficialKnowledgeSearch. Instalador atualiza apenas import e tag JSX da rota em main.jsx local, sem substituir KnowledgeStart ou alterar dados; rotina conservada como legado não montado. Histórico visível da busca nova agrupa por assunto e fica recolhido, preservando registros. Upload manual mantido em seção opcional; ferramentas de indexação da biblioteca recolhidas. Testes em scripts/test_conhecimento_pagina_unica.py integrados ao CI. Confirmação de implantação no Codespaces pendente.
+
+
+### 2026-11-26 — Ajuste do instalador após conflito em KnowledgeLibrary.jsx
+Erro Codespaces relatado: durante execução de scripts/instalar_pesquisa_multifontes.py, falhou a preparação de KnowledgeLibrary.jsx por conflito no merge, sem instalar arquivo algum. A biblioteca local aparenta ser revisão anterior do próprio projeto. Foi incluída revisão histórica f7a8e40112a81ed1fde7b7a7e0e63b9eb11a8e3b entre as bases reconhecidas e criada atualização cirúrgica adapt_library como alternativa à mesclagem quando o JSX local diverge; se marcadores não são seguros, aborta sem alterar arquivos. Testes de compatibilidade ampliados e integração no GitHub Actions. O instalador permanece sem checkout, reset, merge destrutivo ou alteração de dados de projetos. Instalação no Codespaces não confirmada.
+
+
+### 2026-11-26 — Falha de regressão do instalador autocongelado
+Instalação mais recente no Codespaces avançou após conflito da biblioteca, mas parou no teste scripts/test_instalar_pesquisa_multifontes.py (4 AttributeError: adapt_library e KNOWN_PREVIOUS_REFS ausentes). Causa: no instalador via stdin o passo ADDS preservava o script antigo local, e os novos testes importaram o arquivo antigo do disco. Correção na branch feat/conhecimento-busca-multifontes-simples-20261125: atualizar sempre a cópia local scripts/instalar_pesquisa_multifontes.py com backup/rollback, mantendo proteção para demais arquivos. Testes de regressão adicionados. Não declarar ambiente atualizado até receber OK final de instalação e teste visual da 8506.

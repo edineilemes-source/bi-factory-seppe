@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from "react";
+import OfficialKnowledgeSearch from "./OfficialKnowledgeSearch.jsx";
 async function request(path,payload,method="POST"){
  const r=await fetch(path,{method:payload?method:"GET",headers:payload?{"Content-Type":"application/json"}:{},body:payload?JSON.stringify(payload):undefined});
  const v=await r.json().catch(()=>({}));if(!r.ok)throw Error(v.error||"Falha na comunicação");return v;
@@ -23,6 +24,10 @@ export default function KnowledgeStart({project,onProjectChanged}){
    <p>Pesquise legislação, MCASP, MDF, normas e documentação Siconfi diretamente nas fontes oficiais. Revise e aprove quais documentos devem entrar no acervo deste projeto; só então os PDFs são baixados.</p>
    {error&&<p role="alert" style={{color:"#b22"}}>{error}</p>}{notice&&<p role="status">{notice}</p>}
   </div>
+  {/* BI_KNOWLEDGE_OFFICIAL_SLOT: busca principal por tema, sem passos repetidos */}
+  <OfficialKnowledgeSearch project={project}/>
+  <details>
+   <summary>Pesquisa antiga (opcional)</summary>
   <div className="card catalogForm" style={{padding:20}}>
    <h2>1. O que você deseja conhecer?</h2>
    <label>Tema ou assunto<input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Ex.: prestação de contas de convênios"/></label>
@@ -86,6 +91,8 @@ export default function KnowledgeStart({project,onProjectChanged}){
      </div>)}</div>}
    </>}
   </div>
+  </details>
+  <details><summary>Enviar documento próprio (opcional)</summary>
   <div className="card catalogForm" style={{padding:20}}>
    <h2>3. Incluir documentos próprios</h2>
    <p>Adicione legislação, normas, manuais e regulamentos. O arquivo original e a origem informada serão guardados no projeto.</p>
@@ -101,6 +108,8 @@ export default function KnowledgeStart({project,onProjectChanged}){
     setNotice("Documento recebido e preservado no acervo deste projeto. Extração de regras ainda pendente.");
    })}>Enviar documento</button></div>
   </div>
+  </details>
+  <details><summary>Histórico do acervo antigo (opcional)</summary>
   <div className="card" style={{padding:20}}>
    <h2>4. Acervo de conhecimento do projeto</h2>
    {rows.length===0?<p>Este projeto ainda não possui documentos ou solicitações. Comece pela pesquisa ou pelo envio de normas.</p>:
@@ -118,5 +127,6 @@ export default function KnowledgeStart({project,onProjectChanged}){
      {x.note&&<p className="hint">{x.note}</p>}
     </div>)}</div>}
   </div>
+  </details>
  </div>;
 }

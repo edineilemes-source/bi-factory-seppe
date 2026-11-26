@@ -3,6 +3,12 @@ on:
   push:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/bi_knowledge_federated.py'
+      - 'scripts/instalar_pesquisa_multifontes.py'
+      - 'scripts/test_knowledge_federated.py'
+      - 'scripts/test_knowledge_research_again.py'
+      - 'scripts/test_instalar_pesquisa_multifontes.py'
+      - 'scripts/test_conhecimento_pagina_unica.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
@@ -20,10 +26,16 @@ on:
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - 'web/bi_factory/src/main.jsx'
       - '.github/workflows/bi-knowledge-official.yml'
   pull_request:
     paths:
       - 'scripts/bi_knowledge_official.py'
+      - 'scripts/bi_knowledge_federated.py'
+      - 'scripts/test_knowledge_federated.py'
+      - 'scripts/test_knowledge_research_again.py'
+      - 'scripts/test_instalar_pesquisa_multifontes.py'
+      - 'scripts/test_conhecimento_pagina_unica.py'
       - 'scripts/instalar_download_automatico_conhecimento.py'
       - 'scripts/bi_knowledge_library.py'
       - 'scripts/test_knowledge_library.py'
@@ -38,6 +50,7 @@ on:
       - 'scripts/test_knowledge_official.py'
       - 'scripts/serve_bi_factory_api.py'
       - 'web/bi_factory/src/KnowledgeStart.jsx'
+      - 'web/bi_factory/src/main.jsx'
       - '.github/workflows/bi-knowledge-official.yml'
 permissions:
   contents: read
@@ -53,9 +66,17 @@ jobs:
       - name: Dependência local para extrair PDFs (pypdf BSD-3)
         run: python -m pip install -r requirements-knowledge.txt
       - name: Python syntax
-        run: python -m py_compile scripts/bi_knowledge_official.py scripts/bi_knowledge_library.py scripts/bi_factory_projects.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py scripts/instalar_conhecimento_oficial_compat.py scripts/instalar_biblioteca_ia_modelagem.py scripts/instalar_download_automatico_conhecimento.py
+        run: python -m py_compile scripts/instalar_pesquisa_multifontes.py scripts/bi_knowledge_federated.py scripts/test_knowledge_federated.py scripts/bi_knowledge_official.py scripts/bi_knowledge_library.py scripts/bi_factory_projects.py scripts/serve_bi_factory_api.py scripts/instalar_conhecimento_oficial.py scripts/instalar_conhecimento_oficial_compat.py scripts/instalar_biblioteca_ia_modelagem.py scripts/instalar_download_automatico_conhecimento.py
       - name: Pesquisa e importação, testes offline
         run: python scripts/test_knowledge_official.py
+      - name: Fontes federadas e portaria CAPAG — testes offline
+        run: python scripts/test_knowledge_federated.py
+      - name: Excluir, refazer pesquisa e reincorporar PDFs da lixeira
+        run: python scripts/test_knowledge_research_again.py
+      - name: Teste de compatibilidade com tela personalizada do Codespaces
+        run: python scripts/test_instalar_pesquisa_multifontes.py
+      - name: Página única — roteamento React e compatibilidade com Codespaces
+        run: python scripts/test_conhecimento_pagina_unica.py
       - name: Biblioteca de PDFs, lixeira e conceitos da Modelagem
         run: python scripts/test_knowledge_library.py
       - name: Preservação da Modelagem local e integração idempotente
