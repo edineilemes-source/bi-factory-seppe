@@ -19,6 +19,7 @@ UPDATES=["scripts/bi_knowledge_official.py","web/bi_factory/src/OfficialKnowledg
 ADDS=["scripts/bi_knowledge_federated.py","scripts/test_knowledge_federated.py",
       "scripts/test_instalar_pesquisa_multifontes.py",
       "scripts/test_knowledge_research_again.py",
+      "scripts/test_conhecimento_pagina_unica.py",
       "scripts/instalar_pesquisa_multifontes.py"]
 PARENT="web/bi_factory/src/KnowledgeStart.jsx"  # somente legado, não alterado
 MAIN="web/bi_factory/src/main.jsx"
@@ -177,6 +178,7 @@ def main():
         test(sys.executable,"scripts/test_knowledge_federated.py")
         test(sys.executable,"scripts/test_knowledge_research_again.py")
         test(sys.executable,"scripts/test_instalar_pesquisa_multifontes.py")
+        test(sys.executable,"scripts/test_conhecimento_pagina_unica.py")
         web=ROOT/"web/bi_factory"
         if not (web/"node_modules/.bin/vite").exists():test("npm","ci",cwd=web)
         test("npm","run","build",cwd=web)
