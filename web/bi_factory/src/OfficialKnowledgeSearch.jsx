@@ -18,6 +18,15 @@ const CATEGORIES=[
  ["sites_oficiais","Outras páginas oficiais"],
  ["metodos","Referências técnicas"]
 ];
+function latestUniqueResearch(items){
+ const seen=new Set();
+ return (items||[]).filter(x=>x.type==="research_result").reverse()
+  .filter(x=>{
+   const key=String(x.topic||"").trim().toLocaleLowerCase("pt-BR");
+   if(!key||seen.has(key))return false;
+   seen.add(key);return true;
+  }).slice(0,5);
+}
 const TOPICS=["CAPAG","Capacidade de pagamento","Receita","Despesa","Prestação de contas","RREO","RGF","DCA","PCASP","Empenho","Liquidação","Balanço"];
 async function api(url,body){
  const response=await fetch(url,{method:body?"POST":"GET",cache:"no-store",
@@ -52,6 +61,11 @@ export default function OfficialKnowledgeSearch({project}){
  const [previous,setPrevious]=useState([]);
  const [libraryVersion,setLibraryVersion]=useState(0);
  const [lastDownload,setLastDownload]=useState(null);
+ const [uploadFile,setUploadFile]=useState(null);
+ const [uploadTitle,setUploadTitle]=useState("");
+ const [uploadSource,setUploadSource]=useState("");
+ const [uploadReference,setUploadReference]=useState("");
+ const [uploadDescription,setUploadDescription]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  useEffect(()=>{
   setTopic(project?.theme||"");setScope(project?.scope||"Brasil");
@@ -61,7 +75,7 @@ export default function OfficialKnowledgeSearch({project}){
   if(!id)return;
   let active=true;
   api(base+"/knowledge").then(data=>{
-   if(active)setPrevious((data.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,10));
+   if(active)setPrevious(latestUniqueResearch(data.items));
   }).catch(()=>{});
   return()=>{active=false};
  },[id,base]);
@@ -70,7 +84,7 @@ export default function OfficialKnowledgeSearch({project}){
   try{
    await callback();
    const summary=await api(base+"/knowledge");
-   setPrevious((summary.items||[]).filter(x=>x.type==="research_result").reverse().slice(0,10));
+   setPrevious(latestUniqueResearch(summary.items));
   }catch(e){setError(e.message)}
   finally{setBusy(false)}
  };
@@ -102,6 +116,23 @@ export default function OfficialKnowledgeSearch({project}){
    setNotice("Nova pesquisa concluída: "+data.sources.length+
     " referências. Marque os PDFs e clique em Baixar e incorporar selecionados.");
   }
+ });
+ const uploadOwn=()=>run(async()=>{
+  if(!uploadFile)throw Error("Selecione o documento.");
+  if(uploadFile.size>12*1024*1024)throw Error("O limite por documento é de 12 MB.");
+  const bytes=new Uint8Array(await uploadFile.arrayBuffer());
+  let raw="";
+  for(let i=0;i<bytes.length;i+=8192)
+   raw+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  await api(base+"/documents",{
+   project_id:id,filename:uploadFile.name,base64:btoa(raw),
+   title:uploadTitle||uploadFile.name,source:uploadSource,
+   reference:uploadReference,description:uploadDescription
+  });
+  setUploadFile(null);setUploadTitle("");setUploadSource("");
+  setUploadReference("");setUploadDescription("");
+  setLibraryVersion(v=>v+1);
+  setNotice("Arquivo próprio adicionado. Consulte a biblioteca abaixo.");
  });
  const addSelected=()=>run(async()=>{
   const saved=await api(base+"/approve",{
@@ -176,10 +207,7 @@ export default function OfficialKnowledgeSearch({project}){
      onClick={doSearch}>{busy?"Pesquisando…":result?"Refazer pesquisa":"Pesquisar documentos"}</button>
    </div>
   </div>
-  <KnowledgeLibrary project={project} revision={libraryVersion}
-   onResearchAgain={doSearch}
-   researchEnabled={!busy&&topic.trim().length>=3&&groups.length>0&&categories.length>0}
-   onDocumentDeleted={()=>invalidate("Documento removido. Clique em Refazer pesquisa para consultar as fontes novamente e reincorporar o que desejar.")}/>
+
   {result&&<>
    <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
     <h3 style={{margin:0}}>Pesquisa concluída — {foundPdfs.length} PDF(s) e {foundLinks.length} outra(s) referência(s)</h3>
@@ -219,15 +247,44 @@ export default function OfficialKnowledgeSearch({project}){
     {lastDownload.downloaded} novo(s) PDF(s); {lastDownload.restored||0} restaurado(s); {lastDownload.existing} já existente(s).
     Confira os arquivos na biblioteca acima.</p>}
   </>}
+  <details>
+   <summary>Adicionar documento próprio (opcional)</summary>
+   <div className="catalogForm" style={{display:"grid",gap:9,padding:12}}>
+    <label>Arquivo PDF, DOCX ou TXT
+     <input type="file" accept=".pdf,.docx,.txt" disabled={busy}
+      onChange={e=>{
+       const chosen=e.target.files?.[0]||null;
+       setUploadFile(chosen);setUploadTitle(chosen?.name||"");
+      }}/>
+    </label>
+    <label>Título<input value={uploadTitle} disabled={busy}
+     onChange={e=>setUploadTitle(e.target.value)}/></label>
+    <label>Órgão emissor<input value={uploadSource} disabled={busy}
+     onChange={e=>setUploadSource(e.target.value)}/></label>
+    <label>Referência<input value={uploadReference} disabled={busy}
+     onChange={e=>setUploadReference(e.target.value)}/></label>
+    <label>Descrição<textarea value={uploadDescription} disabled={busy}
+     onChange={e=>setUploadDescription(e.target.value)}/></label>
+    <div className="actions">
+     <button type="button" disabled={busy||!uploadFile} onClick={uploadOwn}>
+      Adicionar documento ao projeto
+     </button>
+    </div>
+   </div>
+  </details>
+    <KnowledgeLibrary project={project} revision={libraryVersion}
+   onResearchAgain={doSearch}
+   researchEnabled={!busy&&topic.trim().length>=3&&groups.length>0&&categories.length>0}
+   onDocumentDeleted={()=>invalidate("Documento removido. Clique em Refazer pesquisa para consultar as fontes novamente e reincorporar o que desejar.")}/>
   {previous.length>0&&<details>
-   <summary>Pesquisas anteriores ({previous.length})</summary>
+   <summary>Histórico — {previous.length} assunto(s) pesquisado(s) (opcional)</summary>
    <div style={{display:"grid",gap:6,padding:12}}>
     {previous.map(item=><button key={item.id} disabled={busy} type="button"
      style={{textAlign:"left"}} onClick={()=>run(async()=>{
       const data=await api(base+"/discovery/"+encodeURIComponent(item.id));
       setResult(data);setSelected([]);setLastDownload(null);
       setNotice("Pesquisa recuperada. Marque os arquivos que deseja incorporar.");
-     })}>{item.topic} · {item.count||0} referências</button>)}
+     })}>{item.topic} · última pesquisa · {item.count||0} referências</button>)}
    </div>
   </details>}
  </section>;
